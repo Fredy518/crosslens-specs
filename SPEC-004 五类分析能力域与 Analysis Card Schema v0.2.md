@@ -1,7 +1,7 @@
 # SPEC-004：五类分析能力域与 Analysis Card Schema
 
-**版本：** v0.2.1
-**状态：** Draft
+**版本：** v0.2.2
+**状态：** Review
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4
 **文档类型：** 能力域规格 / Analysis Card Schema
@@ -10,6 +10,17 @@
 ---
 
 ## 0. 版本说明
+
+v0.2.2 在 v0.2.1 基础上微修订。状态由 Draft 升级为 Review。主要补齐：
+
+1. **P0** `domain_status → stance` 映射约束（§8.3）：阻止矛盾组合；
+2. **P0** `constraint_exports` 的 `value_path` 根节点与 label 引用语法说明（§9.1）；
+3. **P0** `source_event_generation_type` 来源归属澄清（§26.1 + SPEC-003 同步需求）；
+4. **P1** `valid_until` 推导逻辑补充（§4.3 参考表）；
+5. **P1** `missing_required_evidence` 来源基准说明（§45）；
+6. **P2** Sentiment `sentiment_vs_valuation` 冲突归属修正（§33 → §21）；
+7. **P2** 关闭开放问题 #1（confidence 跨域比较）和 #4（Sentiment 权重提升）；
+8. 小修：stance 反方证据覆盖范围、confidence 降幅默认值、evidence_ref 无效处理、总结措辞。
 
 v0.2.1 在 v0.2 基础上微修订。不改变能力域设计，只补齐 schema 精度缺口：
 
@@ -28,7 +39,7 @@ v0.2 合并 SPEC-004 v0.1 初稿与 v0.1.1 微补丁。主要收紧：
 5. Conflict Detection 对 Flag Card 的处理对齐 SPEC-003；
 6. Analysis Card 增加 `data_freshness`；
 7. 增加跨域 `time_horizon_mismatch` 通用冲突规则；
-8. 关闭 Company Event 官方公告事件标签支撑 Hard Constraint 的 MVP 开放问题。
+8. ~~关闭 Company Event 官方公告事件标签支撑 Hard Constraint 的 MVP 开放问题~~ — **v0.2 已关闭：不能**。
 
 ---
 
@@ -341,6 +352,19 @@ unknown
 
 Playbook Evaluation 在引用 Analysis Card 或 `constraint_exports` 时，必须能够追溯其底层 Evidence Packet 的 `as_of` 时间。如果关键 Hard Constraint 引用的数据超过 Playbook 允许的 freshness window，应返回 `need_more_data` 或 `requires_human_review`。
 
+>`valid_until` 的推导逻辑（v0.2.2 新增）：
+>
+>| freshness_level | 推荐默认 `valid_until` 算法 |
+>|---|---|
+>| real_time | `as_of + 1 天` |
+>| intraday | `as_of + 1 天` |
+>| daily | `as_of + 1 天` |
+>| quarterly | `as_of + 下个财报季截止日` |
+>| event_based | 无默认 TTL，由能力域根据事件类型赋值 |
+>| static | 无 TTL |
+>
+>以上为推荐默认值。具体 TTL 可由 Run Config 覆盖。
+
 ### 4.4 time_horizon 标准化
 
 > v0.2.1 新增。与 §44 跨域 time_horizon_mismatch 冲突规则配套。
@@ -530,6 +554,24 @@ not_applicable
 
 MVP 阶段 Analysis Card 不使用 `strong_positive` 或 `strong_negative`，避免能力域层面过度表达。
 
+### 8.3 domain_status → stance 约束
+
+> v0.2.2 新增。防止 `domain_status` 与 `stance` 的矛盾组合。
+
+`domain_status` 对 `stance` 的合法取值有硬约束：
+
+| domain_status | 合法 stance |
+|---|---|
+| completed | positive / moderately_positive / neutral / mixed / moderately_negative / negative |
+| partial | positive / moderately_positive / neutral / mixed / moderately_negative / negative / insufficient_data |
+| insufficient_data | insufficient_data |
+| failed | not_applicable（或 null） |
+| skipped | not_applicable（或 null） |
+
+若 `domain_status = completed` 但 `stance = insufficient_data`，Post-card Validation 必须将其标记为 `block`。
+
+该约束同时纳入 §41 质量检查规则。
+
 ---
 
 ## 9. constraint_exports
@@ -597,7 +639,23 @@ Label 示例：
 3. Interpreted Evidence 不得导出可支撑 Hard Constraint 的 metric；
 4. facts 默认只能支撑 Soft Constraint；
 5. 所有 export 必须保留 evidence_ref；
-6. 若 evidence_ref 无法追溯，该 export 无效。
+6. 若 evidence_ref 无法追溯，该 export 项应被 Post-card Validation 移除，并在对应 Analysis Card 的 `warnings` 中记录。
+
+### 9.3 value_path 寻址规则
+
+> v0.2.2 新增。
+
+`value_path` 的根节点是对应 Evidence Packet 的 `metrics` 字典。
+
+```text
+evidence_ref → Evidence Packet → .metrics → .{value_path}
+```
+
+示例：`"evidence_ref": "ev_financial_001"` + `"value_path": "metrics.revenue_growth_ttm"` → 解析为 `ev_financial_001.metrics.revenue_growth_ttm`。
+
+若 `export_type = fact`，无 `value_path`，Playbook Constraint 通过 `export_ref` 的 `fact://` URI 引用事实标签（如 `fact://retail_sentiment_overheated`），判断规则由 SPEC-006 Playbook 规范定义。
+
+若 `export_type = label`，`label_value` 携带枚举值，Playbook Constraint 通过 `export_ref` 引用该 label 实体，并使用比较表达式（如 `!= downtime`）判断 `label_value`。完整 label constraint 引用语法由 SPEC-006 定义。
 
 ---
 
@@ -1086,6 +1144,7 @@ Fundamentals 是 MVP 中最主要的 Hard Constraint 来源。
 | 冲突类型 | 示例 | 默认严重度 |
 |---|---|---|
 | fundamentals_vs_valuation | 增长强但估值过高 | medium |
+| **fundamentals_valuation_vs_sentiment** | **估值高且市场情绪极热，形成追高风险** | **high** |
 | fundamentals_vs_event | 基本面稳定但重大负面事件出现 | high |
 | fundamentals_vs_sentiment | 基本面改善但情绪极度悲观 | medium |
 | fundamentals_vs_technical | 长期基本面好但短期趋势走弱 | medium |
@@ -1378,6 +1437,8 @@ capital_return_announced
 }
 ```
 
+>`source_event_generation_type` 字段说明（v0.2.2 新增）：该字段的值来自 source event 对应 Evidence Packet 的 `generation_type` 字段（定义见 SPEC-003 §7）。SPEC-004 不新增 Evidence Packet schema 字段；此字段由 Company Event 能力域在生成 `constraint_exports` 时从底层 Evidence 读取并透传。建议 SPEC-003 同步在 Computed Event Metric Evidence Packet 示例中增加对 source event 的 lineage 引用。
+
 ---
 
 ## 27. Company Event / Catalyst 常见冲突类型
@@ -1574,10 +1635,11 @@ Sentiment 默认不导出可支撑 Hard Constraint 的字段。
 | 冲突类型 | 示例 | 默认严重度 |
 |---|---|---|
 | sentiment_vs_fundamentals | 情绪极热但基本面未改善 | high |
-| sentiment_vs_valuation | 情绪极热且估值过高 | high |
 | sentiment_vs_event | 情绪负面但公司事件正面 | medium |
 | sentiment_vs_technical | 情绪过热但价格趋势仍强 | medium |
 | sentiment_data_noise | 情绪数据低质量 | low |
+
+> **注意：** `sentiment_vs_valuation` 冲突实际是跨域冲突（Sentiment ∩ Fundamentals Valuation）。该冲突类型由 Conflict Detection 节点处理，Fundamentals 侧记录为 `fundamentals_valuation_vs_sentiment`（§21）。按照 §2.2 的能力域隔离原则，Sentiment 能力域不持有估值数据，因此不在本表中直接记录。
 
 ---
 
@@ -1800,7 +1862,7 @@ Technical / Market 可导出 Computed metrics，用于部分 Hard Constraint 或
 4. `confidence` 必须符合上限规则；
 5. 若 `domain_status = completed`，必须至少有一个 supporting_evidence 或 opposing_evidence；
 6. 所有 supporting_evidence 和 opposing_evidence 必须能追溯到 Evidence Packet；
-7. 如果结论为 positive 或 negative，必须包含 opposing_evidence；
+7. 若 `stance ∈ {positive, moderately_positive, negative, moderately_negative}`，必须包含 opposing_evidence；
 8. 如果 data_quality = low，必须包含 warnings；
 9. 如果有 constraint_exports，必须明确 determinism_level 和 can_support_hard_constraint；
 10. 不允许未引用证据的重大判断。
@@ -1900,7 +1962,7 @@ Playbook horizon = 3-6 months
 
 1. 生成 low severity Conflict Report；
 2. 不改变 allowed_actions；
-3. 可轻微降低 confidence_cap；
+3. 可轻微降低 confidence_cap（默认降低 0.05，可由 Run Config 配置）；
 4. 必须进入 Decision Trace；
 5. Decision Trace 应说明：该冲突是周期不一致，不一定是方向冲突。
 
@@ -1923,6 +1985,10 @@ MVP 阶段每个能力域至少需要实现：
 9. domain_payload 输出；
 10. Domain Event Log。
 
+各能力域应在初始化时声明其 required Evidence Packet 类型列表。若声明的 required 项在本次运行中缺失，对应缺失项进入 `evidence_coverage.missing_required_evidence`，并可能导致 `domain_status = partial` 或 `insufficient_data`。
+
+> 其他能力域的 MVP 实现边界统一见本节。Macro/Meso 的 MVP 范围额外定义见 §11.3。
+
 ---
 
 ## 46. 后续 SPEC 依赖
@@ -1940,19 +2006,19 @@ SPEC-004 依赖和影响以下文档：
 
 ## 47. 开放问题
 
-1. Analysis Card confidence 是否需要统一算法，还是由各能力域自评；
+1. ~~Analysis Card confidence 是否需要统一算法~~ — **v0.2.2 已关闭：MVP 阶段 confidence 为能力域自评，不跨域比较**。Conflict Detection 和 Playbook Evaluation 使用 `data_quality` + `domain_status` 组合判断可信度，而非直接比较 confidence 数值。统一算法留待 SPEC-005 或 SPEC-009 定义；
 2. Metric Registry 应归入 SPEC-005 还是 SPEC-006；
 3. ~~Company Event 的官方公告事实能否支撑 Hard Constraint~~ — **v0.2 已关闭：不能**；
-4. Sentiment 是否应在某些短线 Playbook 中提升权重；
+4. ~~Sentiment 是否应在某些短线 Playbook 中提升权重~~ — **v0.2.2 已关闭：Sentiment 的权重提升不在 SPEC-004 层面实现**。能力域设计保持不变，权重调整由 Playbook 在 Soft Constraint 层面声明（SPEC-006）；
 5. Technical / Market 是否需要区分投资型技术分析与交易型技术分析；
 6. Macro / Meso 是否需要单独的行业供需模型扩展文档；
 7. Analysis Card 是否需要版本化 schema。
 
 ---
 
-## 48. v0.2.1 总结
+## 48. v0.2.2 总结
 
-SPEC-004 v0.2.1 定义了五类分析能力域与 Analysis Card Schema。
+SPEC-004 v0.2.2 定义了五类分析能力域与 Analysis Card Schema。
 
 本版本完成以下约束：
 
@@ -1962,18 +2028,20 @@ SPEC-004 v0.2.1 定义了五类分析能力域与 Analysis Card Schema。
 4. 每个能力域只向编排器返回 Analysis Card；
 5. Analysis Card 是结构化投研判断单元；
 6. domain_status 与 data_quality 正交；
-7. confidence 是能力域自评置信度，受双重 cap 约束；
-8. constraint_exports 明确哪些字段可支撑 Playbook Constraint；
-9. Fundamentals 是 MVP 中最主要的 Hard Constraint 来源；
-10. Sentiment 默认降权，不支撑 Hard Constraint；
-11. Macro / Meso 在 MVP 中主要提供背景和风险约束；
-12. Technical / Market 可支撑部分风险和择时约束，但不单独支撑长期买入；
-13. Company Event / Catalyst 事件标签一律不支撑 Hard Constraint，仅 4 个 Computed metrics 可支撑；
-14. 各能力域 domain_payload 使用明确枚举 allowlist；
-15. Analysis Card 增加 data_freshness 字段；
-16. 增加 `macro_regime_vs_playbook` 和 `time_horizon_mismatch` 冲突规则；
-17. Conflict Detection 对 Flag Card 的处理对齐 SPEC-003；
-18. 每个能力域输出必须可被 Validation、Conflict Detection、Playbook Evaluation 和 Decision Trace 消费。
+7. domain_status 对 stance 有硬约束映射；
+8. confidence 是能力域自评置信度，受双重 cap 约束，MVP 阶段不跨域比较；
+9. constraint_exports 多态化（metric / fact / label），含 value_path 寻址规则和 label 引用语法；
+10. Fundamentals 是 MVP 中最主要的 Hard Constraint 来源；
+11. Sentiment 默认降权，不支撑 Hard Constraint；
+12. Macro / Meso 在 MVP 中主要提供背景和风险约束；
+13. Technical / Market 可支撑部分风险和择时约束，但不单独支撑长期买入；
+14. Company Event / Catalyst 事件标签一律不支撑 Hard Constraint，仅 4 个 Computed metrics 在满足 lineage 约束（source_event 已确认 + 非 Interpreted）时可支撑；
+15. 各能力域 domain_payload 使用明确枚举 allowlist；
+16. Analysis Card 含 data_freshness（含条件必填规则和 valid_until 推导参考表）；
+17. time_horizon 标准化字段支持 Conflict Detection 机器判断；
+18. 增加 `macro_regime_vs_playbook`、`time_horizon_mismatch`、`fundamentals_valuation_vs_sentiment` 冲突规则；
+19. Conflict Detection 对 Flag Card 的处理对齐 SPEC-003；
+20. 每个能力域输出必须可被 Validation、Conflict Detection、Playbook Evaluation 和 Decision Trace 消费。
 
 SPEC-004 的核心设计原则是：
 
