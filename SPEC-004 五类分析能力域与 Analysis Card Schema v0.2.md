@@ -3,7 +3,7 @@
 **版本：** v0.2
 **状态：** Draft
 **项目名称：** crosslens
-**依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.3
+**依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4
 **文档类型：** 能力域规格 / Analysis Card Schema
 **目标阶段：** 产品机制设计 / MVP 架构定义
 
@@ -65,7 +65,7 @@ SPEC-004 用于定义 crosslens 中五类分析能力域的职责边界、输入
 
 ## 2. 继承自 SPEC-003 的架构约束
 
-SPEC-004 必须继承 SPEC-003 v0.3.3 的核心架构约束。
+SPEC-004 必须继承 SPEC-003 v0.3.4 的核心架构约束。
 
 ### 2.1 能力域不是 Agent
 
@@ -132,7 +132,7 @@ Error / Warning / Data Quality Flags
 
 ### 2.4 Hard Constraint 默认只能引用 Computed Evidence metrics
 
-继承 SPEC-003 v0.3.3 的规则：
+继承 SPEC-003 v0.3.4 的规则：
 
 1. Hard Constraint 默认只能引用 `determinism_level = computed` 的 `metrics`；
 2. Structured Evidence 的 metrics 若用于 Hard Constraint，必须标记为 `conditional_hard_constraint`；
@@ -1004,9 +1004,9 @@ Fundamentals 是 MVP 中最主要的 Hard Constraint 来源。
 
 ## 22. Fundamentals MVP 降级规则
 
-> v0.2 更新：对齐 SPEC-003 v0.3.3 §23 的规则。
+> v0.2 更新：对齐 SPEC-003 v0.3.4 §23 的规则。
 
-Fundamentals Card 是 MVP 阶段生成完整 Decision Candidate 的必要条件。该规则与 SPEC-003 v0.3.3 §23 的最小可用 Analysis Card 阈值一致。
+Fundamentals Card 是 MVP 阶段生成完整 Decision Candidate 的必要条件。该规则与 SPEC-003 v0.3.4 §23 的最小可用 Analysis Card 阈值一致。
 
 1. 若 Fundamentals Card `domain_status = completed`，可进入后续流程；
 2. 若 Fundamentals Card `domain_status = partial`，可进入后续流程，但必须进入 Validation 与 Decision Trace；
@@ -1670,7 +1670,7 @@ Technical / Market 可导出 Computed metrics，用于部分 Hard Constraint 或
 
 ## 42. 能力域输出与 Conflict Detection 的关系
 
-> v0.2 更新：对齐 SPEC-003 v0.3.3 §13.4。
+> v0.2 更新：对齐 SPEC-003 v0.3.4 §13.4。
 
 Conflict Detection 只读取通过 Post-card Validation 的 Analysis Cards。
 

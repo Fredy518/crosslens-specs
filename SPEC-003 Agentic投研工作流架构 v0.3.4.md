@@ -1,6 +1,6 @@
 # SPEC-003：Agentic 投研工作流架构
 
-**版本：** v0.3.3  
+**版本：** v0.3.4  
 **状态：** Draft  
 **项目名称：** crosslens  
 **依赖文档：** SPEC-001 v0.4  
@@ -11,15 +11,16 @@
 
 ## 0. 版本说明
 
-本文件是 SPEC-003 v0.3.2 与 v0.3.3 微补丁的完整合并版。
+本文件是 SPEC-003 v0.3.3 的微修订版。
 
-v0.3.3 不改变 v0.3.2 的架构方向，只补齐三个规格完整性缺口：
+v0.3.4 不改变架构方向，只补齐四个规格完整性缺口：
 
-1. Conflict escalation rules；
-2. Event Log MVP schema；
-3. Resolved Decision Bounds 正式 schema。
+1. Evidence Packet `confidence` 字段取值规则占位（§6.4 NOTE）；
+2. Pre-decision Validation 与 §23 最小阈值的交叉引用（§13.2）；
+3. Decision Candidate `key_supporting_reasons` / `key_opposing_reasons` / `next_steps` 填充规则（§18.1 新增）；
+4. `analysis_incomplete` 通知对象补齐 `task_id` 和 `run_id`（§17.3）。
 
-自本版本起，`SPEC-003 Agentic投研工作流架构 v0.3.3.md` 是当前唯一有效的 SPEC-003 正文。
+自本版本起，`SPEC-003 Agentic投研工作流架构 v0.3.4.md` 是当前唯一有效的 SPEC-003 正文。
 
 ---
 
@@ -277,6 +278,8 @@ Evidence Packet 至少包含：
 14. data_quality；
 15. time_horizon；
 16. limitations。
+
+> **NOTE：** `confidence` 的取值规则取决于 `generation_type`。Computed Evidence 的 confidence 是否默认为 1.0、Structured Evidence 的 confidence 由哪个模型输出、Interpreted Evidence 的 confidence 如何赋值——这些规则尚未在 SPEC-003 中定义。MVP 实现前必须在 SPEC-004（能力域）或 SPEC-005（Capability Package）中明确，否则 §12（Hard Constraint 确定性污染）中的"不得默认为 1.0"规则将缺少下游实现依据。
 
 ```json
 {
@@ -700,6 +703,8 @@ Post-card Validation Report
 7. 是否应将最终输出降级为 analysis_incomplete。
 
 Pre-decision Validation 不判断 Playbook Hard Constraint 是否可执行。该判断由 Playbook Evaluation 阶段负责。
+
+> 最小 Analysis Card 阈值的完整定义见 §23。Pre-decision Validation 只检查 §23 列出的前四项条件；第 5 项由 Playbook Evaluation 自行处理。
 
 ### 13.3 Validation Report 最小 schema
 
@@ -1130,6 +1135,8 @@ run_status = analysis_incomplete
 ```json
 {
   "message_type": "analysis_incomplete_notice",
+  "task_id": "task_001",
+  "run_id": "run_001",
   "suggested_next_step": "need_more_data"
 }
 ```
@@ -1184,6 +1191,29 @@ suggested_action ∈ allowed_actions
 ```
 
 若不满足，Guardrail Checker 或 Evaluator 必须阻止输出。
+
+### 18.1 字段填充规则
+
+> v0.3.4 新增。
+
+`key_supporting_reasons`、`key_opposing_reasons`、`next_steps` 是 Decision Trace 的关键输入，不得长期留空。
+
+**key_supporting_reasons / key_opposing_reasons：**
+
+1. 若 `suggested_action != need_more_data` 且 `run_status = completed`，至少各填 1 条；
+2. 每条应引用一个 evidence_id 或 analysis_card_ref，或在 Decision Trace 中说明来源；
+3. 最大值不硬限，但建议各不超过 5 条；
+4. 不可与 `action_selection_reason` 全文重复，应提供额外事实或证据引用。
+
+**next_steps：**
+
+1. 必须至少包含 1 条下一步建议；
+2. 每条应区分：属于数据分析建议（"等待 Q2 财报"）、核实建议（"核对管理层指引原文"）还是投资动作建议（"加入观察列表"）；
+3. 建议不应替代 Decision Candidate 的 `suggested_action`，后者是 Playbook 评估后的正式建议。
+
+当 `suggested_action = need_more_data` 时，`next_steps` 必须明确哪些数据缺失，以及建议用户如何补充。
+
+完整展示规范由 SPEC-008 定义。
 
 ---
 
@@ -1786,9 +1816,9 @@ requires_human_review
 
 ---
 
-## 35. v0.3.3 总结
+## 35. v0.3.4 总结
 
-SPEC-003 v0.3.3 是当前完整架构基准版。
+SPEC-003 v0.3.4 是当前完整架构基准版。
 
 本版本完成以下关键闭环：
 

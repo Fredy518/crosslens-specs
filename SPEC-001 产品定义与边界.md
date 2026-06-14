@@ -5,13 +5,13 @@
 **项目名称：** crosslens  
 **产品类型：** 可编排、可审计的 Agentic 投研决策工作流系统  
 **目标阶段：** 产品定义 / 概念验证前置规格  
-**关联文档：** SPEC-003 v0.3.2
+**关联文档：** SPEC-003 v0.3.4
 
 ---
 
 ## 1. v0.4 修订目标
 
-SPEC-001 v0.4 的目标不是扩展产品细节，而是对齐 SPEC-003 v0.3.2 中已经稳定下来的架构定义。
+SPEC-001 v0.4 的目标不是扩展产品细节，而是对齐 SPEC-003 v0.3.4 中已经稳定下来的架构定义。
 
 v0.4 主要修订：
 
@@ -19,7 +19,7 @@ v0.4 主要修订：
 2. 增加核心对象链占位，明确 crosslens 不是 LLM 直接输出建议，而是对象流转型投研工作流；
 3. 将 Evidence Packet、Analysis Card、Validation Report、Conflict Report、Playbook Evaluation Report、Guardrail Report、Resolved Decision Bounds、Decision Candidate、Decision Trace 纳入产品级心智模型；
 4. 明确 SPEC-001 只定义产品定位、边界和核心概念，执行架构以 SPEC-003 为准；
-5. 将后续 SPEC 列表与 SPEC-003 v0.3.2 对齐。
+5. 将后续 SPEC 列表与 SPEC-003 v0.3.4 对齐。
 
 ---
 
@@ -498,7 +498,7 @@ crosslens 输出 Decision Candidate，不输出收益承诺，不替代用户最
 
 ## 16. SPEC-001 v0.4 总结
 
-SPEC-001 v0.4 将 crosslens 的产品定义与 SPEC-003 v0.3.2 的执行架构对齐。
+SPEC-001 v0.4 将 crosslens 的产品定义与 SPEC-003 v0.3.4 的执行架构对齐。
 
 核心结论：
 
