@@ -1,7 +1,7 @@
 # SPEC-006：Investment Playbook 规范
 
-**版本：** v0.1.1
-**状态：** Draft
+**版本：** v0.1.2
+**状态：** Review
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.3
 **文档类型：** 投资方法规格 / Playbook Schema
@@ -10,6 +10,17 @@
 ---
 
 ## 0. 版本说明
+
+v0.1.2 在 v0.1.1 基础上补齐 schema 一致性与执行语义缺口。状态由 Draft 升级为 Review。主要补齐：
+
+1. **P0** `ref_vs_threshold` 顶层/子规则字段名统一（`input_refs` vs `input_ref`）与声明规则（§11.3）；
+2. **P0** `multi_label_avoid` 的 `match_policy` 修正为 `all_refs_in_avoid_values` + `avoid_values` 值绑定语义说明（§14）；
+3. **P1** `overall_result` 优先级：`fail` > `insufficient_data`/`stale_data`（§23.2）；
+4. **P1** `label://event_direction` / `label://event_materiality` → `fact://` 替换（§40、§18.3）；
+5. **P2** Soft Constraint `allowed_evidence_types` 缺省规则（§15）；
+6. **P2** `ref_vs_ref` 增加跨域 `as_of` 一致性检查（§12.3）；
+7. **P2** Invalidating Conditions MVP 执行性质声明（§28）；
+8. 小修：§5.2 `risk_tolerance` 归属、§44 补 SPEC-003 依赖、§21.1 `block_add_position` 说明。
 
 v0.1.1 在 v0.1 基础上补齐执行层语义缺口。不改变 Playbook 主体设计。主要补齐：
 
@@ -201,7 +212,7 @@ Playbook 顶层 schema 采用扁平结构（不使用嵌套 `metadata` 对象）
 
 ### 5.2 Metadata 类字段说明
 
-> Playbook 顶层 schema 采用扁平结构。§6 的 Playbook Metadata 是对顶层 metadata 类字段的展开解释，不表示存在一个嵌套的 `metadata` 对象。
+> Playbook 顶层 schema 采用扁平结构。§6 的 Playbook Metadata 是对顶层 metadata 类字段（包括 `playbook_id`、`playbook_version`、`playbook_name`、`status`、`playbook_type`、`risk_tolerance` 等）的展开解释，不表示存在一个嵌套的 `metadata` 对象。
 
 ---
 
@@ -466,6 +477,8 @@ value(input_refs[0]) <= threshold
 3. 必须包含 `threshold`；
 4. `threshold` 必须与 input_ref 的 value_type 可比较。
 
+> **字段名规则（v0.1.2）：** 顶层 `ref_vs_threshold` Constraint 使用 `input_refs`（数组）。`multi_rule` 内的子规则使用 `input_ref`（单数字符串，因子规则已预设单值语义）。规则引擎解析 `ref_vs_threshold` 时：若在顶层 Constraint 上下文中，读取 `input_refs[0]`；若在 `multi_rule` 子规则上下文中，读取 `input_ref`。文档校验器应在 Schema Validation 阶段检查字段名一致性。
+
 ---
 
 ## 12. ref_vs_ref 模式
@@ -503,7 +516,8 @@ value(left_ref) >= value(right_ref)
 4. 不应包含 `threshold`；
 5. `left_ref` 与 `right_ref` 的 value_type 必须兼容；
 6. 任一 ref 无法解析，Constraint status = `insufficient_data`；
-7. 任一 ref 数据过期，Constraint status = `stale_data`。
+7. 任一 ref 数据过期，Constraint status = `stale_data`；
+8. `left_ref` 与 `right_ref` 的 `data_freshness.as_of` 差值应不超过 Playbook 的 `max_age_days`。若超过，规则引擎应标记 `flag` 并进入 Decision Trace，但不自动变更 Constraint status。
 
 ---
 
@@ -577,7 +591,7 @@ none
     "label://liquidity_environment"
   ],
   "avoid_values": ["tightening", "contracting"],
-  "match_policy": "all_avoid_values_present",
+  "match_policy": "all_refs_in_avoid_values",
   "on_fail": "require_human_review",
   "on_insufficient_data": "note"
 }
@@ -597,7 +611,9 @@ all_refs_in_avoid_values
 | `all_avoid_values_present` | avoid_values 中所有值都至少出现一次 |
 | `all_refs_in_avoid_values` | 所有 input_refs 的值都落入 avoid_values |
 
-MVP 至少实现 `all_avoid_values_present`。
+MVP 至少实现 `all_refs_in_avoid_values`。
+
+> **`avoid_values` 值绑定语义（v0.1.2）：** `avoid_values` 不与 `input_refs` 逐一绑定。匹配基于整体值集合——即"所有 input_ref 的值是否都落在 avoid_values 集合中"。例如 `rate_environment = "tightening"` + `liquidity_environment = "contracting"` → 两个值都 ∈ `["tightening", "contracting"]` → 触发。若需要精确绑定（如"rate_environment 必须是 tightening 且 liquidity_environment 必须是 contracting"），应使用 `multi_rule` + 两个独立 `ref_vs_threshold` 子规则。
 
 ---
 
@@ -623,6 +639,8 @@ Soft Constraint 可以引用 metric、fact、label、stance、domain_payload、i
   "allowed_evidence_types": ["structured", "computed"]
 }
 ```
+
+>`allowed_evidence_types` 为可选字段。缺省时 Soft Constraint 允许引用所有 evidence type（computed、structured、interpreted），但 Interpreted Evidence 不得单独支撑强建议（§20.3）。
 
 ### 15.2 Soft Constraint 不得直接产生强建议
 
@@ -725,6 +743,7 @@ MVP 推荐使用 derived fact 避免歧义：
 ```text
 fact://any_material_event_low_certainty
 fact://latest_material_event_is_confirmed
+fact://any_material_negative_event_unresolved
 ```
 
 ---
@@ -755,7 +774,7 @@ need_more_data
 | block_strong_buy | 禁止强买入 |
 | block_strong_sell | 禁止强卖出 |
 | block_new_position | 禁止新开仓 |
-| block_add_position | 禁止加仓 |
+| block_add_position | 禁止加仓（MVP 中 `add_position` 为默认不支持动作，此值用于未来扩展） |
 | require_human_review | 要求人工复核 |
 | need_more_data | 数据不足，要求补充数据 |
 
@@ -909,6 +928,8 @@ Playbook Evaluation 按以下顺序执行：
 6. Preference 只影响动作排序，不得恢复被移除动作；
 7. Guardrail 与 Validation 仍可在 Resolved Decision Bounds 阶段覆盖 Playbook 结果。
 
+> **`overall_result` 优先级（v0.1.2）：** 规则 1（`fail`）优先于规则 2/3（`insufficient_data`/`stale_data`）。若同时存在 Hard Constraint `fail`，`overall_result` 应保持 `not_passed_for_new_buy`，不因数据缺口覆盖为 `need_more_data`。数据缺口仍须通过 Decision Trace 标记，但不应改变 `fail` 已确立的动作禁止信号。
+
 ---
 
 ## 24. Freshness Requirements
@@ -960,6 +981,8 @@ need_more_data
 prefer_wait
 prefer_add_to_watchlist
 ```
+
+>`block_add_position` 用于未来扩展。MVP 中 `add_position` 为默认不支持动作。
 
 ### 25.2 Schema
 
@@ -1078,6 +1101,8 @@ archive_condition
 |---|---|---|
 | `impact_on_decision` | Playbook Evaluation 当下 | 本次 Constraint 结果如何影响动作边界 |
 | `trigger_action` | 未来失效条件触发时 | 未来发生该条件时系统应如何响应 |
+
+> **MVP 执行性质（v0.1.2）：** Invalidating Conditions 在 MVP 阶段为前瞻性失效提示，不作为可自动检测的触发规则运行。`input_refs` 字段记录关联指标供人类阅读和未来系统自动检测使用。完整自动触发机制由后续 SPEC（Playbook Applicability Evaluator 或 SPEC-009 Governance）定义。当前版本中，`trigger_action` 值进入 Decision Trace，但不被规则引擎执行。
 
 ---
 
@@ -1266,7 +1291,7 @@ archive_condition
     "label://liquidity_environment"
   ],
   "avoid_values": ["tightening", "contracting"],
-  "match_policy": "all_avoid_values_present",
+  "match_policy": "all_refs_in_avoid_values",
   "on_fail": "require_human_review"
 }
 ```
@@ -1490,8 +1515,7 @@ archive_condition
     "condition_id": "major_negative_event",
     "description": "出现重大负面公司事件。",
     "input_refs": [
-      "label://event_direction",
-      "label://event_materiality"
+      "fact://any_material_negative_event_unresolved"
     ],
     "trigger_action": "requires_human_review"
   }
@@ -1565,11 +1589,12 @@ MVP 暂不实现：用户可视化编辑复杂 Playbook、多 Playbook 对比、
 
 ## 44. 后续 SPEC 依赖
 
-1. SPEC-005：Capability Package 规范；
-2. SPEC-007：Orchestration 与执行路径；
-3. SPEC-008：Decision Trace 与 Observability；
-4. SPEC-009：Governance、Guardrails、Evaluator 与人工介入；
-5. SPEC-012：数据治理与用户私有数据。
+1. SPEC-003：Agentic 投研工作流架构（Playbook 消费其核心对象定义）；
+2. SPEC-005：Capability Package 规范；
+3. SPEC-007：Orchestration 与执行路径；
+4. SPEC-008：Decision Trace 与 Observability；
+5. SPEC-009：Governance、Guardrails、Evaluator 与人工介入；
+6. SPEC-012：数据治理与用户私有数据。
 
 ---
 
@@ -1585,9 +1610,9 @@ MVP 暂不实现：用户可视化编辑复杂 Playbook、多 Playbook 对比、
 
 ---
 
-## 46. v0.1.1 总结
+## 46. v0.1.2 总结
 
-SPEC-006 v0.1.1 定义了 Investment Playbook 的核心结构、执行语义与 MVP 默认 Playbook。
+SPEC-006 v0.1.2 定义了 Investment Playbook 的核心结构、执行语义与 MVP 默认 Playbook。
 
 本版本完成：
 
