@@ -1,6 +1,6 @@
 # SPEC-004：五类分析能力域与 Analysis Card Schema
 
-**版本：** v0.2
+**版本：** v0.2.1
 **状态：** Draft
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4
@@ -10,6 +10,14 @@
 ---
 
 ## 0. 版本说明
+
+v0.2.1 在 v0.2 基础上微修订。不改变能力域设计，只补齐 schema 精度缺口：
+
+1. **P0** constraint_exports 改为多态结构（§9.1）：同时容纳 `metric` / `fact` / `label`，新增 `export_type`、`export_ref`、`allowed_constraint_types`；
+2. **P1** Company Event 四个 Computed metrics 增加 lineage 约束（§26.1）：必须 `source_event_certainty = confirmed` 且非 Interpreted Evidence；
+3. **P1** `data_freshness` 从"可选但推荐"升级为条件必填（§4.3）：`domain_status ∈ {completed, partial}` 且 `constraint_exports` 非空时必填；
+4. **P1** `time_horizon` 增加标准化字段（§4.4）：`time_horizon_bucket` / `time_horizon_days_min` / `time_horizon_days_max`；
+5. **P2** Company Event 增加 `event_type` 枚举 allowlist（§25.1）。
 
 v0.2 合并 SPEC-004 v0.1 初稿与 v0.1.1 微补丁。主要收紧：
 
@@ -182,6 +190,9 @@ Analysis Card 的作用是：
     "估值指标可靠，但未来增长假设仍存在不确定性"
   ],
   "time_horizon": "6-12 months",
+  "time_horizon_bucket": "medium_term",
+  "time_horizon_days_min": 180,
+  "time_horizon_days_max": 365,
   "data_quality": "medium",
   "data_freshness": {
     "as_of": "2026-06-14",
@@ -226,11 +237,13 @@ Analysis Card 的作用是：
   ],
   "constraint_exports": [
     {
-      "metric_ref": "metric://revenue_growth_ttm",
+      "export_type": "metric",
+      "export_ref": "metric://revenue_growth_ttm",
       "evidence_ref": "ev_financial_001",
       "value_path": "metrics.revenue_growth_ttm",
       "determinism_level": "computed",
-      "can_support_hard_constraint": true
+      "can_support_hard_constraint": true,
+      "allowed_constraint_types": ["hard", "soft"]
     }
   ],
   "domain_payload": {},
@@ -253,7 +266,10 @@ Analysis Card 的作用是：
 | `stance` | 能力域立场 |
 | `confidence` | 能力域自评置信度 |
 | `confidence_reason` | 置信度来源说明 |
-| `time_horizon` | 判断适用周期 |
+| `time_horizon` | 判断适用周期（自然语言表述） |
+| `time_horizon_bucket` | 周期分桶：`intraday` / `short_term` / `medium_term` / `long_term` / `unknown`（v0.2.1 新增） |
+| `time_horizon_days_min` | 适用周期最短天数（v0.2.1 新增） |
+| `time_horizon_days_max` | 适用周期最长天数（v0.2.1 新增） |
 | `data_quality` | 数据质量 |
 | `data_freshness` | 数据新鲜度与时效标记（v0.2 新增） |
 | `evidence_coverage` | 证据覆盖情况 |
@@ -270,7 +286,16 @@ Analysis Card 的作用是：
 
 ### 4.3 data_freshness
 
-> v0.2 新增字段。可选但推荐。
+> v0.2 新增字段。v0.2.1 升级为条件必填。
+
+`data_freshness` 为可选但强烈推荐字段。
+
+**条件必填规则：** 当 Analysis Card 同时满足以下条件时，`data_freshness` 必填：
+
+1. `domain_status = completed` 或 `partial`；
+2. `constraint_exports` 非空（即该 Card 有可被 Playbook 引用的导出项）。
+
+若 `constraint_exports` 非空但 `data_freshness` 缺失，Playbook Evaluation 应将其 `staleness_risk` 视为 `unknown`，并在 Decision Trace 中标记。
 
 ```json
 {
@@ -315,6 +340,30 @@ unknown
 ```
 
 Playbook Evaluation 在引用 Analysis Card 或 `constraint_exports` 时，必须能够追溯其底层 Evidence Packet 的 `as_of` 时间。如果关键 Hard Constraint 引用的数据超过 Playbook 允许的 freshness window，应返回 `need_more_data` 或 `requires_human_review`。
+
+### 4.4 time_horizon 标准化
+
+> v0.2.1 新增。与 §44 跨域 time_horizon_mismatch 冲突规则配套。
+
+`time_horizon` 保留自然语言字段供 Agent 和人类阅读，同时增加三个机器可读字段：
+
+| 字段 | 含义 |
+|---|---|
+| `time_horizon_bucket` | 标准化周期分桶 |
+| `time_horizon_days_min` | 适用周期最短天数（整数） |
+| `time_horizon_days_max` | 适用周期最长天数（整数） |
+
+`time_horizon_bucket` 枚举：
+
+```text
+intraday       （< 5 天）
+short_term     （5 天 - 3 个月）
+medium_term    （3 个月 - 1 年）
+long_term      （> 1 年）
+unknown
+```
+
+Conflict Detection 使用 `time_horizon_bucket` 或 `time_horizon_days_*` 判断时间周期是否"相差一个数量级以上"（§44），而非解析自然语言字符串。
 
 ---
 
@@ -487,17 +536,59 @@ MVP 阶段 Analysis Card 不使用 `strong_positive` 或 `strong_negative`，避
 
 `constraint_exports` 用于告诉 Playbook Evaluation：该 Analysis Card 中哪些指标或事实可以被 Constraint 引用。
 
-### 9.1 最小结构
+### 9.1 多态结构
+
+> v0.2.1 更新：原最小结构仅支持 metric_ref，现改为多态，同时容纳 metric、fact、label。
 
 ```json
 {
-  "metric_ref": "metric://revenue_growth_ttm",
+  "export_type": "metric",
+  "export_ref": "metric://revenue_growth_ttm",
   "evidence_ref": "ev_financial_001",
   "value_path": "metrics.revenue_growth_ttm",
   "determinism_level": "computed",
-  "can_support_hard_constraint": true
+  "can_support_hard_constraint": true,
+  "allowed_constraint_types": ["hard", "soft"]
 }
 ```
+
+Fact 示例：
+
+```json
+{
+  "export_type": "fact",
+  "export_ref": "fact://retail_sentiment_overheated",
+  "evidence_ref": "ev_sentiment_001",
+  "determinism_level": "structured",
+  "can_support_hard_constraint": false,
+  "allowed_constraint_types": ["soft"]
+}
+```
+
+Label 示例：
+
+```json
+{
+  "export_type": "label",
+  "export_ref": "label://industry_cycle_stage",
+  "label_value": "early_recovery",
+  "evidence_ref": "ev_industry_cycle_001",
+  "determinism_level": "structured",
+  "can_support_hard_constraint": false,
+  "allowed_constraint_types": ["soft"]
+}
+```
+
+| 字段 | 含义 |
+|---|---|
+| `export_type` | `metric` / `fact` / `label` |
+| `export_ref` | Playbook Constraint 引用的实体 URI |
+| `label_value` | 仅 `export_type = label` 时必填，枚举值 |
+| `evidence_ref` | 底层 Evidence Packet 引用 |
+| `value_path` | 仅 `export_type = metric` 时必填 |
+| `determinism_level` | `computed` / `structured` / `interpreted` |
+| `can_support_hard_constraint` | 是否可支撑 Hard Constraint |
+| `allowed_constraint_types` | 该 export 可用于哪种约束类型（`hard` / `soft` / 两者） |
 
 ### 9.2 规则
 
@@ -1166,6 +1257,25 @@ long_term
 unknown
 ```
 
+#### event_type
+
+> v0.2.1 新增。`event_list[].event_type` 必须使用以下枚举，不允许 Agent 自由发明。
+
+```text
+earnings_release
+guidance_change
+management_change
+product_launch
+major_order
+regulatory_event
+litigation_event
+mna_event
+supply_chain_event
+capital_return_event
+credit_event
+unknown
+```
+
 ### 25.2 完整 payload
 
 ```json
@@ -1238,6 +1348,35 @@ capital_return_announced
 2. 事件标签属于 Structured Evidence 或 Facts，不应直接作为 Hard Constraint 的唯一输入；
 3. 让 Event 能力域自行判断"自己输出的事件标签是否足够可靠"，会形成循环自证；
 4. 官方公告事实能否升级为 Hard Constraint，应由 SPEC-009 Governance 或 SPEC-006 Playbook 机制统一定义。
+
+### 26.1 Computed Event Metrics 的 lineage 约束
+
+> v0.2.1 新增。
+
+以下四个 Computed Event metrics 依赖底层事件识别。若底层事件来自低置信度或不可靠来源，这些 metrics 同样被污染。
+
+因此，Computed Event metrics 只有在以下条件**全部**满足时，才可设 `can_support_hard_constraint = true`：
+
+1. 该 metric 的 source event 可追溯（`source_event_ref` 有效）；
+2. source event 的 `event_certainty = confirmed`；
+3. source event 的生成类型非 `Interpreted Evidence`。
+
+若任一条件不满足，该 metric 必须降级为 `can_support_hard_constraint = false`，`allowed_constraint_types` 降低至 `["soft"]`，或标记为 `conditional_hard_constraint`。
+
+```json
+{
+  "export_type": "metric",
+  "export_ref": "metric://days_since_event",
+  "evidence_ref": "ev_event_timing_001",
+  "value_path": "metrics.days_since_event",
+  "determinism_level": "computed",
+  "can_support_hard_constraint": true,
+  "allowed_constraint_types": ["hard", "soft"],
+  "source_event_ref": "ev_event_001",
+  "source_event_certainty": "confirmed",
+  "source_event_generation_type": "structured"
+}
+```
 
 ---
 
@@ -1811,9 +1950,9 @@ SPEC-004 依赖和影响以下文档：
 
 ---
 
-## 48. v0.2 总结
+## 48. v0.2.1 总结
 
-SPEC-004 v0.2 定义了五类分析能力域与 Analysis Card Schema。
+SPEC-004 v0.2.1 定义了五类分析能力域与 Analysis Card Schema。
 
 本版本完成以下约束：
 
