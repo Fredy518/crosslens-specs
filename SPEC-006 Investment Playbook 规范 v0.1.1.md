@@ -1,0 +1,1634 @@
+# SPEC-006：Investment Playbook 规范
+
+**版本：** v0.1.1
+**状态：** Draft
+**项目名称：** crosslens
+**依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.3
+**文档类型：** 投资方法规格 / Playbook Schema
+**目标阶段：** 产品机制设计 / MVP 架构定义
+
+---
+
+## 0. 版本说明
+
+v0.1.1 在 v0.1 基础上补齐执行层语义缺口。不改变 Playbook 主体设计。主要补齐：
+
+1. Constraint 的四种 `evaluation_mode` 及对应 schema；
+2. `on_missing` / `on_conflict` 枚举收敛与复合语义拆分；
+3. `label://event_certainty` 多事件解析规则；
+4. Invalidating Conditions 的 `impact` → `trigger_action`；
+5. `pe_percentile_5y` freshness 修正；
+6. Constraint Evaluation Result 增加 `task_id` / `run_id`；
+7. Metadata 与顶层 schema 关系澄清；
+8. `risk_tolerance` 字段；
+9. `recommended_decision_bounds` 聚合规则重排。
+
+修订后的核心原则是：
+
+```text
+Playbook constraints must be executable, not merely descriptive.
+```
+
+中文表达：
+
+```text
+Playbook 约束必须可执行，而不只是可读。
+```
+
+---
+
+## 1. 文档目标
+
+SPEC-006 用于定义 crosslens 中 Investment Playbook 的结构、执行语义、约束类型、输入引用、动作边界、版本管理和默认内置 Playbook。
+
+Investment Playbook 是用户投资方法的结构化表达。
+
+它不是普通投资笔记，也不是提示词模板，而是一个可以被编排器、规则引擎、Playbook Evaluation、Resolved Decision Bounds 和 Decision Trace 使用的可执行投资决策手册。
+
+本 SPEC 重点回答：
+
+1. Investment Playbook 是什么；
+2. Playbook 与 Workflow、Capability、Analysis Card、Decision Candidate 的关系是什么；
+3. Playbook 如何表达投资风格、周期、资产范围和风险偏好；
+4. Hard Constraint、Soft Constraint、Preference、Guardrail Hook 如何定义；
+5. Playbook 如何消费 SPEC-004 的 `constraint_exports`；
+6. Playbook 如何生成 Playbook Evaluation Report；
+7. Playbook 如何影响 Resolved Decision Bounds；
+8. Playbook 如何处理数据不足、冲突、过期数据和人工复核；
+9. Playbook 如何版本化和进入 Decision Trace；
+10. MVP 默认 `capital_cycle_fundamental_playbook` 如何定义。
+
+本 SPEC 不详细定义：
+
+1. 五个分析能力域内部实现；
+2. Capability Package 内部封装方式；
+3. Metric Registry 完整系统；
+4. Guardrail 规则全集；
+5. Decision Trace UI；
+6. 用户编辑 Playbook 的完整交互界面；
+7. 多 Playbook 对比与组合管理。
+
+以上内容由后续 SPEC 定义。
+
+---
+
+## 2. Investment Playbook 的定位
+
+Investment Playbook 是投资判断方法的结构化容器。
+
+它定义：
+
+1. 适用的资产范围；
+2. 适用的投资周期；
+3. 风险偏好；
+4. 必须满足的硬性条件；
+5. 需要考虑的软性条件；
+6. 行动边界；
+7. 数据新鲜度要求；
+8. 触发人工复核的条件；
+9. 输出建议的表达方式；
+10. 结论失效条件。
+
+一句话：
+
+> Investment Playbook turns investment style into executable decision constraints.
+
+中文表达：
+
+> Investment Playbook 把投资风格转化为可执行的决策约束。
+
+---
+
+## 3. Playbook 不是什么
+
+Investment Playbook 不是：
+
+1. 单纯的 Prompt；
+2. 长篇投资理念文章；
+3. 自动交易策略；
+4. 收益预测模型；
+5. 选股黑箱；
+6. 多 Agent 角色设定；
+7. 替用户做最终决策的规则；
+8. 无条件适用于所有市场环境的万能模板。
+
+Playbook 只定义"在什么条件下，某种投资方法允许系统给出什么范围内的判断"。
+
+---
+
+## 4. 与其他核心对象的关系
+
+### 4.1 与 Workflow 的关系
+
+Workflow 定义系统执行顺序。
+Playbook 定义该顺序中哪些条件必须被检查，以及检查结果如何影响动作边界。
+
+Workflow 回答：系统下一步做什么？
+Playbook 回答：用什么投资方法判断？
+
+### 4.2 与 Analysis Card 的关系
+
+Analysis Card 是能力域输出。
+Playbook 不直接调用能力域，也不直接生成 Analysis Card。
+
+Playbook 只消费 Analysis Card 中的：
+
+1. `constraint_exports`；
+2. `stance`；
+3. `confidence`；
+4. `data_quality`；
+5. `data_freshness`；
+6. `supporting_evidence`；
+7. `opposing_evidence`；
+8. `domain_payload`；
+9. `invalidating_conditions`。
+
+### 4.3 与 Playbook Evaluation Report 的关系
+
+Playbook Evaluation Report 是 Playbook 执行后的结果对象。
+Playbook 是规则和方法，Playbook Evaluation Report 是本次任务的执行结果。
+
+### 4.4 与 Resolved Decision Bounds 的关系
+
+Playbook Evaluation Report 生成 `recommended_decision_bounds`。
+Resolved Decision Bounds 再把 Playbook Evaluation、Validation、Conflict、Guardrail 等约束合并成最终动作边界。
+Playbook 不能绕过 Resolved Decision Bounds 直接生成 Decision Candidate。
+
+### 4.5 与 Decision Candidate 的关系
+
+Decision Candidate 的 `suggested_action` 必须满足：
+
+```text
+suggested_action ∈ resolved_decision_bounds.allowed_actions
+```
+
+Playbook 影响 Decision Candidate，但不直接决定最终建议动作。
+
+---
+
+## 5. Playbook 顶层 Schema
+
+Playbook 顶层 schema 采用扁平结构（不使用嵌套 `metadata` 对象）。
+
+### 5.1 最小结构
+
+```json
+{
+  "playbook_id": "capital_cycle_fundamental_playbook",
+  "playbook_version": "0.1.0",
+  "playbook_name": "Capital Cycle Fundamental Playbook",
+  "status": "active",
+  "playbook_type": "single_stock_investment",
+  "risk_tolerance": "medium",
+  "created_by": "system",
+  "created_at": "2026-06-14T00:00:00Z",
+  "updated_at": "2026-06-14T00:00:00Z",
+  "description": "面向资本周期与中长期基本面的单股票投资判断手册。",
+  "applicability": {},
+  "required_domains": [],
+  "optional_domains": [],
+  "constraints": [],
+  "preferences": [],
+  "freshness_requirements": [],
+  "conflict_handling": {},
+  "action_policy": {},
+  "human_review_policy": {},
+  "output_policy": {},
+  "invalidating_conditions": [],
+  "versioning": {}
+}
+```
+
+### 5.2 Metadata 类字段说明
+
+> Playbook 顶层 schema 采用扁平结构。§6 的 Playbook Metadata 是对顶层 metadata 类字段的展开解释，不表示存在一个嵌套的 `metadata` 对象。
+
+---
+
+## 6. Playbook Metadata
+
+### 6.1 字段
+
+```json
+{
+  "playbook_id": "capital_cycle_fundamental_playbook",
+  "playbook_version": "0.1.0",
+  "playbook_name": "Capital Cycle Fundamental Playbook",
+  "status": "active",
+  "playbook_type": "single_stock_investment",
+  "risk_tolerance": "medium",
+  "created_by": "system",
+  "created_at": "2026-06-14T00:00:00Z",
+  "updated_at": "2026-06-14T00:00:00Z",
+  "description": "面向资本周期与中长期基本面的单股票投资判断手册。"
+}
+```
+
+### 6.2 status 枚举
+
+```text
+draft
+active
+deprecated
+archived
+```
+
+MVP 阶段默认只使用 `active`。
+
+### 6.3 risk_tolerance
+
+> v0.1.1 新增。
+
+```text
+low
+medium
+high
+unknown
+```
+
+| risk_tolerance | 语义 |
+|---|---|
+| `low` | 更保守，倾向等待与更高安全边际 |
+| `medium` | 默认平衡模式 |
+| `high` | 可接受更高波动和更早介入 |
+| `unknown` | 未声明风险偏好 |
+
+MVP 默认：`medium`。
+
+---
+
+## 7. Applicability
+
+Applicability 定义 Playbook 适用于什么场景。
+
+### 7.1 Schema
+
+```json
+{
+  "asset_types": ["stock"],
+  "markets": ["US", "HK", "CN"],
+  "investment_horizon": {
+    "time_horizon_bucket": "medium_term",
+    "time_horizon_days_min": 90,
+    "time_horizon_days_max": 365
+  },
+  "supported_task_types": [
+    "single_stock_buy_decision",
+    "single_stock_hold_review",
+    "single_stock_watchlist_review"
+  ],
+  "preferred_user_profile": [
+    "capital_cycle_investor",
+    "fundamental_investor",
+    "industry_cycle_investor"
+  ],
+  "not_suitable_for": [
+    "intraday_trading",
+    "short_term_momentum_trading",
+    "pure_sentiment_trading"
+  ]
+}
+```
+
+### 7.2 适用性检查
+
+MVP 阶段，Playbook Applicability 不作为独立 Evaluator。
+
+但系统必须检查：
+
+1. asset_type 是否匹配；
+2. task_type 是否匹配；
+3. 用户目标周期是否大幅偏离 Playbook 周期；
+4. 是否存在显著 `macro_regime_vs_playbook` 风险；
+5. 是否应进入 `requires_human_review`。
+
+完整 Playbook Applicability Evaluator 由后续 SPEC 定义。
+
+---
+
+## 8. Required Domains 与 Optional Domains
+
+### 8.1 Required Domains
+
+Required Domains 是该 Playbook 生成完整 Decision Candidate 的必要能力域。
+
+```json
+{
+  "required_domains": [
+    {
+      "domain": "fundamentals",
+      "minimum_status": "completed",
+      "on_missing": "analysis_incomplete"
+    }
+  ]
+}
+```
+
+MVP 默认：`fundamentals` 必须可用。
+
+### 8.2 Optional Domains
+
+Optional Domains 是辅助判断能力域。
+
+```json
+{
+  "optional_domains": [
+    {
+      "domain": "macro_meso",
+      "minimum_status": "partial",
+      "on_missing": "continue_with_warning"
+    },
+    {
+      "domain": "company_event_catalyst",
+      "minimum_status": "partial",
+      "on_missing": "continue_with_warning"
+    },
+    {
+      "domain": "sentiment",
+      "minimum_status": "partial",
+      "on_missing": "continue_with_warning"
+    },
+    {
+      "domain": "technical_market",
+      "minimum_status": "partial",
+      "on_missing": "continue_with_warning"
+    }
+  ]
+}
+```
+
+### 8.3 on_missing 枚举
+
+| on_missing | 语义 |
+|---|---|
+| `analysis_incomplete` | 缺失该域时不能生成完整 Decision Candidate |
+| `continue_with_warning` | 可继续，但必须进入 Decision Trace |
+| `skip_domain` | 编排器可主动跳过该域 |
+| `requires_human_review` | 缺失该域时触发人工复核 |
+
+### 8.4 最小可用能力域规则
+
+SPEC-006 继承 SPEC-003 的最小可用 Analysis Card 阈值：
+
+1. 至少 3/5 个能力域返回非 `insufficient_data` 的 Analysis Card；
+2. Fundamentals 必须可用；
+3. 至少一个非 Fundamentals 能力域提供有效支持或反方证据；
+4. 不存在 Block 级 Validation Finding；
+5. Playbook 关键 Hard Constraint 可以判断。
+
+---
+
+## 9. Constraint 类型总览
+
+Playbook 支持三类约束：Hard Constraint、Soft Constraint、Preference。
+
+### 9.1 Hard Constraint
+
+Hard Constraint 是必须由规则引擎执行的硬性条件。MVP 阶段默认只能引用 Computed Evidence metrics。
+
+### 9.2 Soft Constraint
+
+Soft Constraint 可以引用 Computed metrics、Structured facts、labels、Analysis Card stance、domain_payload 和 interpreted findings。必须进入 Decision Trace。
+
+### 9.3 Preference
+
+Preference 表示风格偏好，不应单独阻断动作，但可以影响 action ranking。
+
+---
+
+## 10. Constraint Evaluation Mode
+
+> v0.1.1 新增。每个 Constraint 必须声明 `evaluation_mode`。
+
+### 10.1 evaluation_mode 枚举
+
+```text
+ref_vs_threshold
+ref_vs_ref
+multi_rule
+multi_label_avoid
+```
+
+### 10.2 模式说明
+
+| evaluation_mode | 含义 | 适用场景 |
+|---|---|---|
+| `ref_vs_threshold` | 一个 input_ref 与固定 threshold 比较 | PE 分位 <= 0.8 |
+| `ref_vs_ref` | 两个 ref 相互比较 | 收入增速 >= 行业中位数 |
+| `multi_rule` | 多条子规则组合判断 | 毛利率变化 + FCF 同时满足 |
+| `multi_label_avoid` | 多个 label 不应同时落入 avoid_values | 利率收紧 + 流动性收缩 |
+
+规则引擎不得在缺少 `evaluation_mode` 的情况下推断 Constraint 类型。
+
+---
+
+## 11. ref_vs_threshold 模式
+
+### 11.1 Schema
+
+```json
+{
+  "constraint_id": "valuation_margin_001",
+  "name": "估值不过度昂贵",
+  "constraint_type": "hard",
+  "evaluation_mode": "ref_vs_threshold",
+  "input_refs": ["metric://pe_percentile_5y"],
+  "operator": "<=",
+  "threshold": 0.8,
+  "description": "估值分位不得过高，否则禁止新开仓。",
+  "priority": "high",
+  "on_pass": "support",
+  "on_fail": "block_new_position",
+  "on_insufficient_data": "need_more_data",
+  "on_stale_data": "need_more_data",
+  "evidence_requirements": {
+    "required_determinism_level": "computed",
+    "allow_structured_evidence": false,
+    "allow_interpreted_evidence": false
+  },
+  "freshness_requirement": {
+    "freshness_level": "quarterly",
+    "max_age_days": 120
+  }
+}
+```
+
+### 11.2 执行语义
+
+```text
+value(input_refs[0]) <= threshold
+```
+
+### 11.3 约束
+
+1. `input_refs` 必须恰好包含 1 个元素；
+2. 必须包含 `operator`；
+3. 必须包含 `threshold`；
+4. `threshold` 必须与 input_ref 的 value_type 可比较。
+
+---
+
+## 12. ref_vs_ref 模式
+
+> v0.1.1 新增。
+
+### 12.1 Schema
+
+```json
+{
+  "constraint_id": "growth_vs_industry_001",
+  "name": "收入增长不弱于行业",
+  "constraint_type": "hard",
+  "evaluation_mode": "ref_vs_ref",
+  "left_ref": "metric://revenue_growth_ttm",
+  "right_ref": "metric://industry_median_revenue_growth_ttm",
+  "operator": ">=",
+  "on_fail": "block_new_position",
+  "on_insufficient_data": "need_more_data",
+  "on_stale_data": "need_more_data"
+}
+```
+
+### 12.2 执行语义
+
+```text
+value(left_ref) >= value(right_ref)
+```
+
+### 12.3 约束
+
+1. 必须包含 `left_ref`；
+2. 必须包含 `right_ref`；
+3. 必须包含 `operator`；
+4. 不应包含 `threshold`；
+5. `left_ref` 与 `right_ref` 的 value_type 必须兼容；
+6. 任一 ref 无法解析，Constraint status = `insufficient_data`；
+7. 任一 ref 数据过期，Constraint status = `stale_data`。
+
+---
+
+## 13. multi_rule 模式
+
+> v0.1.1 新增。
+
+### 13.1 Schema
+
+```json
+{
+  "constraint_id": "fundamental_quality_001",
+  "name": "财务质量未恶化",
+  "constraint_type": "hard",
+  "evaluation_mode": "multi_rule",
+  "condition_logic": "all",
+  "rules": [
+    {
+      "rule_id": "gross_margin_not_deteriorating",
+      "evaluation_mode": "ref_vs_threshold",
+      "input_ref": "metric://gross_margin_qoq_change",
+      "operator": ">=",
+      "threshold": -0.05
+    },
+    {
+      "rule_id": "fcf_margin_positive",
+      "evaluation_mode": "ref_vs_threshold",
+      "input_ref": "metric://fcf_margin_ttm",
+      "operator": ">",
+      "threshold": 0
+    }
+  ],
+  "on_fail": "block_new_position",
+  "on_insufficient_data": "need_more_data",
+  "on_stale_data": "need_more_data"
+}
+```
+
+说明：允许毛利率小幅波动（下降不超过 5 百分点），且自由现金流率必须为正。
+
+### 13.2 condition_logic 枚举
+
+```text
+all
+any
+none
+```
+
+| condition_logic | 语义 |
+|---|---|
+| `all` | 所有子规则通过，Constraint 才通过 |
+| `any` | 任一子规则通过，Constraint 即通过 |
+| `none` | 所有子规则均不通过，Constraint 才通过 |
+
+---
+
+## 14. multi_label_avoid 模式
+
+> v0.1.1 新增。
+
+### 14.1 Schema
+
+```json
+{
+  "constraint_id": "macro_environment_001",
+  "name": "宏观环境不明显逆风",
+  "constraint_type": "soft",
+  "evaluation_mode": "multi_label_avoid",
+  "input_refs": [
+    "label://rate_environment",
+    "label://liquidity_environment"
+  ],
+  "avoid_values": ["tightening", "contracting"],
+  "match_policy": "all_avoid_values_present",
+  "on_fail": "require_human_review",
+  "on_insufficient_data": "note"
+}
+```
+
+### 14.2 match_policy 枚举
+
+```text
+any_avoid_value_present
+all_avoid_values_present
+all_refs_in_avoid_values
+```
+
+| match_policy | 触发 fail 的条件 |
+|---|---|
+| `any_avoid_value_present` | 任一 input_ref 的值落入 avoid_values |
+| `all_avoid_values_present` | avoid_values 中所有值都至少出现一次 |
+| `all_refs_in_avoid_values` | 所有 input_refs 的值都落入 avoid_values |
+
+MVP 至少实现 `all_avoid_values_present`。
+
+---
+
+## 15. Soft Constraint 规则
+
+Soft Constraint 可以引用 metric、fact、label、stance、domain_payload、interpreted finding。
+
+### 15.1 Schema
+
+```json
+{
+  "constraint_id": "sentiment_overheat_001",
+  "name": "市场情绪不过热",
+  "constraint_type": "soft",
+  "evaluation_mode": "ref_vs_threshold",
+  "input_refs": ["label://sentiment_state"],
+  "operator": "!=",
+  "threshold": "overheated",
+  "priority": "medium",
+  "on_pass": "neutral",
+  "on_fail": "lower_confidence",
+  "on_insufficient_data": "note",
+  "allowed_evidence_types": ["structured", "computed"]
+}
+```
+
+### 15.2 Soft Constraint 不得直接产生强建议
+
+Soft Constraint 可以：降低 confidence、添加 caution、移除强动作、要求人工复核、进入 Decision Trace。
+不得单独生成 `buy`、`strong_buy`、`strong_sell`。
+
+---
+
+## 16. Preference Schema
+
+```json
+{
+  "preference_id": "prefer_margin_of_safety",
+  "name": "偏好安全边际",
+  "description": "估值没有安全边际时，即使基本面较强，也倾向等待。",
+  "preference_type": "action_ranking",
+  "priority": "high",
+  "effect": "prefer_wait_over_buy_when_valuation_expensive"
+}
+```
+
+Preference 可以影响 action ranking、action_selection_reason、Decision Trace 表达、confidence explanation。不得绕过 Hard Constraint 或 Guardrail。
+
+---
+
+## 17. Constraint Evaluation Result
+
+### 17.1 Schema
+
+```json
+{
+  "constraint_evaluation_result_id": "cer_001",
+  "task_id": "task_001",
+  "run_id": "run_001",
+  "constraint_id": "valuation_margin_001",
+  "constraint_type": "hard",
+  "evaluation_mode": "ref_vs_threshold",
+  "status": "fail",
+  "input_resolution": [
+    {
+      "input_ref": "metric://pe_percentile_5y",
+      "export_ref": "metric://pe_percentile_5y",
+      "evidence_ref": "ev_valuation_001",
+      "value": 0.83,
+      "determinism_level": "computed",
+      "data_quality": "high",
+      "freshness_level": "quarterly"
+    }
+  ],
+  "operator": "<=",
+  "threshold": 0.8,
+  "result_value": false,
+  "impact_on_decision": "block_new_position",
+  "reason": "PE 估值分位高于 Playbook 允许阈值。"
+}
+```
+
+### 17.2 status 枚举
+
+```text
+pass
+fail
+partial
+insufficient_data
+stale_data
+not_applicable
+error
+```
+
+---
+
+## 18. input_refs 解析规则
+
+### 18.1 引用格式
+
+MVP 阶段支持：`metric://{metric_id}`、`fact://{fact_id}`、`label://{label_id}`。
+
+### 18.2 解析要求
+
+规则引擎执行 Constraint 前，必须解析每个 input_ref，并获得：export_ref、export_type、evidence_ref、value 或 label_value、determinism_level、can_support_hard_constraint、allowed_constraint_types、data_quality、data_freshness、confidence（若适用）。
+
+如果无法解析，Constraint status = `insufficient_data`。
+
+### 18.3 label://event_certainty 多事件解析规则
+
+> v0.1.1 新增。
+
+Company Event / Catalyst 的 `event_certainty` 是 `event_list[]` 内每个事件的属性，不是全局单值。
+
+当 Playbook 引用事件级 label 时，默认解析当前任务相关事件集合中的代表事件：
+
+1. 优先选择 `event_materiality = high` 的事件；
+2. 若多个事件同为 high，选择离当前任务时间最近的事件；
+3. 若仍无法唯一确定，选择 `event_direction = negative` 的事件；
+4. 若仍无法唯一确定，返回 `ambiguous_label_ref`；
+5. `ambiguous_label_ref` 应导致该 Soft Constraint status = `partial` 或 `requires_human_review`。
+
+MVP 推荐使用 derived fact 避免歧义：
+
+```text
+fact://any_material_event_low_certainty
+fact://latest_material_event_is_confirmed
+```
+
+---
+
+## 19. impact_on_decision
+
+Playbook Constraint 使用 SPEC-003 的 `impact_on_decision` 枚举。
+
+```text
+support
+neutral
+caution
+lower_confidence
+block_strong_buy
+block_strong_sell
+block_new_position
+block_add_position
+require_human_review
+need_more_data
+```
+
+| impact_on_decision | 语义 |
+|---|---|
+| support | 支持当前 Playbook 判断 |
+| neutral | 中性 |
+| caution | 增加谨慎说明 |
+| lower_confidence | 降低置信度上限 |
+| block_strong_buy | 禁止强买入 |
+| block_strong_sell | 禁止强卖出 |
+| block_new_position | 禁止新开仓 |
+| block_add_position | 禁止加仓 |
+| require_human_review | 要求人工复核 |
+| need_more_data | 数据不足，要求补充数据 |
+
+---
+
+## 20. Hard Constraint 规则
+
+### 20.1 输入限制
+
+Hard Constraint 默认只能引用 `export_type = metric`、`determinism_level = computed`、`can_support_hard_constraint = true`、`allowed_constraint_types` 含 `hard` 的 export。
+
+### 20.2 Structured Evidence
+
+Structured Evidence 默认不得直接支撑 Hard Constraint。若未来需要 conditional hard constraint，必须由 SPEC-006 Playbook 或 SPEC-009 Governance 显式声明，且该 export 仍不得设置 `can_support_hard_constraint = true`。
+
+### 20.3 Interpreted Evidence
+
+Interpreted Evidence 不得作为 Hard Constraint 的唯一输入。若引用，Constraint 必须降级为 Soft Constraint 或触发 Validation Flag。
+
+### 20.4 确定性污染
+
+继承 SPEC-003：
+
+```text
+A deterministic rule over uncertain evidence is not fully deterministic.
+```
+
+---
+
+## 21. Action Policy
+
+### 21.1 默认动作集合
+
+MVP 动作集合继承 SPEC-003：
+
+```text
+buy
+hold
+wait
+avoid
+reduce
+add_to_watchlist
+hold_if_already_owned
+need_more_data
+```
+
+MVP 默认不支持 `strong_buy`、`strong_sell`、`add_position`。
+
+### 21.2 Schema
+
+```json
+{
+  "default_allowed_actions": [
+    "buy", "hold", "wait", "avoid", "reduce",
+    "add_to_watchlist", "hold_if_already_owned", "need_more_data"
+  ],
+  "default_blocked_actions": ["strong_buy", "strong_sell", "add_position"],
+  "on_hard_constraint_fail": {
+    "block_new_position": ["buy"],
+    "block_add_position": ["add_position"],
+    "need_more_data": ["buy", "hold", "reduce"]
+  }
+}
+```
+
+---
+
+## 22. Playbook Evaluation Report
+
+### 22.1 Schema
+
+```json
+{
+  "playbook_evaluation_report_id": "pbe_001",
+  "task_id": "task_001",
+  "run_id": "run_001",
+  "playbook_id": "capital_cycle_fundamental_playbook",
+  "playbook_version": "0.1.0",
+  "playbook_snapshot_hash": "sha256:...",
+  "applicability_status": "applicable",
+  "constraint_results": [],
+  "preference_results": [],
+  "blocking_conditions": [],
+  "cautionary_conditions": [],
+  "overall_result": "not_passed_for_new_buy",
+  "recommended_decision_bounds": [
+    "wait",
+    "add_to_watchlist",
+    "hold_if_already_owned"
+  ],
+  "requires_human_review": false,
+  "confidence_cap_adjustments": [],
+  "reasoning": []
+}
+```
+
+### 22.2 applicability_status 枚举
+
+```text
+applicable
+partially_applicable
+not_applicable
+requires_human_review
+unknown
+```
+
+### 22.3 overall_result 枚举
+
+```text
+passed
+partially_passed
+not_passed_for_new_buy
+not_passed_for_add_position
+not_suitable_for_playbook
+need_more_data
+requires_human_review
+```
+
+---
+
+## 23. recommended_decision_bounds 聚合规则
+
+> v0.1.1 重排：合并原 §19.1 与 §19.2 为有序执行列表。
+
+### 23.1 执行顺序
+
+Playbook Evaluation 按以下顺序执行：
+
+1. 从 Action Policy 的 `default_allowed_actions` 开始；
+2. 移除 Action Policy 的 `default_blocked_actions`；
+3. 检查 Required Domains；
+4. 解析所有 Constraint input_refs；
+5. 检查 data freshness；
+6. 执行 Hard Constraints；
+7. 执行 Soft Constraints；
+8. 应用 Conflict Handling Policy；
+9. 应用 Preferences；
+10. 生成 `recommended_decision_bounds`；
+11. 记录所有被移除动作及原因；
+12. 生成 Playbook Evaluation Report。
+
+### 23.2 聚合规则
+
+在步骤 6-9 中应用以下规则：
+
+1. 任一关键 Hard Constraint `fail` 且 impact 为 `block_new_position` → 移除 `buy`；
+2. 任一关键 Hard Constraint `insufficient_data` 且 `on_insufficient_data = need_more_data` → `overall_result = need_more_data`；
+3. 任一 Hard Constraint `stale_data` 且 `on_stale_data = need_more_data` → `overall_result = need_more_data`；
+4. 多个 Soft Constraint fail → 降低 confidence cap；
+5. Conflict Handling 可移除动作或降低 confidence；
+6. Preference 只影响动作排序，不得恢复被移除动作；
+7. Guardrail 与 Validation 仍可在 Resolved Decision Bounds 阶段覆盖 Playbook 结果。
+
+---
+
+## 24. Freshness Requirements
+
+### 24.1 Schema
+
+```json
+{
+  "freshness_requirements": [
+    {
+      "input_ref": "metric://revenue_growth_ttm",
+      "freshness_level": "quarterly",
+      "max_age_days": 120,
+      "on_stale_data": "need_more_data"
+    },
+    {
+      "input_ref": "metric://rsi_14d",
+      "freshness_level": "daily",
+      "max_age_days": 3,
+      "on_stale_data": "flag"
+    }
+  ]
+}
+```
+
+### 24.2 规则
+
+1. Hard Constraint 引用的数据必须满足 freshness requirement；
+2. 若关键 Hard Constraint 数据过期，应返回 `stale_data`；
+3. `stale_data` 必须进入 Decision Trace；
+4. 对于 Fundamentals，季度数据过期通常触发 `need_more_data`；
+5. 对于 Technical / Market，日频数据过期通常触发 `flag` 或 `need_more_data`。
+
+---
+
+## 25. Conflict Handling
+
+> v0.1.1 收紧：`on_conflict` 拆分为可执行 `actions` 数组 + 可选 `condition`。
+
+### 25.1 on_conflict 可执行枚举
+
+```text
+note
+lower_confidence
+block_new_position
+block_add_position
+require_human_review
+need_more_data
+prefer_wait
+prefer_add_to_watchlist
+```
+
+### 25.2 Schema
+
+带条件的 Conflict Handling：
+
+```json
+{
+  "conflict_type": "fundamentals_vs_valuation",
+  "default_severity": "medium",
+  "condition": {
+    "input_ref": "label://valuation_state",
+    "operator": "in",
+    "values": ["expensive", "very_expensive"]
+  },
+  "actions": ["block_new_position", "prefer_wait"]
+}
+```
+
+无条件的 Conflict Handling：
+
+```json
+{
+  "conflict_type": "macro_regime_vs_playbook",
+  "default_severity": "high",
+  "actions": ["require_human_review"]
+}
+```
+
+---
+
+## 26. Human Review Policy
+
+### 26.1 Schema
+
+```json
+{
+  "human_review_policy": {
+    "require_review_on": [
+      "high_conflict",
+      "guardrail_block",
+      "validation_block",
+      "macro_regime_vs_playbook",
+      "hard_constraint_insufficient_data",
+      "major_company_event_with_low_certainty"
+    ],
+    "allow_decision_candidate_before_review": false
+  }
+}
+```
+
+若触发，Playbook Evaluation Report 标记 `requires_human_review = true`。
+
+---
+
+## 27. Output Policy
+
+```json
+{
+  "output_policy": {
+    "allow_strong_language": false,
+    "must_show_opposing_evidence": true,
+    "must_show_invalidating_conditions": true,
+    "must_show_data_gaps": true,
+    "must_show_playbook_version": true,
+    "forbid_return_promise": true
+  }
+}
+```
+
+MVP 阶段，所有 Playbook 默认 `allow_strong_language = false`、`forbid_return_promise = true`。
+
+---
+
+## 28. Invalidating Conditions
+
+> v0.1.1 修改：`impact` → `trigger_action`，区分触发阶段动作。
+
+### 28.1 Schema
+
+```json
+{
+  "invalidating_conditions": [
+    {
+      "condition_id": "growth_breakdown",
+      "description": "收入增速低于行业中位数且连续两个季度恶化。",
+      "input_refs": [
+        "metric://revenue_growth_ttm",
+        "metric://industry_median_revenue_growth_ttm"
+      ],
+      "trigger_action": "re_evaluate"
+    },
+    {
+      "condition_id": "valuation_overextension",
+      "description": "估值分位进一步升至极端高位。",
+      "input_refs": ["metric://pe_percentile_5y"],
+      "trigger_action": "avoid_new_position"
+    }
+  ]
+}
+```
+
+### 28.2 trigger_action 枚举
+
+```text
+re_evaluate
+avoid_new_position
+requires_human_review
+reduce_confidence
+notify_user
+archive_condition
+```
+
+### 28.3 与 impact_on_decision 的区别
+
+| 字段 | 阶段 | 含义 |
+|---|---|---|
+| `impact_on_decision` | Playbook Evaluation 当下 | 本次 Constraint 结果如何影响动作边界 |
+| `trigger_action` | 未来失效条件触发时 | 未来发生该条件时系统应如何响应 |
+
+---
+
+## 29. Versioning
+
+每次 Playbook 执行必须记录版本信息。
+
+```json
+{
+  "playbook_id": "capital_cycle_fundamental_playbook",
+  "playbook_version": "0.1.0",
+  "playbook_snapshot_hash": "sha256:...",
+  "playbook_source": "built_in_static"
+}
+```
+
+`snapshot_hash` 应基于 Playbook 完整规范内容生成。若内容发生实质变化，必须更新 `playbook_version`、`snapshot_hash`、`updated_at`。历史 Decision Trace 必须保留当时使用的 Playbook snapshot。
+
+---
+
+# Part A：默认 Playbook
+
+## 30. capital_cycle_fundamental_playbook
+
+### 30.1 定位
+
+`capital_cycle_fundamental_playbook` 是 MVP 默认内置 Playbook。
+
+面向：资本周期投资者、产业周期投资者、中长期基本面投资者、价值与成长结合型投资者、关注行业供需/资本开支/政策环境/估值周期的专业投资者。
+
+不适用于：日内交易、短线情绪交易、纯技术分析交易、高杠杆投机、自动交易。
+
+---
+
+## 31. 默认 Applicability
+
+```json
+{
+  "asset_types": ["stock"],
+  "investment_horizon": {
+    "time_horizon_bucket": "medium_term",
+    "time_horizon_days_min": 90,
+    "time_horizon_days_max": 365
+  },
+  "supported_task_types": [
+    "single_stock_buy_decision",
+    "single_stock_hold_review",
+    "single_stock_watchlist_review"
+  ],
+  "preferred_user_profile": [
+    "capital_cycle_investor",
+    "fundamental_investor",
+    "industry_cycle_investor"
+  ],
+  "not_suitable_for": [
+    "intraday_trading",
+    "short_term_momentum_trading",
+    "pure_sentiment_trading"
+  ]
+}
+```
+
+---
+
+## 32. 默认 Required Domains
+
+```json
+{
+  "required_domains": [
+    {
+      "domain": "fundamentals",
+      "minimum_status": "completed",
+      "on_missing": "analysis_incomplete"
+    }
+  ],
+  "optional_domains": [
+    {
+      "domain": "macro_meso",
+      "minimum_status": "partial",
+      "on_missing": "continue_with_warning"
+    },
+    {
+      "domain": "company_event_catalyst",
+      "minimum_status": "partial",
+      "on_missing": "continue_with_warning"
+    },
+    {
+      "domain": "sentiment",
+      "minimum_status": "partial",
+      "on_missing": "continue_with_warning"
+    },
+    {
+      "domain": "technical_market",
+      "minimum_status": "partial",
+      "on_missing": "continue_with_warning"
+    }
+  ]
+}
+```
+
+---
+
+## 33. 默认 Hard Constraints
+
+### 33.1 财务质量未恶化
+
+```json
+{
+  "constraint_id": "fundamental_quality_001",
+  "name": "财务质量未恶化",
+  "constraint_type": "hard",
+  "evaluation_mode": "multi_rule",
+  "condition_logic": "all",
+  "rules": [
+    {
+      "rule_id": "gross_margin_not_deteriorating",
+      "evaluation_mode": "ref_vs_threshold",
+      "input_ref": "metric://gross_margin_qoq_change",
+      "operator": ">=",
+      "threshold": -0.05
+    },
+    {
+      "rule_id": "fcf_margin_positive",
+      "evaluation_mode": "ref_vs_threshold",
+      "input_ref": "metric://fcf_margin_ttm",
+      "operator": ">",
+      "threshold": 0
+    }
+  ],
+  "on_fail": "block_new_position",
+  "on_insufficient_data": "need_more_data",
+  "on_stale_data": "need_more_data"
+}
+```
+
+说明：允许毛利率小幅波动（下降 ≤ 5 百分点），且自由现金流率必须为正。
+
+### 33.2 收入增长不弱于行业
+
+```json
+{
+  "constraint_id": "growth_vs_industry_001",
+  "name": "收入增长不弱于行业",
+  "constraint_type": "hard",
+  "evaluation_mode": "ref_vs_ref",
+  "left_ref": "metric://revenue_growth_ttm",
+  "right_ref": "metric://industry_median_revenue_growth_ttm",
+  "operator": ">=",
+  "on_fail": "block_new_position",
+  "on_insufficient_data": "need_more_data",
+  "on_stale_data": "need_more_data"
+}
+```
+
+### 33.3 估值不过度昂贵
+
+```json
+{
+  "constraint_id": "valuation_margin_001",
+  "name": "估值不过度昂贵",
+  "constraint_type": "hard",
+  "evaluation_mode": "ref_vs_threshold",
+  "input_refs": ["metric://pe_percentile_5y"],
+  "operator": "<=",
+  "threshold": 0.8,
+  "on_fail": "block_new_position",
+  "on_insufficient_data": "need_more_data",
+  "on_stale_data": "need_more_data"
+}
+```
+
+---
+
+## 34. 默认 Soft Constraints
+
+### 34.1 宏观环境不明显逆风
+
+```json
+{
+  "constraint_id": "macro_environment_001",
+  "name": "宏观环境不明显逆风",
+  "constraint_type": "soft",
+  "evaluation_mode": "multi_label_avoid",
+  "input_refs": [
+    "label://rate_environment",
+    "label://liquidity_environment"
+  ],
+  "avoid_values": ["tightening", "contracting"],
+  "match_policy": "all_avoid_values_present",
+  "on_fail": "require_human_review"
+}
+```
+
+### 34.2 市场情绪不过热
+
+```json
+{
+  "constraint_id": "sentiment_overheat_001",
+  "name": "市场情绪不过热",
+  "constraint_type": "soft",
+  "evaluation_mode": "ref_vs_threshold",
+  "input_refs": ["label://sentiment_state"],
+  "operator": "!=",
+  "threshold": "overheated",
+  "on_fail": "lower_confidence"
+}
+```
+
+### 34.3 技术状态不明显追高
+
+```json
+{
+  "constraint_id": "technical_overextension_001",
+  "name": "技术状态不明显追高",
+  "constraint_type": "soft",
+  "evaluation_mode": "ref_vs_threshold",
+  "input_refs": ["metric://rsi_14d"],
+  "operator": "<=",
+  "threshold": 75,
+  "on_fail": "lower_confidence"
+}
+```
+
+### 34.4 重大事件不处于低确定性状态
+
+> v0.1.1 修正：`label://event_certainty` → `fact://any_material_event_low_certainty`。
+
+```json
+{
+  "constraint_id": "event_certainty_001",
+  "name": "重大事件不处于低确定性状态",
+  "constraint_type": "soft",
+  "evaluation_mode": "ref_vs_threshold",
+  "input_refs": ["fact://any_material_event_low_certainty"],
+  "operator": "!=",
+  "threshold": true,
+  "on_fail": "require_human_review"
+}
+```
+
+---
+
+## 35. 默认 Preferences
+
+```json
+[
+  {
+    "preference_id": "prefer_margin_of_safety",
+    "name": "偏好安全边际",
+    "preference_type": "action_ranking",
+    "priority": "high",
+    "effect": "prefer_wait_over_buy_when_valuation_expensive"
+  },
+  {
+    "preference_id": "avoid_chasing_overheated_sentiment",
+    "name": "避免情绪过热时追高",
+    "preference_type": "action_ranking",
+    "priority": "medium",
+    "effect": "prefer_add_to_watchlist_when_sentiment_overheated"
+  },
+  {
+    "preference_id": "prefer_confirmed_fundamental_quality",
+    "name": "偏好已确认的基本面质量",
+    "preference_type": "confidence_adjustment",
+    "priority": "high",
+    "effect": "lower_confidence_when_fundamentals_partial"
+  }
+]
+```
+
+---
+
+## 36. 默认 Conflict Handling
+
+> v0.1.1 修正：拆分为可执行 `actions`。
+
+```json
+{
+  "macro_regime_vs_playbook": {
+    "default_severity": "high",
+    "actions": ["require_human_review"]
+  },
+  "fundamentals_vs_valuation": {
+    "default_severity": "medium",
+    "condition": {
+      "input_ref": "label://valuation_state",
+      "operator": "in",
+      "values": ["expensive", "very_expensive"]
+    },
+    "actions": ["block_new_position"]
+  },
+  "sentiment_vs_valuation": {
+    "default_severity": "high",
+    "actions": ["lower_confidence", "prefer_wait"]
+  },
+  "technical_vs_fundamentals": {
+    "default_severity": "medium",
+    "condition": {
+      "input_ref": "label://trend_state",
+      "operator": "in",
+      "values": ["downtrend", "trend_reversal"]
+    },
+    "actions": ["prefer_wait"]
+  },
+  "time_horizon_mismatch": {
+    "default_severity": "low",
+    "actions": ["note"]
+  }
+}
+```
+
+---
+
+## 37. 默认 Freshness Requirements
+
+> v0.1.1 修正：`pe_percentile_5y` 从 `daily` 改为 `quarterly`。
+
+```json
+[
+  {
+    "input_ref": "metric://revenue_growth_ttm",
+    "freshness_level": "quarterly",
+    "max_age_days": 120,
+    "on_stale_data": "need_more_data"
+  },
+  {
+    "input_ref": "metric://gross_margin_qoq_change",
+    "freshness_level": "quarterly",
+    "max_age_days": 120,
+    "on_stale_data": "need_more_data"
+  },
+  {
+    "input_ref": "metric://pe_percentile_5y",
+    "freshness_level": "quarterly",
+    "max_age_days": 120,
+    "on_stale_data": "need_more_data"
+  },
+  {
+    "input_ref": "metric://rsi_14d",
+    "freshness_level": "daily",
+    "max_age_days": 3,
+    "on_stale_data": "flag"
+  }
+]
+```
+
+---
+
+## 38. 默认 Human Review Policy
+
+```json
+{
+  "require_review_on": [
+    "high_conflict",
+    "guardrail_block",
+    "validation_block",
+    "macro_regime_vs_playbook",
+    "hard_constraint_insufficient_data",
+    "major_company_event_with_low_certainty"
+  ],
+  "allow_decision_candidate_before_review": false
+}
+```
+
+---
+
+## 39. 默认 Output Policy
+
+```json
+{
+  "allow_strong_language": false,
+  "must_show_opposing_evidence": true,
+  "must_show_invalidating_conditions": true,
+  "must_show_data_gaps": true,
+  "must_show_playbook_version": true,
+  "forbid_return_promise": true
+}
+```
+
+---
+
+## 40. 默认 Invalidating Conditions
+
+> v0.1.1 修正：`impact` → `trigger_action`。
+
+```json
+[
+  {
+    "condition_id": "growth_breakdown",
+    "description": "收入增速低于行业中位数且连续两个季度恶化。",
+    "input_refs": [
+      "metric://revenue_growth_ttm",
+      "metric://industry_median_revenue_growth_ttm"
+    ],
+    "trigger_action": "re_evaluate"
+  },
+  {
+    "condition_id": "valuation_overextension",
+    "description": "估值分位进一步升至极端高位。",
+    "input_refs": ["metric://pe_percentile_5y"],
+    "trigger_action": "avoid_new_position"
+  },
+  {
+    "condition_id": "cashflow_deterioration",
+    "description": "自由现金流率转负或显著恶化。",
+    "input_refs": ["metric://fcf_margin_ttm"],
+    "trigger_action": "re_evaluate"
+  },
+  {
+    "condition_id": "major_negative_event",
+    "description": "出现重大负面公司事件。",
+    "input_refs": [
+      "label://event_direction",
+      "label://event_materiality"
+    ],
+    "trigger_action": "requires_human_review"
+  }
+]
+```
+
+---
+
+## 41. Playbook Evaluation 执行流程
+
+MVP 阶段执行顺序：
+
+```text
+1. Load Playbook
+2. Check Applicability
+3. Resolve Required Domains
+4. Resolve input_refs from constraint_exports
+5. Check data_freshness
+6. Evaluate Hard Constraints
+7. Evaluate Soft Constraints
+8. Apply Conflict Handling Policy
+9. Apply Preferences
+10. Generate Playbook Evaluation Report
+```
+
+Playbook Evaluation 不直接调用能力域。它只消费已有 Analysis Cards 与 Conflict Reports。
+
+---
+
+## 42. 错误与降级策略
+
+### 42.1 input_ref 无法解析
+
+若关键 Hard Constraint 的 input_ref 无法解析：`status = insufficient_data`、`impact_on_decision = need_more_data`。
+
+### 42.2 数据过期
+
+若关键 Hard Constraint 数据过期：`status = stale_data`、`impact_on_decision = need_more_data`。
+
+### 42.3 Soft Constraint 数据缺失
+
+`status = insufficient_data`、`impact_on_decision = note`。
+
+### 42.4 Playbook 不适用
+
+`applicability_status = not_applicable`、`overall_result = not_suitable_for_playbook`。
+
+---
+
+## 43. MVP 实现边界
+
+MVP 必须实现：
+
+1. 静态内置 Playbook；
+2. Playbook Metadata；
+3. Applicability 基础检查；
+4. Required Domains 检查；
+5. 四种 evaluation_mode 的 Hard Constraint Evaluation；
+6. Soft Constraint Evaluation；
+7. Preference 记录；
+8. Freshness Requirements；
+9. Conflict Handling（含 condition + actions 模式）；
+10. Playbook Evaluation Report；
+11. recommended_decision_bounds 聚合；
+12. playbook_snapshot_hash；
+13. Decision Trace 中展示 Playbook 版本和约束结果。
+
+MVP 暂不实现：用户可视化编辑复杂 Playbook、多 Playbook 对比、Playbook Marketplace、Playbook 自动生成、Playbook 自动优化、Playbook Applicability Evaluator、组合级 Playbook、自动交易策略。
+
+---
+
+## 44. 后续 SPEC 依赖
+
+1. SPEC-005：Capability Package 规范；
+2. SPEC-007：Orchestration 与执行路径；
+3. SPEC-008：Decision Trace 与 Observability；
+4. SPEC-009：Governance、Guardrails、Evaluator 与人工介入；
+5. SPEC-012：数据治理与用户私有数据。
+
+---
+
+## 45. 开放问题
+
+1. `capital_cycle_fundamental_playbook` 的阈值是否应按行业调整；
+2. Metric Registry 应归入 SPEC-005 还是 SPEC-006；
+3. Playbook Applicability Evaluator 是否需要独立 SPEC；
+4. 用户自定义 Playbook 是否允许引用 Interpreted Evidence；
+5. 多 Playbook 冲突时如何处理；
+6. Playbook 是否支持组合级约束；
+7. 用户历史交易行为是否应影响 Playbook Preference。
+
+---
+
+## 46. v0.1.1 总结
+
+SPEC-006 v0.1.1 定义了 Investment Playbook 的核心结构、执行语义与 MVP 默认 Playbook。
+
+本版本完成：
+
+1. Investment Playbook 的产品定位；
+2. Playbook 顶层 schema；
+3. risk_tolerance 字段；
+4. Applicability；
+5. Required / Optional Domains + on_missing 收敛；
+6. Hard / Soft Constraint + Preference；
+7. 四种 evaluation_mode（ref_vs_threshold / ref_vs_ref / multi_rule / multi_label_avoid）；
+8. input_refs 解析规则 + label://event_certainty 多事件规则；
+9. Constraint Evaluation Result（含 task_id / run_id）；
+10. on_conflict 拆分为可执行 actions + condition；
+11. impact_on_decision；
+12. Action Policy；
+13. Playbook Evaluation Report；
+14. recommended_decision_bounds 聚合规则（重排）；
+15. Freshness Requirements（pe_percentile_5y 修正）；
+16. Conflict Handling；
+17. Human Review Policy；
+18. Output Policy；
+19. Invalidating Conditions（trigger_action）；
+20. Versioning；
+21. 默认 `capital_cycle_fundamental_playbook`。
+
+SPEC-006 的核心原则是：
+
+```text
+Playbook defines method.
+Constraints encode judgment.
+Evidence resolves constraints.
+Bounds shape actions.
+Trace preserves accountability.
+```
+
+中文表达：
+
+```text
+Playbook 定义方法；
+约束编码判断；
+证据解析约束；
+边界塑造动作；
+链路保留责任。
+```
