@@ -1,7 +1,7 @@
 # SPEC-006：Investment Playbook 规范
 
-**版本：** v0.1.9
-**状态：** Review
+**版本：** v0.2.0
+**状态：** Approved
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.3
 **文档类型：** 投资方法规格 / Playbook Schema
@@ -10,6 +10,17 @@
 ---
 
 ## 0. 版本说明
+
+v0.2.0 在 v0.1.9 基础上关闭残余执行语义缺口。状态由 Review 升级为 Approved。主要补齐：
+
+1. **P0** §17.2 `partial` 触发条件修正——移除不可达的 `multi_rule + all` 场景，聚焦 `multi_label_avoid` 半解析与 `multi_rule + any` 部分 pass/fail；
+2. **P1** §26.1/§25：`macro_regime_vs_playbook` 无条件触发 `require_human_review` 为设计意图——宏观域数据缺失本身即信号不确定性，应触发人工复核；
+3. **P1** §25 新增 MVP `conflict_type` 枚举表（与 §26.1 `require_review_on` 交叉引用）；
+4. **P2** §18.3：Company Event `partial` 域中 derived fact 仍须导出——fact 依赖事件属性而非完整财务数据；
+5. **P2** §22.3：`confidence_cap` 下调为绝对值 0.05，下限 0.5；
+6. **P2** §9 新增 `priority` 枚举正式声明；
+7. **P2** §7.2 第 4 条：`macro_regime_vs_playbook` 检查在 MVP 中通过 Conflict Handling 实现；
+8. 小修：§13.2 `none` 拒绝、§29 hash 排除 metadata、§25.1 移除 `need_more_data`。
 
 v0.1.9 在 v0.1.8 基础上关闭执行路径缺口和跨文档接口假设。主要补齐：
 
@@ -395,7 +406,7 @@ MVP 阶段，Playbook Applicability 不作为独立 Evaluator。
 1. asset_type 是否匹配；
 2. task_type 是否匹配；
 3. 用户目标周期是否大幅偏离 Playbook 周期；
-4. 是否存在显著 `macro_regime_vs_playbook` 风险；
+4. 是否存在显著 `macro_regime_vs_playbook` 风险（MVP 中通过 Conflict Handling §25 实现，非 Invalidating Conditions）；
 5. 是否应进入 `requires_human_review`。
 
 完整 Playbook Applicability Evaluator 由后续 SPEC 定义。
@@ -493,6 +504,22 @@ Soft Constraint 可以引用 Computed metrics、Structured facts、labels、Anal
 ### 9.3 Preference
 
 Preference 表示风格偏好，不应单独阻断动作，但可以影响 action ranking。
+
+### 9.4 `priority` 枚举
+
+> v0.2.0 新增。所有 Constraint 和 Preference 的 `priority` 字段使用以下枚举。
+
+```text
+high
+medium
+low
+```
+
+| priority | 语义 | 应用 |
+|---|---|---|
+| `high` | 优先处理，冲突解决时排前 | 关键 Hard/Soft Constraint、核心 Preference |
+| `medium` | 默认 | 一般 Soft Constraint |
+| `low` | 辅助判断 | 次要 Preference、轻度提示 |
 
 ---
 
@@ -663,7 +690,7 @@ none
 |---|---|
 | `all` | 所有子规则通过，Constraint 才通过 |
 | `any` | 任一子规则通过，Constraint 即通过 |
-| `none` | 所有子规则均不通过，Constraint 才通过（MVP 暂不使用此值） |
+| `none` | 所有子规则均不通过，Constraint 才通过（MVP 暂不使用此值。MVP 规则引擎应在 Schema Validation 阶段拒绝 `condition_logic = none` 的 Constraint，返回 validation error） |
 
 ### 13.3 子规则数据不足时的整体判断
 
@@ -847,7 +874,7 @@ not_applicable
 error
 ```
 
-`partial` 触发条件：Constraint 条件部分满足但不足以判定整体通过或失败。常见场景：(1) `multi_rule` + `condition_logic = all` 时部分子规则 pass、部分 fail，剩余子规则计算结果无法确定；(2) `multi_label_avoid` 中部分 input_ref 无法解析但已解析 ref 已可判定不触发 fail。具体的整体 status 判定规则见 §13.3（`multi_rule`）和 §14（`multi_label_avoid`）。
+`partial` 触发条件（v0.2.0 修正）：Constraint 条件部分满足但不足以判定整体通过或失败。实际触发场景为：(1) `multi_label_avoid` 中部分 `input_ref` 无法解析但已解析 ref 已可判定不触发 fail；(2) `multi_rule + condition_logic = any` 时部分子规则 pass、部分 `insufficient_data`，整体无法确定为 pass（因 pass 的子规则已满足 any，但剩余 insufficient 子规则不足以覆盖）。`partial` 的整体 status 判定规则见 §13.3 和 §14。
 
 ---
 
@@ -887,7 +914,7 @@ fact://latest_material_event_is_confirmed
 fact://any_material_negative_event_unresolved
 ```
 
-> **derived fact 生产者（v0.1.9）：** 上述 derived fact（`any_material_event_*`）由 **Company Event / Catalyst 能力域**在生成 Analysis Card 时作为 `constraint_exports` 的一部分导出（引用格式 `fact://`）。Playbook 不负责派生 fact——能力域基于 `event_list` 内的原始事件属性生成 derived fact 并注入 Analysis Card。
+> **derived fact 生产者（v0.1.9）：** 上述 derived fact（`any_material_event_*`）由 **Company Event / Catalyst 能力域**在生成 Analysis Card 时作为 `constraint_exports` 的一部分导出（引用格式 `fact://`）。Playbook 不负责派生 fact——能力域基于 `event_list` 内的原始事件属性生成 derived fact 并注入 Analysis Card。即使能力域 `domain_status = partial`（如部分事件数据不可用），只要 `event_list` 非空，derived fact 仍须导出——fact 依赖事件存在性和属性标签，非完整财务数据。若 `event_list` 为空，fact 不导出。
 
 ---
 
@@ -923,7 +950,7 @@ need_more_data
 
 > **`note` 语义（v0.1.5）：** `note` 不是 `impact_on_decision` 枚举值——它表示"进入 Decision Trace 记录注记，但不影响 `allowed_actions`"。当 Constraint 的 `on_insufficient_data = note` 时，`impact_on_decision` 应设为 `neutral`（同 §42.3）。
 
-> **`prefer_*` 与 `impact_on_decision` 的关系（v0.1.4）：** `prefer_wait`、`prefer_add_to_watchlist` 等 ranking 类动作不属于 `impact_on_decision` 枚举。它们不修改 `allowed_actions` 集合，仅影响动作排序和 `action_selection_reason`。完整语义见 §25.3。
+> **`prefer_*` 与 `impact_on_decision` 的关系（v0.1.4）：** `prefer_wait`、`prefer_add_to_watchlist` 等 ranking 类动作不属于 `impact_on_decision` 枚举。它们不修改 `allowed_actions` 集合，仅影响动作排序和 `action_selection_reason`。完整语义见 §25.4。
 
 ---
 
@@ -1107,7 +1134,7 @@ Playbook Evaluation 按以下顺序执行：
 
 > **`require_human_review` 优先级（v0.1.6）：** 若任何 Soft Constraint 的 `on_fail` 包含 `require_human_review` 且该 Constraint 实际 fail，`overall_result` 优先设为 `requires_human_review`。此值不参与 `passed_with_caution` 聚合——即使剩余 Soft Constraint fail < 2。
 
-> **`confidence_cap` 下调幅度（v0.1.7）：** `passed_with_caution` 的 `confidence_cap` 默认下调 0.05，与 Soft Constraint fail 阈值（2）一样，可由 Run Config 配置。
+> **`confidence_cap` 下调幅度（v0.1.7）：** `passed_with_caution` 的 `confidence_cap` 默认绝对值下调 0.05，与 Soft Constraint fail 阈值（2）一样，可由 Run Config 配置。下调后 confidence_cap 下限为 0.5——若基础 cap 低于或接近 0.5，下调至不低于 0.5。
 
 > **`blocking_conditions` dedup 策略（v0.1.4）：** 若同一禁止条件由 Hard Constraint `on_fail` 和 Conflict Handling `actions` 双重触发，`blocking_conditions` 列表应去重——同一条 `block_new_position` 只记录一次，来源标注为 `[constraint_id, conflict_type]`。默认 Playbook 已按设计建议修正：Hard Constraint（`valuation_margin_001`）负责 block，Conflict Handling（`fundamentals_vs_valuation`）使用 `prefer_wait` 负责 ranking。
 
@@ -1154,7 +1181,21 @@ Playbook Evaluation 按以下顺序执行：
 
 > v0.1.1 收紧：`on_conflict` 拆分为可执行 `actions` 数组 + 可选 `condition`。
 
-### 25.1 on_conflict 可执行枚举
+### 25.1 MVP conflict_type 枚举
+
+> v0.2.0 新增。与 §26.1 `require_review_on` 列表交叉引用。
+
+```text
+macro_regime_vs_playbook
+fundamentals_vs_valuation
+sentiment_vs_valuation
+technical_vs_fundamentals
+time_horizon_mismatch
+```
+
+以上五个为 MVP 支持的冲突类型。§26.1 `require_review_on` 中的 `macro_regime_vs_playbook` 引用此表中的值。新增类型需同时更新两处。
+
+### 25.2 on_conflict 可执行枚举
 
 ```text
 note
@@ -1162,14 +1203,15 @@ lower_confidence
 block_new_position
 block_add_position
 require_human_review
-need_more_data
 prefer_wait
 prefer_add_to_watchlist
 ```
 
 >`block_add_position` 用于未来扩展。MVP 中 `add_position` 为默认不支持动作。
 
-### 25.2 Schema
+>`need_more_data` 不在此枚举中——该值由 §23.2 聚合规则在 Hard Constraint 数据不足/过期时设置 `overall_result`，非 Conflict Handling 层产生。
+
+### 25.3 Schema
 
 带条件的 Conflict Handling（通用示例，演示 `condition` + `operator: "in"` 格式）：
 
@@ -1202,7 +1244,7 @@ prefer_add_to_watchlist
 
 > **`condition input_ref` 降级（v0.1.6）：** Conflict Handling 规则带有 `condition` 且 `condition` 中引用的 `input_ref`（如 `label://valuation_state`）无法解析时，跳过 `condition` 检查，按无条件形式（全量触发 `actions`）执行，并在 Decision Trace 中标记 NOTE。若 `actions` 包含 `require_human_review` 或 `block_*` 类动作，降级前应优先尝试从其他可解析 ref 推断 condition 结果；若无法推断，Decision Trace 中须显式标注"因 condition 输入缺失而全量触发阻断动作"。
 
-### 25.3 prefer_wait / prefer_add_to_watchlist 执行语义
+### 25.4 prefer_wait / prefer_add_to_watchlist 执行语义
 
 > v0.1.3 新增。
 
@@ -1246,6 +1288,8 @@ Conflict Handling 的 `prefer_wait` 和 `prefer_add_to_watchlist` 与 §16 Prefe
 > **多路径合并规则（v0.1.7）：** `requires_human_review` 可以由 Playbook Constraint `on_fail`（§23.2）、Human Review Policy（§26.1）、Conflict Handling 或 Guardrail 等多条路径触发。`requires_human_review = true` 为 OR 语义——任意路径触发即成立，来源记录在 `reasoning` 中，无需区分触发路径。
 
 > **`require_review_on` 值来源（v0.1.8）：** 列表中混用两类来源：(1) Conflict Handling 冲突类型 key（如 `macro_regime_vs_playbook`），由 Conflict Handling 模块在步骤 8 产生；(2) 系统状态描述（如 `hard_constraint_insufficient_data`、`guardrail_block`），由 Constraint Evaluation / Guardrail 模块产生。规则引擎应在对应步骤完成后检查该步骤产出的条件是否匹配列表，匹配即触发。完整事件标识符体系由 SPEC-009 Governance 统一定义，MVP 由实现层保证名称一致性。
+
+> **`macro_regime_vs_playbook` 无条件触发（v0.2.0）：** §36 中 `macro_regime_vs_playbook` 的 Conflict Handling 规则无 `condition`，语义为"只要此冲突类型出现即触发 `require_human_review`"。当宏观域 `domain_status = insufficient_data` 且未能生成可用 regime label 时，冲突是否"出现"取决于编排器是否能生成 Conflict Report——若编排器因缺少宏观域数据而不生成 `macro_regime_vs_playbook` 类型冲突，则规则不触发。**设计意图：宏观域数据缺失本身即为不确定性信号，需人工判断——但触发路径是 §8.4 第 3 条（若 4 个 Optional 域全缺）或编排器数据缺失事件，非 Conflict Handling 规则。** 详见 §8.4 NOTE。
 
 > **`high_conflict` 判定标准（v0.1.9）：** `high_conflict` 的判定暂定为：`default_severity = high` 的 Conflict Handling 规则被实际触发（其 `actions` 被执行）时，视为 `high_conflict`。完整判定逻辑由 SPEC-009 统一定义，MVP 暂以此规则为准。
 
@@ -1333,7 +1377,7 @@ archive_condition
 }
 ```
 
-`snapshot_hash` 应基于 Playbook 完整规范内容生成。若内容发生实质变化，必须更新 `playbook_version`、`snapshot_hash`、`updated_at`。历史 Decision Trace 必须保留当时使用的 Playbook snapshot。
+`snapshot_hash` 应基于 Playbook 执行逻辑相关字段生成（`constraints`、`preferences`、`freshness_requirements`、`conflict_handling`、`action_policy`、`human_review_policy`、`output_policy`、`invalidating_conditions`），排除纯 metadata 字段（`created_at`、`updated_at`、`created_by`），防止无意义的版本漂移。若内容发生实质变化，必须更新 `playbook_version`、`snapshot_hash`、`updated_at`。历史 Decision Trace 必须保留当时使用的 Playbook snapshot。
 
 `playbook_source` 枚举：
 
@@ -1841,9 +1885,9 @@ MVP 暂不实现：用户可视化编辑复杂 Playbook、多 Playbook 对比、
 
 ---
 
-## 46. v0.1.9 总结
+## 46. v0.2.0 总结
 
-SPEC-006 v0.1.9 定义了 Investment Playbook 的核心结构、执行语义与 MVP 默认 Playbook。
+SPEC-006 v0.2.0 定义了 Investment Playbook 的核心结构、执行语义与 MVP 默认 Playbook。
 
 本版本完成：
 
