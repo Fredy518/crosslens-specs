@@ -1,6 +1,6 @@
 # SPEC-006：Investment Playbook 规范
 
-**版本：** v0.1.2
+**版本：** v0.1.3
 **状态：** Review
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.3
@@ -10,6 +10,14 @@
 ---
 
 ## 0. 版本说明
+
+v0.1.3 在 v0.1.2 基础上修复规则引擎实现一致性问题。主要补齐：
+
+1. **P1** `on_hard_constraint_fail` 与 §23.2 分工：`need_more_data`/`stale_data` 从映射中移除，交聚合规则处理（§21.2 + §23.2）；
+2. **P1** Conflict Handling 中 `prefer_wait`/`prefer_add_to_watchlist` 执行语义定义：提升 ranking 权重，不移除动作（§25.3 新增）；
+3. **P2** `ref_vs_ref` 的 `max_age_days` 取值规则明确化：取两个 ref 各自 Freshness 配置的较小值（§12.3）；
+4. **P2** §8.4 第 3 条放宽为 `domain_status ≠ insufficient_data`，补充判断基准（§8.4）；
+5. 小修：§34.1 补 `on_insufficient_data`、§36 Conflict Handling 顶层格式说明、§21.2 注释。
 
 v0.1.2 在 v0.1.1 基础上补齐 schema 一致性与执行语义缺口。状态由 Draft 升级为 Review。主要补齐：
 
@@ -383,7 +391,7 @@ SPEC-006 继承 SPEC-003 的最小可用 Analysis Card 阈值：
 
 1. 至少 3/5 个能力域返回非 `insufficient_data` 的 Analysis Card；
 2. Fundamentals 必须可用；
-3. 至少一个非 Fundamentals 能力域提供有效支持或反方证据；
+3. 至少一个非 Fundamentals 能力域 `domain_status ≠ insufficient_data`。该域无需满足特定 evidence 数量或 confidence 阈值——只要能力域完成或部分完成分析即为有效贡献（背景信息同样可辅助人类判断）；
 4. 不存在 Block 级 Validation Finding；
 5. Playbook 关键 Hard Constraint 可以判断。
 
@@ -517,7 +525,7 @@ value(left_ref) >= value(right_ref)
 5. `left_ref` 与 `right_ref` 的 value_type 必须兼容；
 6. 任一 ref 无法解析，Constraint status = `insufficient_data`；
 7. 任一 ref 数据过期，Constraint status = `stale_data`；
-8. `left_ref` 与 `right_ref` 的 `data_freshness.as_of` 差值应不超过 Playbook 的 `max_age_days`。若超过，规则引擎应标记 `flag` 并进入 Decision Trace，但不自动变更 Constraint status。
+8. `left_ref` 与 `right_ref` 的 `data_freshness.as_of` 差值应不超过约束基准值。基准值取两个 ref 各自在 Freshness Requirements 中定义的最大 `max_age_days` 的较小值。若任一 ref 未在 Freshness Requirements 中定义，取 Playbook 级默认值（如有）；若均无，跳过该检查并标记 NOTE。若超过，规则引擎应标记 `flag` 并进入 Decision Trace，但不自动变更 Constraint status。
 
 ---
 
@@ -834,11 +842,12 @@ MVP 默认不支持 `strong_buy`、`strong_sell`、`add_position`。
   "default_blocked_actions": ["strong_buy", "strong_sell", "add_position"],
   "on_hard_constraint_fail": {
     "block_new_position": ["buy"],
-    "block_add_position": ["add_position"],
-    "need_more_data": ["buy", "hold", "reduce"]
+    "block_add_position": ["add_position"]
   }
 }
 ```
+
+> **`on_hard_constraint_fail` 分工（v0.1.3）：** 此映射仅处理 `block_*` 类的动作移除逻辑。`need_more_data` 和 `stale_data` 的处理由 §23.2 聚合规则负责（设置 `overall_result` 而非直接移除动作）。因此 `on_hard_constraint_fail` 中不应包含 `need_more_data` 或 `stale_data` 作为 key。
 
 ---
 
@@ -1010,6 +1019,21 @@ prefer_add_to_watchlist
   "actions": ["require_human_review"]
 }
 ```
+
+### 25.3 prefer_wait / prefer_add_to_watchlist 执行语义
+
+> v0.1.3 新增。
+
+Conflict Handling 的 `prefer_wait` 和 `prefer_add_to_watchlist` 与 §16 Preference 的 `action_ranking` 类型共享执行逻辑：**提升对应动作的 ranking 权重，但不移除其他动作，不改变 `allowed_actions` 集合**。
+
+两者的区别在于触发层：
+
+| 来源 | 触发步骤 | 语义 |
+|---|---|---|
+| Conflict Handling `prefer_wait` | 步骤 8 | 跨域冲突存在时，偏好等待 |
+| Preference `prefer_wait_over_buy_when_valuation_expensive` | 步骤 9 | 风格偏好，估值缺乏安全边际时偏好等待 |
+
+两者可以叠加：若 Conflict Handling 和 Preference 都偏好 `wait`，Decision Candidate 的 `action_selection_reason` 应记录双重原因。
 
 ---
 
@@ -1292,7 +1316,8 @@ archive_condition
   ],
   "avoid_values": ["tightening", "contracting"],
   "match_policy": "all_refs_in_avoid_values",
-  "on_fail": "require_human_review"
+  "on_fail": "require_human_review",
+  "on_insufficient_data": "note"
 }
 ```
 
@@ -1377,7 +1402,7 @@ archive_condition
 
 ## 36. 默认 Conflict Handling
 
-> v0.1.1 修正：拆分为可执行 `actions`。
+> v0.1.1 修正：拆分为可执行 `actions`。v0.1.3：`conflict_handling` 顶层为对象（key 为冲突类型），每种冲突类型只允许一条规则。若未来需要同类型多条规则（如不同 condition 的两条 `fundamentals_vs_valuation`），schema 应改为数组。
 
 ```json
 {
@@ -1610,9 +1635,9 @@ MVP 暂不实现：用户可视化编辑复杂 Playbook、多 Playbook 对比、
 
 ---
 
-## 46. v0.1.2 总结
+## 46. v0.1.3 总结
 
-SPEC-006 v0.1.2 定义了 Investment Playbook 的核心结构、执行语义与 MVP 默认 Playbook。
+SPEC-006 v0.1.3 定义了 Investment Playbook 的核心结构、执行语义与 MVP 默认 Playbook。
 
 本版本完成：
 
