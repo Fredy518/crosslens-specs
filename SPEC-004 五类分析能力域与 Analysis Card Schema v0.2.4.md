@@ -1,6 +1,6 @@
 # SPEC-004：五类分析能力域与 Analysis Card Schema
 
-**版本：** v0.2.3
+**版本：** v0.2.4
 **状态：** Review
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4
@@ -10,6 +10,12 @@
 ---
 
 ## 0. 版本说明
+
+v0.2.4 在 v0.2.3 基础上补齐 SPEC-006 默认 Hard Constraint 的辅助控制接口。状态保持 Review。主要补齐：
+
+1. Fundamentals Computed Evidence 新增 boolean metric `growth_capex_flag`；
+2. §20 将 `metric://growth_capex_flag` 注册为可支撑 Hard Constraint 的 computed export；
+3. 明确该 flag 必须由公司级资本开支与增长指标确定性计算，不得直接由宏观 `capex_cycle_stage` label 推断。
 
 v0.2.3 在 v0.2.2 基础上微修订。状态保持 Review。主要补齐：
 
@@ -1004,6 +1010,7 @@ Fundamentals 消费的 Evidence Packet 类型包括：
     "gross_margin_ttm": 0.61,
     "gross_margin_qoq_change": -0.02,
     "fcf_margin_ttm": 0.22,
+    "growth_capex_flag": true,
     "net_debt_to_ebitda": 0.4,
     "roe_ttm": 0.28
   }
@@ -1150,9 +1157,24 @@ Fundamentals 是 MVP 中最主要的 Hard Constraint 来源。
 9. `metric://roic_ttm`；
 10. `metric://pe_percentile_5y`；
 11. `metric://ev_ebitda_percentile_5y`；
-12. `metric://fcf_yield`。
+12. `metric://fcf_yield`；
+13. `metric://growth_capex_flag`。
 
 这些 metrics 必须来自 Computed Evidence。
+
+`growth_capex_flag` 为 boolean metric，仅在公司级资本开支增长、产能建设进度和对应增长投入满足 Metric Registry 的确定性计算规则时设为 `true`。不得仅根据 Macro / Meso 的 `capex_cycle_stage` Structured label 推断该值。其 `constraint_exports` 必须声明：
+
+```json
+{
+  "export_type": "metric",
+  "export_ref": "metric://growth_capex_flag",
+  "evidence_ref": "ev_financial_001",
+  "value_path": "growth_capex_flag",
+  "determinism_level": "computed",
+  "can_support_hard_constraint": true,
+  "allowed_constraint_types": ["hard", "soft"]
+}
+```
 
 ---
 
@@ -2047,9 +2069,9 @@ SPEC-004 依赖和影响以下文档：
 
 ---
 
-## 48. v0.2.3 总结
+## 48. v0.2.4 总结
 
-SPEC-004 v0.2.3 定义了五类分析能力域与 Analysis Card Schema。
+SPEC-004 v0.2.4 定义了五类分析能力域与 Analysis Card Schema。
 
 本版本完成以下约束：
 
