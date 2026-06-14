@@ -1806,7 +1806,9 @@ SPEC-005 依赖和影响以下文档：
 4. SPEC-007：Orchestration 与执行路径（Package 加载与能力域调度）；
 5. SPEC-008：Decision Trace 与 Observability（Lineage UI 展示）；
 6. SPEC-009：Governance、Guardrails、Evaluator 与人工介入（lineage 间接污染检测、confidence 跨域比较统一算法）；
-7. SPEC-012：数据治理与用户私有数据。
+7. SPEC-012：数据治理与用户私有数据；
+8. SPEC-010：MVP 范围与验证指标（Metric Registry 的最小实现范围）；
+9. SPEC-011：Case Library 与历史案例记忆（案例索引中引用 Metric 值）。
 
 ---
 

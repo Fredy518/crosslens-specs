@@ -5336,3 +5336,15 @@ MVP stub 必须显式；
 不可能的状态组合必须断言；
 Candidate action 只能来自 candidate-eligible actions。
 ```
+
+---
+
+## 59. 后续 SPEC 依赖
+
+SPEC-007 依赖和影响以下文档：
+
+1. SPEC-008：Decision Trace 与 Observability（WorkflowResult.decision_trace 的 ref-only 展开）；
+2. SPEC-009：Governance、Guardrails、Evaluator 与人工介入（Guardrail CHECK、Evaluator、Human Review Agg 的调度位置）；
+3. SPEC-010：MVP 范围与验证指标（Orchestration 层的 MVP 实现清单）；
+4. SPEC-011：Case Library 与历史案例记忆（WorkflowResult 作为 Case 的输入）；
+5. SPEC-012：数据治理与用户私有数据（RunConfig 中 user_private_data_types 的隔离）。

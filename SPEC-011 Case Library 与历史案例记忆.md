@@ -976,6 +976,18 @@ Deterministic first, Agentic when necessary, Traceable always.
 
 ---
 
+---
+
+## 12. 后续 SPEC 依赖
+
+SPEC-011 依赖和影响以下文档：
+
+1. SPEC-003：Agentic 投研工作流架构（Case 的快照来源——WorkflowResult、Decision Trace）；
+2. SPEC-012：数据治理与用户私有数据（user_private 拒绝规则、匿名化流水线接口）；
+3. SPEC-010：MVP 范围与验证指标（MVP 阶段 Case Library 为"只写不读"归档）。
+
+---
+
 ## 附录 A：术语对照
 
 | 中文 | English | 缩写 |

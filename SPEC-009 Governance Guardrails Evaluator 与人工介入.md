@@ -1206,7 +1206,8 @@ RUN_FLAG_GOVERNANCE_MAP = {
 ## 11. 后续 SPEC 依赖
 
 1. SPEC-012：用户私有数据的治理边界（Guardrail 不得访问 user_private 数据）；
-2. SPEC-010：MVP 验证指标中的 Governance 指标（Guardrail 触发率、Human Review 触发率等）。
+2. SPEC-010：MVP 验证指标中的 Governance 指标（Guardrail 触发率、Human Review 触发率等）；
+3. SPEC-011：Case Library 与历史案例记忆（Governance 层 findings 进入案例索引）。
 
 ---
 

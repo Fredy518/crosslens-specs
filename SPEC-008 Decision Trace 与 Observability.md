@@ -1664,7 +1664,17 @@ Observability 指标：
 
 ---
 
-## 12. 开放问题
+## 12. 后续 SPEC 依赖
+
+SPEC-008 依赖和影响以下文档：
+
+1. SPEC-010：MVP 范围与验证指标（Decision Trace 在 MVP 中的实现深度）；
+2. SPEC-011：Case Library 与历史案例记忆（Trace 中的 key_findings 作为案例摘要输入）；
+3. SPEC-012：数据治理与用户私有数据（Trace 中 user_private 数据的展示脱敏）。
+
+---
+
+## 13. 开放问题
 
 1. Trace 持久化存储应使用文件系统还是轻量数据库（SQLite）？
 2. 前端 UI 应在何时加载完整 Trace vs 仅加载 Run Level？

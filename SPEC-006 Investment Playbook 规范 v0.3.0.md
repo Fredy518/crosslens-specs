@@ -1931,7 +1931,9 @@ MVP 暂不实现：用户可视化编辑复杂 Playbook、多 Playbook 对比、
 4. SPEC-007：Orchestration 与执行路径；
 5. SPEC-008：Decision Trace 与 Observability；
 6. SPEC-009：Governance、Guardrails、Evaluator 与人工介入；
-7. SPEC-012：数据治理与用户私有数据。
+7. SPEC-010：MVP 范围与验证指标；
+8. SPEC-011：Case Library 与历史案例记忆；
+9. SPEC-012：数据治理与用户私有数据。
 
 ---
 
