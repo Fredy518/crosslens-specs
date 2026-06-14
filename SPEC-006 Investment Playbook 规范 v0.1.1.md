@@ -1,6 +1,6 @@
 # SPEC-006：Investment Playbook 规范
 
-**版本：** v0.1.7
+**版本：** v0.1.8
 **状态：** Review
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.3
@@ -10,6 +10,17 @@
 ---
 
 ## 0. 版本说明
+
+v0.1.8 在 v0.1.7 基础上补齐边界场景与字段语义。主要补齐：
+
+1. **P1** §13.3 补充 `any` 所有子规则数据不足时整体升级为 `insufficient_data` + `not_applicable` 通用跳过规则；
+2. **P1** §22.3 决策表补充优先级声明（自上而下匹配，满足即停止）；
+3. **P1** §14 补充 `multi_label_avoid` 部分解析规则（`all_refs_in_avoid_values` 时保守原则 → `insufficient_data`）；
+4. **P1** §11.3 NOTE 扩展：`fact://` boolean threshold 支持（`operator: ==/!=`）；
+5. **P2** §25 补充 `default_severity` 字段语义声明（描述性元数据，不影响执行）；
+6. **P2** §26.1 补充 `require_review_on` 值来源说明；
+7. **P2** §8.4 补充 `domain_status` 来源交叉引用（→ SPEC-004 Analysis Card）；
+8. 小修：§46 标题版本号同步。
 
 v0.1.7 在 v0.1.6 基础上关闭残余语义缺口与一致性风险。主要补齐：
 
@@ -443,7 +454,7 @@ Optional Domains 是辅助判断能力域。
 
 ### 8.4 最小可用能力域规则
 
-SPEC-006 继承 SPEC-003 的最小可用 Analysis Card 阈值：
+SPEC-006 继承 SPEC-003 的最小可用 Analysis Card 阈值。下文中的 `domain_status` 指 Analysis Card 的 `domain_status` 字段（在 SPEC-004 §5 中定义，枚举见 SPEC-004 §5.1），非 SPEC-006 自创概念——此字段由能力域在生成 Analysis Card 时填写，Playbook Evaluation 在步骤 3 消费：
 
 1. 至少 3/5 个能力域返回非 `insufficient_data` 的 Analysis Card；
 2. Fundamentals 必须可用；
@@ -544,6 +555,8 @@ value(input_refs[0]) <= threshold
 4. `threshold` 必须与 input_ref 的 value_type 可比较。
 
 > **字符串 threshold 支持（v0.1.7）：** `ref_vs_threshold` 的 `threshold` 支持数值和字符串两种类型。字符串 threshold 的合法 `operator` 为 `==` 和 `!=`。当 input_ref 引用 `label://` 类型时，`operator = "!="` 配合字符串 threshold 用于判断标签值不等于指定枚举值（如 `label://sentiment_state != "overheated"`）。此支持仅适用于 Soft Constraint。
+
+> **boolean threshold 支持（v0.1.8）：** `ref_vs_threshold` 的 `threshold` 同时支持 boolean 类型（`true`/`false`），合法 `operator` 同为 `==` 和 `!=`。当 input_ref 引用 `fact://` 类型且值为 boolean 时（如 `fact://any_material_event_low_certainty != true`，见 §34.4），规则引擎按布尔相等性判断。此支持仅适用于 Soft Constraint。
 
 > **字段名规则（v0.1.2）：** 顶层 `ref_vs_threshold` Constraint 使用 `input_refs`（数组）。`multi_rule` 内的子规则使用 `input_ref`（单数字符串，因子规则已预设单值语义）。规则引擎解析 `ref_vs_threshold` 时：若在顶层 Constraint 上下文中，读取 `input_refs[0]`；若在 `multi_rule` 子规则上下文中，读取 `input_ref`。文档校验器应在 Schema Validation 阶段检查字段名一致性。
 
@@ -652,6 +665,10 @@ none
 
 若顶层 Constraint 的 `on_insufficient_data` 未定义，默认继承子规则的 `status`。子规则自身无 `on_insufficient_data`/`on_stale_data` 字段——所有数据不足/过期情况由顶层统一处理。
 
+**`any` 全部数据不足（v0.1.8）：** 若 `condition_logic = any` 下所有子规则均为 `insufficient_data` 或 `stale_data`（跳过后剩余子规则为空集），整体 Constraint status 升级为 `insufficient_data`，不返回 `pass` 或 `fail`。
+
+**`not_applicable` 子规则处理（v0.1.8）：** 子规则 status = `not_applicable`（如 §33.1 `growth_capex_flag` 触发的例外）时，无论 `condition_logic` 如何，均跳过该子规则按剩余子规则计算。此规则与 `any` 模式下 `insufficient_data` 的跳过逻辑平行。
+
 ---
 
 ## 14. multi_label_avoid 模式
@@ -696,6 +713,8 @@ MVP 至少实现 `all_refs_in_avoid_values`。
 > **`avoid_values` 值绑定语义（v0.1.2）：** `avoid_values` 不与 `input_refs` 逐一绑定。匹配基于整体值集合——即"所有 input_ref 的值是否都落在 avoid_values 集合中"。例如 `rate_environment = "tightening"` + `liquidity_environment = "contracting"` → 两个值都 ∈ `["tightening", "contracting"]` → 触发。若需要精确绑定（如"rate_environment 必须是 tightening 且 liquidity_environment 必须是 contracting"），应使用 `multi_rule` + 两个独立 `ref_vs_threshold` 子规则。
 
 > **`all_refs_in_avoid_values` 为 AND 语义（v0.1.4）：** 所有 input_ref 的值都必须落入 avoid_values 集合才触发。若部分 ref 在 avoid_values 中、部分不在（如三个 ref 仅两个匹配），不触发 fail。若需要 OR 语义（任一 ref 落入 avoid_values 即触发），使用 `any_avoid_value_present`。若需要精确值绑定（指定哪个 ref 取哪个值），使用 `multi_rule`。
+
+> **部分解析规则（v0.1.8）：** `match_policy = all_refs_in_avoid_values` 或 `all_avoid_values_present` 时，若部分 `input_ref` 无法解析，整体 status = `insufficient_data`（保守原则）。若已解析的 ref 值已可确定不触发 fail（如任一已解析 ref 不在 avoid_values 中），可按 `pass` 处理并标注 Decision Trace NOTE，但 MVP 不强制要求此优化分支。
 
 ---
 
@@ -1019,7 +1038,7 @@ requires_human_review
 | `need_more_data` | 关键数据缺失或过期 |
 | `requires_human_review` | 触发人工复核条件 |
 
-> **`overall_result` 决策树（v0.1.7）：**
+> **`overall_result` 决策树（v0.1.7）：** 以下条件按优先级从高到低匹配，第一个满足即停止，不继续检查下方条件。
 
 | 条件 | overall_result |
 |---|---|
@@ -1180,6 +1199,8 @@ Conflict Handling 的 `prefer_wait` 和 `prefer_add_to_watchlist` 与 §16 Prefe
 
 两者可以叠加：若 Conflict Handling 和 Preference 都偏好 `wait`，Decision Candidate 的 `action_selection_reason` 应记录双重原因。
 
+> **`default_severity` 字段语义（v0.1.8）：** `default_severity`（`high`/`medium`/`low`）为描述性元数据，不影响 `actions` 的执行逻辑或触发方式。仅用于 Decision Trace 展示和人类判断优先级参考。若未来需要基于 severity 的执行行为，由 SPEC-007 Orchestration 定义。
+
 ---
 
 ## 26. Human Review Policy
@@ -1205,6 +1226,8 @@ Conflict Handling 的 `prefer_wait` 和 `prefer_add_to_watchlist` 与 §16 Prefe
 若触发，Playbook Evaluation Report 标记 `requires_human_review = true`。
 
 > **多路径合并规则（v0.1.7）：** `requires_human_review` 可以由 Playbook Constraint `on_fail`（§23.2）、Human Review Policy（§26.1）、Conflict Handling 或 Guardrail 等多条路径触发。`requires_human_review = true` 为 OR 语义——任意路径触发即成立，来源记录在 `reasoning` 中，无需区分触发路径。
+
+> **`require_review_on` 值来源（v0.1.8）：** 列表中混用两类来源：(1) Conflict Handling 冲突类型 key（如 `macro_regime_vs_playbook`），由 Conflict Handling 模块在步骤 8 产生；(2) 系统状态描述（如 `hard_constraint_insufficient_data`、`guardrail_block`），由 Constraint Evaluation / Guardrail 模块产生。规则引擎应在对应步骤完成后检查该步骤产出的条件是否匹配列表，匹配即触发。完整事件标识符体系由 SPEC-009 Governance 统一定义，MVP 由实现层保证名称一致性。
 
 ---
 
@@ -1798,9 +1821,9 @@ MVP 暂不实现：用户可视化编辑复杂 Playbook、多 Playbook 对比、
 
 ---
 
-## 46. v0.1.6 总结
+## 46. v0.1.8 总结
 
-SPEC-006 v0.1.6 定义了 Investment Playbook 的核心结构、执行语义与 MVP 默认 Playbook。
+SPEC-006 v0.1.8 定义了 Investment Playbook 的核心结构、执行语义与 MVP 默认 Playbook。
 
 本版本完成：
 
