@@ -1,6 +1,6 @@
 # SPEC-006：Investment Playbook 规范
 
-**版本：** v0.1.6
+**版本：** v0.1.7
 **状态：** Review
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.3
@@ -10,6 +10,21 @@
 ---
 
 ## 0. 版本说明
+
+v0.1.7 在 v0.1.6 基础上关闭残余语义缺口与一致性风险。主要补齐：
+
+1. **P0** §23.2 NOTE 补充 `partial` 时 `on_fail` 不执行（与不计入 fail 计数保持一致）；
+2. **P0** §25 NOTE 补充 condition 降级时 block/human_review 类动作的保护性警告；
+3. **P0** §33.1 `growth_capex_flag` 子规则跳过时 status = `not_applicable`，整体按剩余子规则计算；
+4. **P1** §26.1 补充 `requires_human_review` 多路径触发合并规则（OR 语义）；
+5. **P1** §23.2 补充 `passed_with_caution` 的 `confidence_cap` 下调幅度可配置性声明；
+6. **P1** §13 补充 `multi_rule` 子规则数据不足时的整体判断规则；
+7. **P1** §18.1 补充 `label://`/`fact://` 不可用于 Hard Constraint 的边界声明；
+8. **P2** §16 补充 Preference 冲突解决规则（priority → 声明顺序）；
+9. **P2** §40 补注：`cashflow_deterioration` 在 `growth_capex_flag = true` 时的 MVP 不执行关系；
+10. **P2** §22.3 `overall_result` 决策树显式化（passed → partially_passed → passed_with_caution 边界）；
+11. **P2** §11 补充 `ref_vs_threshold` 字符串 threshold 支持说明；
+12. 小修：§5.1 JSON 注释说明 §34.2 string ref_vs_threshold 合法 operator 集合。
 
 v0.1.6 在 v0.1.5 基础上关闭执行语义缺口与一致性矛盾。主要补齐：
 
@@ -256,6 +271,8 @@ Playbook 顶层 schema 采用扁平结构（不使用嵌套 `metadata` 对象）
   "versioning": {}
 }
 ```
+
+> **文档 JSON 注释说明（v0.1.7）：** 文档中部分 JSON 示例包含 `//` 格式的行注释或 `_comment` 说明字段。标准 JSON 不支持行注释，这些注释仅供文档阅读，实现时应在解析前移除注释行或替换为 `_comment` 字段（执行时忽略）。
 
 ### 5.2 Metadata 类字段说明
 
@@ -526,6 +543,8 @@ value(input_refs[0]) <= threshold
 3. 必须包含 `threshold`；
 4. `threshold` 必须与 input_ref 的 value_type 可比较。
 
+> **字符串 threshold 支持（v0.1.7）：** `ref_vs_threshold` 的 `threshold` 支持数值和字符串两种类型。字符串 threshold 的合法 `operator` 为 `==` 和 `!=`。当 input_ref 引用 `label://` 类型时，`operator = "!="` 配合字符串 threshold 用于判断标签值不等于指定枚举值（如 `label://sentiment_state != "overheated"`）。此支持仅适用于 Soft Constraint。
+
 > **字段名规则（v0.1.2）：** 顶层 `ref_vs_threshold` Constraint 使用 `input_refs`（数组）。`multi_rule` 内的子规则使用 `input_ref`（单数字符串，因子规则已预设单值语义）。规则引擎解析 `ref_vs_threshold` 时：若在顶层 Constraint 上下文中，读取 `input_refs[0]`；若在 `multi_rule` 子规则上下文中，读取 `input_ref`。文档校验器应在 Schema Validation 阶段检查字段名一致性。
 
 ---
@@ -620,6 +639,18 @@ none
 | `all` | 所有子规则通过，Constraint 才通过 |
 | `any` | 任一子规则通过，Constraint 即通过 |
 | `none` | 所有子规则均不通过，Constraint 才通过（MVP 暂不使用此值） |
+
+### 13.3 子规则数据不足时的整体判断
+
+> v0.1.7 新增。
+
+当 `multi_rule` 中的子规则存在 `insufficient_data` 或 `stale_data` 时，整体 Constraint status 按以下规则确定：
+
+| 子规则状态 | condition_logic = all | condition_logic = any | condition_logic = none |
+|---|---|---|---|
+| 任一子规则 `insufficient_data` 或 `stale_data` | 整体为 `insufficient_data` | 跳过该子规则，按剩余子规则计算 | 整体为 `insufficient_data` |
+
+若顶层 Constraint 的 `on_insufficient_data` 未定义，默认继承子规则的 `status`。子规则自身无 `on_insufficient_data`/`on_stale_data` 字段——所有数据不足/过期情况由顶层统一处理。
 
 ---
 
@@ -737,6 +768,8 @@ confidence_adjustment
 
 > **`effect` 字段格式（v0.1.6）：** Preference 的 `effect` 字段在 MVP 阶段为自由文本字符串（如 `prefer_wait_over_buy_when_valuation_expensive`）。规则引擎不直接解析该文本——实际排序逻辑由实现层按 `preference_type` 分类硬编码，`effect` 文本仅用于 Decision Trace 展示和人类阅读。
 
+> **Preference 冲突解决（v0.1.7）：** 多个 Preference 同时触发时，按 `priority` 字段（`high` > `medium` > `low`）排序；相同 priority 时按 Playbook 中的声明顺序。优先级更高的 Preference 在 `action_selection_reason` 中排在前面。冲突的 Preference 不互相覆盖，均被记录但排序靠前的更显著。
+
 ---
 
 ## 17. Constraint Evaluation Result
@@ -790,6 +823,8 @@ error
 ### 18.1 引用格式
 
 MVP 阶段支持：`metric://{metric_id}`、`fact://{fact_id}`、`label://{label_id}`。
+
+> **Hard Constraint 引用限制（v0.1.7）：** Hard Constraint 的 `input_refs` 仅允许 `metric://` 格式。`fact://` 和 `label://` 仅可用于 Soft Constraint 和 Conflict Handling `condition` 字段。此规则与 §20.1 Hard Constraint 输入限制一致（仅允许 Computed Evidence）。
 
 ### 18.2 解析要求
 
@@ -984,6 +1019,17 @@ requires_human_review
 | `need_more_data` | 关键数据缺失或过期 |
 | `requires_human_review` | 触发人工复核条件 |
 
+> **`overall_result` 决策树（v0.1.7）：**
+
+| 条件 | overall_result |
+|---|---|
+| 任一 Soft Constraint fail 含 `require_human_review`（优先） | `requires_human_review` |
+| 任一 Hard Constraint fail（`block_new_position`） | `not_passed_for_new_buy` |
+| 所有 Hard pass，Soft fail = 0 | `passed` |
+| 所有 Hard pass，0 < Soft fail < 2 | `partially_passed` |
+| 所有 Hard pass，Soft fail ≥ 2 | `passed_with_caution` |
+| 任一 Hard Constraint `insufficient_data` 或 `stale_data` | `need_more_data` |
+
 ---
 
 ## 23. recommended_decision_bounds 聚合规则
@@ -1022,9 +1068,11 @@ Playbook Evaluation 按以下顺序执行：
 
 > **`passed_with_caution` 与 `partially_passed` 的边界（v0.1.5，v0.1.6 修正）：** `passed_with_caution` = 所有 Hard Constraint 通过 + Soft Constraint fail ≥ 2。`partially_passed` = 无 Hard Constraint fail 但 Soft Constraint fail < 2。两者均为非阻断状态，区别在于 Decision Trace 展示的醒目程度和 `confidence_cap` 的下调幅度。MVP 暂定 Soft Constraint fail 阈值为 2，可由 Run Config 配置。
 
-> **`partial` 状态 Constraint 处理（v0.1.6）：** `status = partial` 的 Constraint 不计入 Soft Constraint `fail` 计数，但必须进入 Decision Trace 注记。仅 `status = fail` 的 Constraint 计入 Soft Constraint fail 计数。
+> **`partial` 状态 Constraint 处理（v0.1.6）：** `status = partial` 的 Constraint 不计入 Soft Constraint `fail` 计数，且 `on_fail` 不执行。此状态仅进入 Decision Trace 注记。仅 `status = fail` 的 Constraint 计入 Soft Constraint fail 计数且执行 `on_fail`。
 
 > **`require_human_review` 优先级（v0.1.6）：** 若任何 Soft Constraint 的 `on_fail` 包含 `require_human_review` 且该 Constraint 实际 fail，`overall_result` 优先设为 `requires_human_review`。此值不参与 `passed_with_caution` 聚合——即使剩余 Soft Constraint fail < 2。
+
+> **`confidence_cap` 下调幅度（v0.1.7）：** `passed_with_caution` 的 `confidence_cap` 默认下调 0.05，与 Soft Constraint fail 阈值（2）一样，可由 Run Config 配置。
 
 > **`blocking_conditions` dedup 策略（v0.1.4）：** 若同一禁止条件由 Hard Constraint `on_fail` 和 Conflict Handling `actions` 双重触发，`blocking_conditions` 列表应去重——同一条 `block_new_position` 只记录一次，来源标注为 `[constraint_id, conflict_type]`。默认 Playbook 已按设计建议修正：Hard Constraint（`valuation_margin_001`）负责 block，Conflict Handling（`fundamentals_vs_valuation`）使用 `prefer_wait` 负责 ranking。
 
@@ -1115,7 +1163,7 @@ prefer_add_to_watchlist
 
 > **`label://valuation_state` 值域来源（v0.1.5）：** Conflict Handling condition 中引用的 label 值（如 `"expensive"`、`"very_expensive"`）的值域由 SPEC-004 能力域的 `constraint_exports` 声明。Playbook 引用的 label 值必须是该声明中的合法值（见 SPEC-004 §19.1 `valuation_state` 枚举）。MVP 阶段由实现层保证一致性；完整 label registry 由 SPEC-004/SPEC-005 定义。
 
-> **`condition input_ref` 降级（v0.1.6）：** Conflict Handling 规则带有 `condition` 且 `condition` 中引用的 `input_ref`（如 `label://valuation_state`）无法解析时，跳过 `condition` 检查，按无条件形式（全量触发 `actions`）执行，并在 Decision Trace 中标记 NOTE。
+> **`condition input_ref` 降级（v0.1.6）：** Conflict Handling 规则带有 `condition` 且 `condition` 中引用的 `input_ref`（如 `label://valuation_state`）无法解析时，跳过 `condition` 检查，按无条件形式（全量触发 `actions`）执行，并在 Decision Trace 中标记 NOTE。若 `actions` 包含 `require_human_review` 或 `block_*` 类动作，降级前应优先尝试从其他可解析 ref 推断 condition 结果；若无法推断，Decision Trace 中须显式标注"因 condition 输入缺失而全量触发阻断动作"。
 
 ### 25.3 prefer_wait / prefer_add_to_watchlist 执行语义
 
@@ -1155,6 +1203,8 @@ Conflict Handling 的 `prefer_wait` 和 `prefer_add_to_watchlist` 与 §16 Prefe
 ```
 
 若触发，Playbook Evaluation Report 标记 `requires_human_review = true`。
+
+> **多路径合并规则（v0.1.7）：** `requires_human_review` 可以由 Playbook Constraint `on_fail`（§23.2）、Human Review Policy（§26.1）、Conflict Handling 或 Guardrail 等多条路径触发。`requires_human_review = true` 为 OR 语义——任意路径触发即成立，来源记录在 `reasoning` 中，无需区分触发路径。
 
 ---
 
@@ -1373,7 +1423,7 @@ MVP 阶段仅使用 `built_in_static`。`user_defined`、`imported` 为未来扩
 
 说明：允许毛利率小幅波动（下降 ≤ 5 百分点），且自由现金流率必须为正。
 
-> **资本扩张期例外（v0.1.6）：** 当公司处于资本扩张周期（`growth_capex_flag = true`）时，`fcf_margin_ttm > 0` 子规则自动跳过并进入 Decision Trace 注记。FCF 为负在资本扩张期属于合理经营状态，不应触发 `block_new_position`。`growth_capex_flag` 由能力域在 `constraint_exports` 中导出。
+> **资本扩张期例外（v0.1.6）：** 当公司处于资本扩张周期（`growth_capex_flag = true`）时，`fcf_margin_ttm > 0` 子规则跳过。该子规则 status 设为 `not_applicable`，整体 Constraint 按剩余子规则计算——与 `not_applicable` 枚举语义一致（§17.2）。Decision Trace 须记录此例外。`growth_capex_flag` 由能力域在 `constraint_exports` 中导出。
 
 ### 33.2 收入增长不弱于行业
 
@@ -1655,6 +1705,8 @@ MVP 阶段仅使用 `built_in_static`。`user_defined`、`imported` 为未来扩
   }
 ]
 ```
+
+> **NOTE（v0.1.7）：** `cashflow_deterioration` 条件引用的 `fcf_margin_ttm` 在 `growth_capex_flag = true` 时不自动执行（与 §33.1 资本扩张期例外一致）。MVP 阶段 Invalidating Conditions 不自动运行（§28.3），此对应关系仅供人类阅读参考。
 
 ---
 
