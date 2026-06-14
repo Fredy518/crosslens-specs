@@ -2,6 +2,27 @@
 
 本文件归档 SPEC-006 的详细版本记录。SPEC 正文仅保留最近版本摘要。
 
+## v0.3.0
+
+1. 新增 Python Executable Specification，覆盖 multi-rule、overall-result、动作边界与 confidence-cap 合并。
+2. 新增 Pydantic v2 契约和生成的 JSON Schema。
+3. 新增边界测试，明确 ambiguous label、Soft fail、all-not-applicable、cap 阈值等行为。
+4. `not_passed_for_add_position` 增加正式决策分支。
+5. 明确 `partially_passed` 不自动移除 `buy`。
+6. MVP Hard fail 的 impact 限定为 block-new、block-add 或 human-review。
+7. 新增代码、契约、测试、Schema 与 Markdown 的职责及发布一致性要求。
+
+## v0.2.9
+
+1. 重写 `multi_rule + any` 状态优先级：任一 pass 即 pass，fail 与未决状态并存时为 partial，仅全量明确 fail 时为 fail。
+2. 明确 Soft fail 全量计数与规则 1 首匹配短路。
+3. 明确 confidence cap 中间值和最终阈值检查。
+4. 增加 `constraint_exports` 字段缺失及版本不兼容 fallback。
+5. 将 derived fact 生产契约移至 SPEC-004 v0.2.5，并补齐 boolean `fact_value` 消费规则。
+6. 补齐 snapshot hash canonicalization 与外部依赖快照。
+7. 明确 Preference 非加性排序。
+8. 移除 `none`、将 freshness `flag` 改为 `dt_note`、拆分两类周期错配。
+
 ## v0.2.8
 
 1. `confidence_cap < 0.5` 检查归属 Resolved Decision Bounds 阶段，不改写 Playbook Evaluation Report 的 `overall_result`。

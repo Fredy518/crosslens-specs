@@ -1,0 +1,412 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "models": {
+    "ConfidenceCapResult": {
+      "$defs": {
+        "AdjustmentSource": {
+          "enum": [
+            "playbook",
+            "conflict",
+            "validation",
+            "guardrail"
+          ],
+          "title": "AdjustmentSource",
+          "type": "string"
+        },
+        "ConfidenceCapStep": {
+          "additionalProperties": false,
+          "properties": {
+            "adjustment": {
+              "anyOf": [
+                {
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ],
+              "title": "Adjustment"
+            },
+            "cap_after": {
+              "anyOf": [
+                {
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ],
+              "title": "Cap After"
+            },
+            "cap_before": {
+              "anyOf": [
+                {
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ],
+              "title": "Cap Before"
+            },
+            "source": {
+              "$ref": "#/$defs/AdjustmentSource"
+            },
+            "source_ref": {
+              "title": "Source Ref",
+              "type": "string"
+            }
+          },
+          "required": [
+            "source",
+            "source_ref",
+            "cap_before",
+            "adjustment",
+            "cap_after"
+          ],
+          "title": "ConfidenceCapStep",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "final_cap": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Final Cap"
+        },
+        "initial_cap": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Initial Cap"
+        },
+        "requires_human_review": {
+          "title": "Requires Human Review",
+          "type": "boolean"
+        },
+        "review_threshold": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Review Threshold"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/ConfidenceCapStep"
+          },
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "initial_cap",
+        "final_cap",
+        "review_threshold",
+        "requires_human_review",
+        "steps"
+      ],
+      "title": "ConfidenceCapResult",
+      "type": "object"
+    },
+    "ConstraintEvaluationResult": {
+      "$defs": {
+        "ConstraintStatus": {
+          "enum": [
+            "pass",
+            "fail",
+            "partial",
+            "insufficient_data",
+            "stale_data",
+            "not_applicable",
+            "error"
+          ],
+          "title": "ConstraintStatus",
+          "type": "string"
+        },
+        "ConstraintType": {
+          "enum": [
+            "hard",
+            "soft"
+          ],
+          "title": "ConstraintType",
+          "type": "string"
+        },
+        "ImpactOnDecision": {
+          "enum": [
+            "support",
+            "neutral",
+            "caution",
+            "lower_confidence",
+            "block_strong_buy",
+            "block_strong_sell",
+            "block_new_position",
+            "block_add_position",
+            "require_human_review",
+            "need_more_data"
+          ],
+          "title": "ImpactOnDecision",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "constraint_id": {
+          "minLength": 1,
+          "title": "Constraint Id",
+          "type": "string"
+        },
+        "constraint_type": {
+          "$ref": "#/$defs/ConstraintType"
+        },
+        "impact_on_decision": {
+          "$ref": "#/$defs/ImpactOnDecision"
+        },
+        "status": {
+          "$ref": "#/$defs/ConstraintStatus"
+        }
+      },
+      "required": [
+        "constraint_id",
+        "constraint_type",
+        "status",
+        "impact_on_decision"
+      ],
+      "title": "ConstraintEvaluationResult",
+      "type": "object"
+    },
+    "OverallResultComputation": {
+      "$defs": {
+        "OverallResult": {
+          "enum": [
+            "passed",
+            "passed_with_caution",
+            "partially_passed",
+            "not_passed_for_new_buy",
+            "not_passed_for_add_position",
+            "not_suitable_for_playbook",
+            "need_more_data",
+            "requires_human_review"
+          ],
+          "title": "OverallResult",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "all_hard_not_applicable": {
+          "title": "All Hard Not Applicable",
+          "type": "boolean"
+        },
+        "hard_pass_count": {
+          "minimum": 0,
+          "title": "Hard Pass Count",
+          "type": "integer"
+        },
+        "overall_result": {
+          "$ref": "#/$defs/OverallResult"
+        },
+        "reason_code": {
+          "minLength": 1,
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "requires_human_review": {
+          "title": "Requires Human Review",
+          "type": "boolean"
+        },
+        "soft_fail_count_total": {
+          "minimum": 0,
+          "title": "Soft Fail Count Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "overall_result",
+        "requires_human_review",
+        "soft_fail_count_total",
+        "hard_pass_count",
+        "all_hard_not_applicable",
+        "reason_code"
+      ],
+      "title": "OverallResultComputation",
+      "type": "object"
+    },
+    "PlaybookEvaluationReport": {
+      "$defs": {
+        "AllowedAction": {
+          "enum": [
+            "buy",
+            "hold",
+            "wait",
+            "avoid",
+            "reduce",
+            "add_to_watchlist",
+            "hold_if_already_owned",
+            "need_more_data",
+            "add_position"
+          ],
+          "title": "AllowedAction",
+          "type": "string"
+        },
+        "ConstraintEvaluationResult": {
+          "additionalProperties": false,
+          "properties": {
+            "constraint_id": {
+              "minLength": 1,
+              "title": "Constraint Id",
+              "type": "string"
+            },
+            "constraint_type": {
+              "$ref": "#/$defs/ConstraintType"
+            },
+            "impact_on_decision": {
+              "$ref": "#/$defs/ImpactOnDecision"
+            },
+            "status": {
+              "$ref": "#/$defs/ConstraintStatus"
+            }
+          },
+          "required": [
+            "constraint_id",
+            "constraint_type",
+            "status",
+            "impact_on_decision"
+          ],
+          "title": "ConstraintEvaluationResult",
+          "type": "object"
+        },
+        "ConstraintStatus": {
+          "enum": [
+            "pass",
+            "fail",
+            "partial",
+            "insufficient_data",
+            "stale_data",
+            "not_applicable",
+            "error"
+          ],
+          "title": "ConstraintStatus",
+          "type": "string"
+        },
+        "ConstraintType": {
+          "enum": [
+            "hard",
+            "soft"
+          ],
+          "title": "ConstraintType",
+          "type": "string"
+        },
+        "ImpactOnDecision": {
+          "enum": [
+            "support",
+            "neutral",
+            "caution",
+            "lower_confidence",
+            "block_strong_buy",
+            "block_strong_sell",
+            "block_new_position",
+            "block_add_position",
+            "require_human_review",
+            "need_more_data"
+          ],
+          "title": "ImpactOnDecision",
+          "type": "string"
+        },
+        "OverallResult": {
+          "enum": [
+            "passed",
+            "passed_with_caution",
+            "partially_passed",
+            "not_passed_for_new_buy",
+            "not_passed_for_add_position",
+            "not_suitable_for_playbook",
+            "need_more_data",
+            "requires_human_review"
+          ],
+          "title": "OverallResult",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "constraint_results": {
+          "items": {
+            "$ref": "#/$defs/ConstraintEvaluationResult"
+          },
+          "title": "Constraint Results",
+          "type": "array"
+        },
+        "overall_result": {
+          "$ref": "#/$defs/OverallResult"
+        },
+        "reason_code": {
+          "minLength": 1,
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "recommended_decision_bounds": {
+          "items": {
+            "$ref": "#/$defs/AllowedAction"
+          },
+          "title": "Recommended Decision Bounds",
+          "type": "array"
+        },
+        "requires_human_review": {
+          "title": "Requires Human Review",
+          "type": "boolean"
+        },
+        "soft_fail_count_total": {
+          "minimum": 0,
+          "title": "Soft Fail Count Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "overall_result",
+        "requires_human_review",
+        "soft_fail_count_total",
+        "constraint_results",
+        "recommended_decision_bounds",
+        "reason_code"
+      ],
+      "title": "PlaybookEvaluationReport",
+      "type": "object"
+    }
+  },
+  "title": "crosslens SPEC-006 executable contracts"
+}

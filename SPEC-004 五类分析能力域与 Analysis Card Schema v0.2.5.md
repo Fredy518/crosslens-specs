@@ -1,6 +1,6 @@
 # SPEC-004：五类分析能力域与 Analysis Card Schema
 
-**版本：** v0.2.4
+**版本：** v0.2.5
 **状态：** Review
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4
@@ -10,6 +10,13 @@
 ---
 
 ## 0. 版本说明
+
+v0.2.5 在 v0.2.4 基础上将 Company Event derived fact 的生产责任正式归入能力域输出契约，并版本化 Analysis Card 输入契约。状态保持 Review。主要补齐：
+
+1. §25.1 新增 `event_resolution_status` 枚举；
+2. §26.2 定义三个事件类 derived facts 的计算、缺失与导出规则；
+3. 明确 derived facts 通过必填 boolean `fact_value` 表达真假、仅支撑 Soft Constraint，来源属性不足时不得以 `false` 代替未知；
+4. Analysis Card 新增必填 `schema_version`，消费者必须执行版本兼容检查。
 
 v0.2.4 在 v0.2.3 基础上补齐 SPEC-006 默认 Hard Constraint 的辅助控制接口。状态保持 Review。主要补齐：
 
@@ -205,6 +212,7 @@ Analysis Card 的作用是：
 ```json
 {
   "card_id": "card_fundamentals_001",
+  "schema_version": "SPEC-004@0.2.5",
   "task_id": "task_001",
   "run_id": "run_001",
   "domain": "fundamentals",
@@ -285,6 +293,7 @@ Analysis Card 的作用是：
 | 字段 | 含义 |
 |---|---|
 | `card_id` | Analysis Card 唯一标识 |
+| `schema_version` | Analysis Card Schema 版本；格式为 `SPEC-004@<semver>` |
 | `task_id` | 对应 Investment Task |
 | `run_id` | 对应本次分析运行 |
 | `domain` | 能力域名称 |
@@ -621,6 +630,7 @@ Fact 示例：
 {
   "export_type": "fact",
   "export_ref": "fact://retail_sentiment_overheated",
+  "fact_value": true,
   "evidence_ref": "ev_sentiment_001",
   "determinism_level": "structured",
   "can_support_hard_constraint": false,
@@ -646,6 +656,7 @@ Label 示例：
 |---|---|
 | `export_type` | `metric` / `fact` / `label` |
 | `export_ref` | Playbook Constraint 引用的实体 URI |
+| `fact_value` | 仅 `export_type = fact` 时必填，boolean |
 | `label_value` | 仅 `export_type = label` 时必填，枚举值 |
 | `evidence_ref` | 底层 Evidence Packet 引用 |
 | `value_path` | 仅 `export_type = metric` 时必填 |
@@ -661,6 +672,7 @@ Label 示例：
 4. facts 默认只能支撑 Soft Constraint；
 5. 所有 export 必须保留 evidence_ref；
 6. 若 evidence_ref 无法追溯，该 export 项应被 Post-card Validation 移除，并在对应 Analysis Card 的 `warnings` 中记录。
+7. `export_type = fact` 时必须显式提供 boolean `fact_value`；fact 不得通过“export 是否存在”隐式表达真假。
 
 ### 9.3 value_path 寻址规则
 
@@ -674,7 +686,7 @@ evidence_ref → Evidence Packet → .metrics → .{value_path}
 
 示例：`"evidence_ref": "ev_financial_001"` + `"value_path": "revenue_growth_ttm"` → 解析为 `ev_financial_001.metrics.revenue_growth_ttm`。
 
-若 `export_type = fact`，无 `value_path`，Playbook Constraint 通过 `export_ref` 的 `fact://` URI 引用事实标签（如 `fact://retail_sentiment_overheated`），判断规则由 SPEC-006 Playbook 规范定义。
+若 `export_type = fact`，无 `value_path`，Playbook Constraint 通过 `export_ref` 的 `fact://` URI 引用事实标签（如 `fact://retail_sentiment_overheated`），并读取 boolean `fact_value`。判断规则由 SPEC-006 Playbook 规范定义。
 
 若 `export_type = label`，`label_value` 携带枚举值，Playbook Constraint 通过 `export_ref` 引用该 label 实体，并使用比较表达式（如 `!= downtime`）判断 `label_value`。完整 label constraint 引用语法由 SPEC-006 定义。
 
@@ -1327,6 +1339,15 @@ rumor
 unknown
 ```
 
+#### event_resolution_status
+
+```text
+open
+resolved
+not_applicable
+unknown
+```
+
 #### catalyst_direction
 
 ```text
@@ -1381,9 +1402,11 @@ unknown
   "event_list": [
     {
       "event_type": "guidance_change",
+      "event_date": "2026-06-14",
       "event_direction": "positive",
       "event_materiality": "high",
       "event_certainty": "confirmed",
+      "event_resolution_status": "open",
       "expected_time_horizon": "1-2 quarters",
       "source_evidence_ref": "ev_event_001"
     }
@@ -1401,6 +1424,8 @@ unknown
   ]
 }
 ```
+
+`event_date` 使用 ISO 8601 日期或时间戳。需要导出 `latest_material_event_is_confirmed` 时，所有参与“最新事件”比较的 high materiality 事件必须具有可解析的 `event_date`。`event_resolution_status` 缺失不会使整张 Card 无效，但会使依赖该属性的 derived fact 按 §26.2 省略。
 
 ---
 
@@ -1479,6 +1504,27 @@ capital_return_announced
 >`source_event_generation_type` 字段说明（v0.2.2 新增）：该字段的值来自 source event 对应 Evidence Packet 的 `generation_type` 字段（定义见 SPEC-003 §7）。SPEC-004 不新增 Evidence Packet schema 字段；此字段由 Company Event 能力域在生成 `constraint_exports` 时从底层 Evidence 读取并透传。建议 SPEC-003 同步在 Computed Event Metric Evidence Packet 示例中增加对 source event 的 lineage 引用。
 
 >**已知局限（v0.2.3 新增，v0.2.3 修正归属）：** 当前 lineage 约束仅检查 source event 的直接 Evidence Packet。若 source event 本身引用了一个 Interpreted Evidence 作为其输入（例如，一个"结构化"事件标签是由 LLM 解释步骤生成的），SPEC-004 层面无法检测这种间接污染。完整的 lineage 递归检查应交由 SPEC-005（Capability Package 工具调用链 lineage）与 SPEC-009（Governance 层证据污染检测）协同实现。
+
+### 26.2 事件类 derived fact 导出规范
+
+Company Event / Catalyst 能力域是以下 derived fact 的生产者。它们必须在 Analysis Card 生成阶段基于结构化 `event_list` 确定性导出；Playbook Evaluation 不得自行重建或猜测这些事实。
+
+| `export_ref` | `fact_value = true` | `fact_value = false` |
+|---|---|---|
+| `fact://any_material_event_low_certainty` | 存在至少一条 `event_materiality = high`，且 `event_certainty ∈ {partially_confirmed, rumor, unknown}` | 至少存在一条 high materiality 事件，且所有此类事件均为 `confirmed` |
+| `fact://latest_material_event_is_confirmed` | 按 `event_date` 选出的最新一条 `event_materiality = high` 事件，其 `event_certainty = confirmed` | 最新一条 high materiality 事件的 certainty 明确为 `partially_confirmed` 或 `rumor` |
+| `fact://any_material_negative_event_unresolved` | 存在至少一条 `event_materiality = high`、`event_direction = negative` 且 `event_resolution_status = open` 的事件 | 至少存在一条 high materiality negative 事件，且所有此类事件均为 `resolved` 或 `not_applicable` |
+
+导出要求：
+
+1. `export_type = fact`；
+2. `determinism_level = structured`；
+3. `can_support_hard_constraint = false`；
+4. `allowed_constraint_types = ["soft"]`；
+5. `evidence_ref` 必须指向 derived-fact Evidence Packet；该 Packet 的 lineage 必须包含全部参与判定的 source event refs；
+6. 只有满足表中明确的 true 或 false 条件时才允许导出。所需属性缺失、无法选择“最新事件”，或遇到表中未定义为 true 的 `unknown` 时，必须省略受影响的 export，并在 `warnings` 中记录原因；
+7. `event_list` 为空时不导出上述 facts，不得把“无数据”解释为 `false`；
+8. `latest_material_event_is_confirmed` 要求候选事件具有机器可解析的 `event_date`。并列日期按 `source_evidence_ref` 字典序稳定选择，并在 Analysis Card `warnings` 中记录并列情况。
 
 ---
 
@@ -1897,7 +1943,7 @@ Technical / Market 可导出 Computed metrics，用于部分 Hard Constraint 或
 
 每张 Analysis Card 必须通过以下基础检查：
 
-1. 必须包含 `card_id`、`task_id`、`run_id`、`domain`；
+1. 必须包含 `card_id`、`schema_version`、`task_id`、`run_id`、`domain`；
 2. 必须包含合法 `domain_status`；
 3. 必须包含合法 `data_quality`；
 4. `confidence` 必须符合上限规则；
@@ -1909,6 +1955,8 @@ Technical / Market 可导出 Computed metrics，用于部分 Hard Constraint 或
 10. 不允许未引用证据的重大判断；
 11. 若 `constraint_exports` 中存在 `can_support_hard_constraint = true` 的 export 且 `data_freshness` 字段缺失，Post-card Validation = `block`；
 12. 若 `constraint_exports` 仅包含 soft export 且 `data_freshness` 字段缺失，Post-card Validation = `flag`。
+13. `schema_version` 必须是消费者明确支持的版本，或存在已注册的向后兼容适配器；缺失或不兼容时不得静默按当前版本解释。
+14. `export_type = fact` 时必须存在 boolean `fact_value`；缺失或类型错误时移除该 export，并在 `warnings` 中记录。
 
 ---
 
@@ -2065,13 +2113,13 @@ SPEC-004 依赖和影响以下文档：
 4. ~~Sentiment 是否应在某些短线 Playbook 中提升权重~~ — **v0.2.2 已关闭：Sentiment 的权重提升不在 SPEC-004 层面实现**。能力域设计保持不变，权重调整由 Playbook 在 Soft Constraint 层面声明（SPEC-006）；
 5. Technical / Market 是否需要区分投资型技术分析与交易型技术分析（**P1** — 直接影响 §44 `time_horizon_mismatch` 规则和 `time_horizon_bucket` 赋值策略）；
 6. Macro / Meso 是否需要单独的行业供需模型扩展文档；
-7. Analysis Card 是否需要版本化 schema。
+7. ~~Analysis Card 是否需要版本化 schema。~~ 已在 v0.2.5 关闭：`schema_version` 为必填字段，消费者必须执行兼容检查。
 
 ---
 
-## 48. v0.2.4 总结
+## 48. v0.2.5 总结
 
-SPEC-004 v0.2.4 定义了五类分析能力域与 Analysis Card Schema。
+SPEC-004 v0.2.5 定义了五类分析能力域与 Analysis Card Schema。
 
 本版本完成以下约束：
 
@@ -2080,25 +2128,27 @@ SPEC-004 v0.2.4 定义了五类分析能力域与 Analysis Card Schema。
 3. 每个能力域只读取 Context Bundle、Evidence Packets 和 Playbook Constraints；
 4. 每个能力域只向编排器返回 Analysis Card；
 5. Analysis Card 是结构化投研判断单元；
-6. domain_status 与 data_quality 正交；
-7. domain_status 对 stance 有硬约束映射；
-8. confidence 是能力域自评置信度，受双重 cap 约束，MVP 阶段不跨域比较；
-9. constraint_exports 多态化（metric / fact / label），含 value_path 寻址规则和 label 引用语法；
-10. Fundamentals 是 MVP 中最主要的 Hard Constraint 来源；
-11. Sentiment 默认降权，不支撑 Hard Constraint；
-12. Macro / Meso 在 MVP 中主要提供背景和风险约束；
-13. Technical / Market 可支撑部分风险和择时约束，但不单独支撑长期买入；
-14. Company Event / Catalyst 事件标签一律不支撑 Hard Constraint，仅 4 个 Computed metrics 在满足 lineage 约束（source_event 已确认 + 非 Interpreted）时可支撑；
-15. 各能力域 domain_payload 使用明确枚举 allowlist；
-16. Analysis Card 含 data_freshness（含条件必填规则和 valid_until 推导参考表）；
-17. time_horizon 标准化字段支持 Conflict Detection 机器判断；
-18. 增加 `macro_regime_vs_playbook`、`time_horizon_mismatch`、`fundamentals_valuation_vs_sentiment` 冲突规则；
-19. Conflict Detection 对 Flag Card 的处理对齐 SPEC-003；
-20. 每个能力域输出必须可被 Validation、Conflict Detection、Playbook Evaluation 和 Decision Trace 消费；
-21. `value_path` 已明确根节点为 Evidence.`metrics` 字典；
-22. `completed + unavailable` 矛盾组合显式禁止；
-23. `time_horizon_mismatch` 触发条件精确化为可机器判断的算法；
-24. lineage 间接污染局限已显式承认，交付 SPEC-005 + SPEC-009 协同。
+6. Analysis Card 通过必填 `schema_version` 建立机器可读的兼容契约；
+7. domain_status 与 data_quality 正交；
+8. domain_status 对 stance 有硬约束映射；
+9. confidence 是能力域自评置信度，受双重 cap 约束，MVP 阶段不跨域比较；
+10. constraint_exports 多态化（metric / fact / label），含 value_path 寻址规则和 label 引用语法；
+11. Fundamentals 是 MVP 中最主要的 Hard Constraint 来源；
+12. Sentiment 默认降权，不支撑 Hard Constraint；
+13. Macro / Meso 在 MVP 中主要提供背景和风险约束；
+14. Technical / Market 可支撑部分风险和择时约束，但不单独支撑长期买入；
+15. Company Event / Catalyst 事件标签一律不支撑 Hard Constraint，仅 4 个 Computed metrics 在满足 lineage 约束（source_event 已确认 + 非 Interpreted）时可支撑；
+16. Company Event / Catalyst 负责导出三个仅供 Soft Constraint 使用的事件类 derived facts；
+17. 各能力域 domain_payload 使用明确枚举 allowlist；
+18. Analysis Card 含 data_freshness（含条件必填规则和 valid_until 推导参考表）；
+19. time_horizon 标准化字段支持 Conflict Detection 机器判断；
+20. 增加 `macro_regime_vs_playbook`、`time_horizon_mismatch`、`fundamentals_valuation_vs_sentiment` 冲突规则；
+21. Conflict Detection 对 Flag Card 的处理对齐 SPEC-003；
+22. 每个能力域输出必须可被 Validation、Conflict Detection、Playbook Evaluation 和 Decision Trace 消费；
+23. `value_path` 已明确根节点为 Evidence.`metrics` 字典；
+24. `completed + unavailable` 矛盾组合显式禁止；
+25. `time_horizon_mismatch` 触发条件精确化为可机器判断的算法；
+26. lineage 间接污染局限已显式承认，交付 SPEC-005 + SPEC-009 协同。
 
 SPEC-004 的核心设计原则是：
 
