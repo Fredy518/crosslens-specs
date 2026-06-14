@@ -896,7 +896,7 @@ Structured labels，例如：
 2. `industry_cycle_stage = early_recovery`；
 3. `policy_environment = supportive`；
 
-默认不能支撑 Hard Constraint，只能作为 Soft Constraint 或 conditional_hard_constraint。
+Structured labels 默认只能支撑 Soft Constraint。若未来需要 conditional_hard_constraint，必须由 SPEC-006 Playbook 或 SPEC-009 Governance 显式声明，且该 export 仍不得设置 `can_support_hard_constraint = true`。
 
 ---
 
@@ -1456,7 +1456,7 @@ capital_return_announced
 
 >`source_event_generation_type` 字段说明（v0.2.2 新增）：该字段的值来自 source event 对应 Evidence Packet 的 `generation_type` 字段（定义见 SPEC-003 §7）。SPEC-004 不新增 Evidence Packet schema 字段；此字段由 Company Event 能力域在生成 `constraint_exports` 时从底层 Evidence 读取并透传。建议 SPEC-003 同步在 Computed Event Metric Evidence Packet 示例中增加对 source event 的 lineage 引用。
 
->**已知局限（v0.2.3 新增，v0.2.4 修正归属）：** 当前 lineage 约束仅检查 source event 的直接 Evidence Packet。若 source event 本身引用了一个 Interpreted Evidence 作为其输入（例如，一个"结构化"事件标签是由 LLM 解释步骤生成的），SPEC-004 层面无法检测这种间接污染。完整的 lineage 递归检查应交由 SPEC-005（Capability Package 工具调用链 lineage）与 SPEC-009（Governance 层证据污染检测）协同实现。
+>**已知局限（v0.2.3 新增，v0.2.3 修正归属）：** 当前 lineage 约束仅检查 source event 的直接 Evidence Packet。若 source event 本身引用了一个 Interpreted Evidence 作为其输入（例如，一个"结构化"事件标签是由 LLM 解释步骤生成的），SPEC-004 层面无法检测这种间接污染。完整的 lineage 递归检查应交由 SPEC-005（Capability Package 工具调用链 lineage）与 SPEC-009（Governance 层证据污染检测）协同实现。
 
 ---
 
@@ -1884,7 +1884,9 @@ Technical / Market 可导出 Computed metrics，用于部分 Hard Constraint 或
 7. 若 `stance ∈ {positive, moderately_positive, mixed, negative, moderately_negative}`，必须包含 opposing_evidence。其中 `mixed` 立场语义上意味着同时存在正面和负面信号——缺少 opposing_evidence 的 `mixed` 自相矛盾；
 8. 若 `data_quality = low`，必须包含 warnings；
 9. 如果有 constraint_exports，必须明确 determinism_level 和 can_support_hard_constraint；
-10. 不允许未引用证据的重大判断。
+10. 不允许未引用证据的重大判断；
+11. 若 `constraint_exports` 中存在 `can_support_hard_constraint = true` 的 export 且 `data_freshness` 字段缺失，Post-card Validation = `block`；
+12. 若 `constraint_exports` 仅包含 soft export 且 `data_freshness` 字段缺失，Post-card Validation = `flag`。
 
 ---
 
@@ -1963,10 +1965,12 @@ Soft Constraint 可以引用 facts、stance、domain_payload 和 interpreted fin
 
 > v0.2 新增。v0.2.3 精确化触发算法。
 
-**触发条件（v0.2.3 精确化，v0.2.4 修正条件 2 歧义）：** 以下任一条件满足时，标记 `time_horizon_mismatch`：
+**触发条件（v0.2.3 精确化，v0.2.3 修正条件 2 歧义）：** 以下任一条件满足时，标记 `time_horizon_mismatch`：
 
 1. 两个能力域的 `time_horizon_bucket` 相差 ≥ 2 个等级（例如 `short_term` vs `long_term`）；
 2. 两个能力域的中值天数差 > 90 天（中值 = `(time_horizon_days_min + time_horizon_days_max) / 2`），且不满足条件 1。
+
+条件 1 和条件 2 共同覆盖两种不同的错配模式——条件 1 捕捉 bucket 级别的明显分类错配（如 short_term vs long_term），条件 2 捕捉同一 bucket 分类下或相邻 bucket 间超出预期范围的实际天数跨度错配（如 medium_term 内两个域的实际周期差 > 90 天）。条件 2 的"且不满足条件 1"确保条件 1 优先触发，避免重复标记。
 
 两个条件均基于机器可读字段（`time_horizon_bucket` / `time_horizon_days_*`），不依赖自然语言字符串解析。具体阈值 90 天为 MVP 默认值，可由 SPEC-007 Orchestration 配置覆盖。
 
@@ -1992,7 +1996,7 @@ Playbook horizon = 3-6 months
 
 例外：如果 Playbook 明确允许多周期综合判断，则 `time_horizon_mismatch` 可以降级为 Note。
 
-> **NOTE（v0.2.4）：** Technical / Market 的 `time_horizon_bucket` 赋值策略暂定为由分析任务的 Playbook 目标周期决定。该策略为占位默认值，待 §47 Q5（投资型 vs 交易型技术分析区分）关闭后更新。
+> **NOTE（v0.2.3）：** Technical / Market 的 `time_horizon_bucket` 赋值策略暂定为由分析任务的 Playbook 目标周期决定。该策略为占位默认值，待 §47 Q5（投资型 vs 交易型技术分析区分）关闭后更新。
 
 ---
 
@@ -2069,10 +2073,10 @@ SPEC-004 v0.2.3 定义了五类分析能力域与 Analysis Card Schema。
 18. 增加 `macro_regime_vs_playbook`、`time_horizon_mismatch`、`fundamentals_valuation_vs_sentiment` 冲突规则；
 19. Conflict Detection 对 Flag Card 的处理对齐 SPEC-003；
 20. 每个能力域输出必须可被 Validation、Conflict Detection、Playbook Evaluation 和 Decision Trace 消费；
-21. `value_path` 已明确根节点为 Evidence.`metrics` 字典（v0.2.3 修正歧义）；
-22. `completed + unavailable` 矛盾组合显式禁止（v0.2.3）；
-23. `time_horizon_mismatch` 触发条件精确化为可机器判断的算法（v0.2.3/0.2.4）；
-24. lineage 间接污染局限已显式承认，交付 SPEC-005 + SPEC-009 协同（v0.2.4）。
+21. `value_path` 已明确根节点为 Evidence.`metrics` 字典；
+22. `completed + unavailable` 矛盾组合显式禁止；
+23. `time_horizon_mismatch` 触发条件精确化为可机器判断的算法；
+24. lineage 间接污染局限已显式承认，交付 SPEC-005 + SPEC-009 协同。
 
 SPEC-004 的核心设计原则是：
 
