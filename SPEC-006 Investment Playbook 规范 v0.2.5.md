@@ -1,6 +1,6 @@
 # SPEC-006：Investment Playbook 规范
 
-**版本：** v0.2.4
+**版本：** v0.2.5
 **状态：** Approved
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.3
@@ -10,6 +10,14 @@
 ---
 
 ## 0. 版本说明
+
+v0.2.4 在 v0.2.3 基础上关闭 13 项语义缺口中低风险项。主要补齐：§22.3 need_more_data fail 优先注释、§18.3 ambiguous_label_ref reasoning 来源标注、§22.3 all-not_applicable 交叉引用、§22.2 partially_applicable MVP 语义、§25.1 time_horizon_mismatch 实现说明、§13.3 none 列移除、§12.3 as_of_mismatch hard/soft 区分、§25.3 降级单 ref 空步骤修正、§6.2 environment 枚举、§21.2 buy 映射未来兼容、§24.2 flag 交叉引用修正、§25.1 require_review_on vs note 优先级、§46 版本同步。
+
+v0.2.3 在 v0.2.2 基础上关闭执行语义缺口与一致性矛盾。主要补齐：§17.2 fail 优先于 partial 判定、§23.2 all-not_applicable 显式规则、§25 condition 降级执行顺序显式化、§18.3 ambiguous_label_ref 不短路声明、§22.3 门控衔接、§28.2 re_evaluate 补全、§25.1 兜底 note、§6.2 draft 开发工作流。
+
+v0.2.2 在 v0.2.1 基础上关闭执行语义缺口与边界条件遗漏。主要补齐：§22.3 决策树 need_more_data 显式限定、§18.3 ambiguous_label_ref reasoning 来源区分、§22.3 all-not_applicable 路径交叉引用、§22.2 partially_applicable 行为声明、§25.1 time_horizon_mismatch 说明、§13.3 none 列移除、§12.3 as_of_mismatch_policy 场景修正、§25.3 降级单 ref 修正、§6.2 环境枚举、§21.2 动作映射注释、§24.2 flag 注记说明、§25.1 require_review_on 优先级、§46 版本同步。
+
+v0.2.1 在 v0.2.0 基础上关闭三处语义冲突。主要补齐：§17.2 `partial` 在 any 模式下的 fail 优先判定、§8.4 第 3 条收紧为 `domain_status ∈ {completed, partial}`、§12.3 引入 `as_of_mismatch_policy` 可配置降级策略。
 
 v0.2.0 在 v0.1.9 基础上关闭残余执行语义缺口。状态由 Review 升级为 Approved。主要补齐：
 
@@ -477,7 +485,7 @@ Optional Domains 是辅助判断能力域。
 
 SPEC-006 继承 SPEC-003 的最小可用 Analysis Card 阈值。下文中的 `domain_status` 指 Analysis Card 的 `domain_status` 字段（在 SPEC-004 §5 中定义，枚举见 SPEC-004 §5.1），非 SPEC-006 自创概念——此字段由能力域在生成 Analysis Card 时填写，Playbook Evaluation 在步骤 3 消费：
 
-1. 至少 3/5 个能力域返回非 `insufficient_data` 的 Analysis Card；
+1. 至少 3/5 个能力域返回 `domain_status ∈ {completed, partial}` 的 Analysis Card。`failed`、`skipped` 和 `insufficient_data` 均不计入此阈值——仅完成或部分完成分析的能力域为有效参与；
 2. Fundamentals 必须可用；
 3. 至少一个非 Fundamentals 能力域 `domain_status ∈ {completed, partial}`。该域无需满足特定 evidence 数量或 confidence 阈值——只要能力域完成或部分完成分析即为有效贡献（背景信息同样可辅助人类判断）。`failed` 或 `skipped` 不计入有效贡献——此约束阻止实现者将能力域执行失败误认为有效参与；
 4. 不存在 Block 级 Validation Finding；
@@ -784,7 +792,7 @@ Soft Constraint 可以引用 metric、fact、label、stance、domain_payload、i
 }
 ```
 
->`allowed_evidence_types` 为可选字段。缺省时 Soft Constraint 允许引用所有 evidence type（computed、structured、interpreted），但 Interpreted Evidence 不得单独支撑强建议（§20.3）。
+>`allowed_evidence_types` 为可选字段。**缺省值为 `["computed", "structured"]`（保守原则——Interpreted Evidence 不得默认进入 Soft Constraint）。** 若某条 Soft Constraint 确需引用 Interpreted Evidence，必须显式声明 `"allowed_evidence_types": ["computed", "structured", "interpreted"]` 并附加 `"allow_interpreted_evidence": true`，且在 Decision Trace 中标注"含 Interpreted Evidence"。Interpreted Evidence 仍不得单独支撑强建议（§20.3）。
 
 ### 15.2 Soft Constraint 不得直接产生强建议
 
@@ -1087,13 +1095,13 @@ requires_human_review
 | `need_more_data` | 关键数据缺失或过期 |
 | `requires_human_review` | 触发人工复核条件 |
 
-> **`overall_result` 决策树（v0.1.7）：** 决策树在 §8.4 最小可用能力域规则通过后执行。若 §8.4 触发 `analysis_incomplete`，不进入决策树。以下条件按优先级从高到低匹配，第一个满足即停止。以下条件中"所有 Hard pass"的判断标准为：所有 Hard Constraint 的 `status ∈ {pass, not_applicable}`。`stale_data`、`insufficient_data`、`partial` 不视为 `pass`。**若所有 Hard Constraint 均为 `not_applicable` 且无一条实际 `pass`，视为"所有 Hard pass"（全部跳过等价于无阻碍），走相应 Soft fail 判定分支。**
+> **`overall_result` 决策树（v0.1.7）：** 决策树在 §8.4 最小可用能力域规则通过后执行。若 §8.4 触发 `analysis_incomplete`，不进入决策树。以下条件按优先级从高到低匹配，第一个满足即停止。以下条件中"所有 Hard pass"的判断标准为：所有 Hard Constraint 的 `status ∈ {pass, not_applicable}`。`stale_data`、`insufficient_data`、`partial` 不视为 `pass`。若所有 Hard Constraint 均为 `not_applicable` 且无一条实际 `pass`，按规则 9 处理——不阻断动作边界但 `overall_result` 最低为 `partially_passed`，Decision Trace 须说明无实际 Hard Constraint 被验证。
 
 | 条件 | overall_result |
 |---|---|
 | 任一 Soft Constraint fail 含 `require_human_review`（优先） | `requires_human_review` |
 | 任一 Hard Constraint fail（`block_new_position`） | `not_passed_for_new_buy` |
-| 所有 Hard pass，Soft fail = 0（含所有 Hard Constraint 均为 `not_applicable` 的情况，见规则 9） | `passed` |
+| 所有 Hard pass，Soft fail = 0（注意：若所有 Hard 均为 `not_applicable` 且无实际 pass，不落入此分支——见规则 9，最低 `partially_passed`） | `passed` |
 | 所有 Hard pass，0 < Soft fail < 2（含所有 Hard Constraint 均为 `not_applicable` 的情况） | `partially_passed` |
 | 所有 Hard pass，Soft fail ≥ 2（含所有 Hard Constraint 均为 `not_applicable` 的情况） | `passed_with_caution` |
 | 任一 Hard Constraint `insufficient_data` 或 `stale_data`（前提：无 Hard Constraint fail。与 §23.2 NOTE "fail 优先于 insufficient_data"一致） | `need_more_data` |
@@ -1133,7 +1141,7 @@ Playbook Evaluation 按以下顺序执行：
 6. Conflict Handling 可移除动作或降低 confidence；
 7. Preference 只影响动作排序，不得恢复被移除动作；
 8. Guardrail 与 Validation 仍可在 Resolved Decision Bounds 阶段覆盖 Playbook 结果；
-9. 所有 Hard Constraint `status = not_applicable` 且无一实际 `pass`，视同所有 Hard pass，继续执行 Soft Constraint 判定（v0.2.3 新增）。
+9. 所有 Hard Constraint `status = not_applicable` 且无一实际 `pass`：不阻断动作边界（即不触发 `block_new_position` 等移除逻辑），但 `overall_result` 不应为 `passed`——应最低设为 `partially_passed` 或根据 Soft Constraint fail 数量设为 `passed_with_caution`；Decision Trace 必须显式说明"本次没有实际 Hard Constraint 被验证"（v0.2.3 新增，v0.2.5 语义修正）。
 
 > **`passed_with_caution` 与 `partially_passed` 的边界（v0.1.5，v0.1.6 修正）：** `passed_with_caution` = 所有 Hard Constraint 通过 + Soft Constraint fail ≥ 2。`partially_passed` = 无 Hard Constraint fail 但 Soft Constraint fail < 2。两者均为非阻断状态，区别在于 Decision Trace 展示的醒目程度和 `confidence_cap` 的下调幅度。MVP 暂定 Soft Constraint fail 阈值为 2，可由 Run Config 配置。
 
@@ -1287,6 +1295,7 @@ Conflict Handling 的 `prefer_wait` 和 `prefer_add_to_watchlist` 与 §16 Prefe
       "validation_block",
       "macro_regime_vs_playbook",
       "hard_constraint_insufficient_data",
+      "macro_meso_insufficient_data",
       "major_company_event_with_low_certainty"
     ],
     "allow_decision_candidate_before_review": false
@@ -1301,6 +1310,8 @@ Conflict Handling 的 `prefer_wait` 和 `prefer_add_to_watchlist` 与 §16 Prefe
 > **`require_review_on` 值来源（v0.1.8）：** 列表中混用两类来源：(1) Conflict Handling 冲突类型 key（如 `macro_regime_vs_playbook`），由 Conflict Handling 模块在步骤 8 产生；(2) 系统状态描述（如 `hard_constraint_insufficient_data`、`guardrail_block`），由 Constraint Evaluation / Guardrail 模块产生。规则引擎应在对应步骤完成后检查该步骤产出的条件是否匹配列表，匹配即触发。完整事件标识符体系由 SPEC-009 Governance 统一定义，MVP 由实现层保证名称一致性。
 
 > **`macro_regime_vs_playbook` 无条件触发（v0.2.0）：** §36 中 `macro_regime_vs_playbook` 的 Conflict Handling 规则无 `condition`，语义为"只要此冲突类型出现即触发 `require_human_review`"。当宏观域 `domain_status = insufficient_data` 且未能生成可用 regime label 时，冲突是否"出现"取决于编排器是否能生成 Conflict Report——若编排器因缺少宏观域数据而不生成 `macro_regime_vs_playbook` 类型冲突，则规则不触发。**设计意图：宏观域数据缺失本身即为不确定性信号，需人工判断——但触发路径是 §8.4 第 3 条（若 4 个 Optional 域全缺）或编排器数据缺失事件，非 Conflict Handling 规则。** 详见 §8.4 NOTE。
+
+> **宏观域数据缺失 hook（v0.2.5）：** `require_review_on` 列表新增 `macro_meso_insufficient_data` 事件标识符。当 Macro/Meso 域返回 `domain_status = insufficient_data` 时（即使其他 Optional 域正常），编排器应触发此事件；Playbook Human Review Policy 引用此项后，可仅因宏观数据缺失即触发人工复核，无需等所有 Optional 域全缺。事件的完整定义和触发机制由 SPEC-007 Orchestration 定义，SPEC-006 仅声明该事件标识符的存在。
 
 > **`high_conflict` 判定标准（v0.1.9）：** `high_conflict` 的判定暂定为：`default_severity = high` 的 Conflict Handling 规则被实际触发（其 `actions` 被执行）时，视为 `high_conflict`。完整判定逻辑由 SPEC-009 统一定义，MVP 暂以此规则为准。
 
@@ -1748,6 +1759,7 @@ MVP 阶段仅使用 `built_in_static`。`user_defined`、`imported` 为未来扩
     "validation_block",
     "macro_regime_vs_playbook",
     "hard_constraint_insufficient_data",
+    "macro_meso_insufficient_data",
     "major_company_event_with_low_certainty"
   ],
   "allow_decision_candidate_before_review": false
