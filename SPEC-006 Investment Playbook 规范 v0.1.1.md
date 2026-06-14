@@ -1,6 +1,6 @@
 # SPEC-006：Investment Playbook 规范
 
-**版本：** v0.1.3
+**版本：** v0.1.4
 **状态：** Review
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.3
@@ -10,6 +10,19 @@
 ---
 
 ## 0. 版本说明
+
+v0.1.4 在 v0.1.3 基础上补齐执行语义边界与缺省声明。主要补齐：
+
+1. **P1** `blocking_conditions` dedup 策略：Hard Constraint 负责 block，Conflict Handling 负责 ranking 时两者不重复记录（§36 + §23.2）；
+2. **P1** Soft Constraint `on_insufficient_data` 缺省行为声明（§15）+ §34.2/§34.3/§34.4 补全字段；
+3. **P1** §8.4 第 3 条与 Optional Domains `on_missing` 优先级：§8.4 为 Playbook 级阈值，高于单个域设定（§8.4）；
+4. **P2** `ref_vs_ref` as_of `flag` 注记与 Constraint `status` 的区分（§12.3）；
+5. **P2** `multi_label_avoid` AND 语义显式说明（§14.2）；
+6. **P2** `impact_on_decision` 枚举与 `prefer_*` 的关系说明（§19）；
+7. **P2** `overall_result` 增加 `passed_with_caution`（§22.3）；
+8. **P2** `preference_type = confidence_adjustment` 执行语义（§16）；
+9. **P2** 开放问题 Q2/Q4/Q7 暂定立场（§45）；
+10. 小修：§5.1 conflict_handling 空对象→占位、§22.1 子字段方向性注释、§29 playbook_source 补枚举、§41 步骤 3.5、§44 补 SPEC-004。
 
 v0.1.3 在 v0.1.2 基础上修复规则引擎实现一致性问题。主要补齐：
 
@@ -210,6 +223,7 @@ Playbook 顶层 schema 采用扁平结构（不使用嵌套 `metadata` 对象）
   "preferences": [],
   "freshness_requirements": [],
   "conflict_handling": {},
+  // conflict_handling 实际为以冲突类型为 key 的对象（如 {\"macro_regime_vs_playbook\": {...}}），MVP 最小结构可为 null
   "action_policy": {},
   "human_review_policy": {},
   "output_policy": {},
@@ -395,6 +409,8 @@ SPEC-006 继承 SPEC-003 的最小可用 Analysis Card 阈值：
 4. 不存在 Block 级 Validation Finding；
 5. Playbook 关键 Hard Constraint 可以判断。
 
+> **§8.4 与 Optional Domains `on_missing` 的优先级（v0.1.4）：** §8.4 是 Playbook 级别的最小可用阈值，优先级高于单个 Optional Domain 的 `on_missing` 设定。若四个 Optional Domains 全部返回 `insufficient_data`，即使每个域单独设置了 `on_missing = continue_with_warning`，Playbook 级别仍因违反第 3 条而停止生成完整 Decision Candidate（`analysis_incomplete`）。单个域的 `on_missing` 仅在个别域缺失时生效。
+
 ---
 
 ## 9. Constraint 类型总览
@@ -525,7 +541,7 @@ value(left_ref) >= value(right_ref)
 5. `left_ref` 与 `right_ref` 的 value_type 必须兼容；
 6. 任一 ref 无法解析，Constraint status = `insufficient_data`；
 7. 任一 ref 数据过期，Constraint status = `stale_data`；
-8. `left_ref` 与 `right_ref` 的 `data_freshness.as_of` 差值应不超过约束基准值。基准值取两个 ref 各自在 Freshness Requirements 中定义的最大 `max_age_days` 的较小值。若任一 ref 未在 Freshness Requirements 中定义，取 Playbook 级默认值（如有）；若均无，跳过该检查并标记 NOTE。若超过，规则引擎应标记 `flag` 并进入 Decision Trace，但不自动变更 Constraint status。
+8. `left_ref` 与 `right_ref` 的 `data_freshness.as_of` 差值应不超过约束基准值。基准值取两个 ref 各自在 Freshness Requirements 中定义的最大 `max_age_days` 的较小值。若任一 ref 未在 Freshness Requirements 中定义，取 Playbook 级默认值（如有）；若均无，跳过该检查并标记 NOTE。若超过，规则引擎应在 Decision Trace 中标记注记，但不自动变更 Constraint `status`。此处使用的 `flag` 为 Decision Trace 注记标记，非 `§17.2` Constraint `status` 枚举值——Constraint `status` 仍由主判断逻辑（pass/fail/insufficient_data）决定。
 
 ---
 
@@ -623,6 +639,8 @@ MVP 至少实现 `all_refs_in_avoid_values`。
 
 > **`avoid_values` 值绑定语义（v0.1.2）：** `avoid_values` 不与 `input_refs` 逐一绑定。匹配基于整体值集合——即"所有 input_ref 的值是否都落在 avoid_values 集合中"。例如 `rate_environment = "tightening"` + `liquidity_environment = "contracting"` → 两个值都 ∈ `["tightening", "contracting"]` → 触发。若需要精确绑定（如"rate_environment 必须是 tightening 且 liquidity_environment 必须是 contracting"），应使用 `multi_rule` + 两个独立 `ref_vs_threshold` 子规则。
 
+> **`all_refs_in_avoid_values` 为 AND 语义（v0.1.4）：** 所有 input_ref 的值都必须落入 avoid_values 集合才触发。若部分 ref 在 avoid_values 中、部分不在（如三个 ref 仅两个匹配），不触发 fail。若需要 OR 语义（任一 ref 落入 avoid_values 即触发），使用 `any_avoid_value_present`。若需要精确值绑定（指定哪个 ref 取哪个值），使用 `multi_rule`。
+
 ---
 
 ## 15. Soft Constraint 规则
@@ -655,6 +673,12 @@ Soft Constraint 可以引用 metric、fact、label、stance、domain_payload、i
 Soft Constraint 可以：降低 confidence、添加 caution、移除强动作、要求人工复核、进入 Decision Trace。
 不得单独生成 `buy`、`strong_buy`、`strong_sell`。
 
+### 15.3 `on_insufficient_data` 缺省行为
+
+> v0.1.4 新增。
+
+`on_insufficient_data` 为 Soft Constraint 的可选字段。**缺省值为 `note`**（进入 Decision Trace 但不改变动作边界）。若 Playbook 需要更强的响应（如 `require_human_review`），必须显式声明。
+
 ---
 
 ## 16. Preference Schema
@@ -671,6 +695,20 @@ Soft Constraint 可以：降低 confidence、添加 caution、移除强动作、
 ```
 
 Preference 可以影响 action ranking、action_selection_reason、Decision Trace 表达、confidence explanation。不得绕过 Hard Constraint 或 Guardrail。
+
+### 16.1 `preference_type` 枚举与执行语义
+
+> v0.1.4 新增。
+
+```text
+action_ranking
+confidence_adjustment
+```
+
+| preference_type | 语义 | MVP 执行方式 |
+|---|---|---|
+| `action_ranking` | 影响建议动作排序 | 由实现层定义排序权重；步骤 9 应用 |
+| `confidence_adjustment` | 降低框架层面的置信度 | MVP 阶段仅作为 Decision Trace 说明，不自动修改 confidence cap。若需要自动修改 cap，由 SPEC-009 Evaluator 后续统一定义 |
 
 ---
 
@@ -786,6 +824,8 @@ need_more_data
 | require_human_review | 要求人工复核 |
 | need_more_data | 数据不足，要求补充数据 |
 
+> **`prefer_*` 与 `impact_on_decision` 的关系（v0.1.4）：** `prefer_wait`、`prefer_add_to_watchlist` 等 ranking 类动作不属于 `impact_on_decision` 枚举。它们不修改 `allowed_actions` 集合，仅影响动作排序和 `action_selection_reason`。完整语义见 §25.3。
+
 ---
 
 ## 20. Hard Constraint 规则
@@ -877,6 +917,7 @@ MVP 默认不支持 `strong_buy`、`strong_sell`、`add_position`。
   "requires_human_review": false,
   "confidence_cap_adjustments": [],
   "reasoning": []
+  // confidence_cap_adjustments 元素格式与 reasoning 元素格式由 SPEC-008 Decision Trace 定义
 }
 ```
 
@@ -894,6 +935,7 @@ unknown
 
 ```text
 passed
+passed_with_caution
 partially_passed
 not_passed_for_new_buy
 not_passed_for_add_position
@@ -901,6 +943,17 @@ not_suitable_for_playbook
 need_more_data
 requires_human_review
 ```
+
+| overall_result | 语义 |
+|---|---|
+| `passed` | 所有 Hard Constraint 通过，Soft Constraint 无显著 fail |
+| `passed_with_caution` | 所有 Hard Constraint 通过，但 ≥2 个 Soft Constraint fail |
+| `partially_passed` | 部分通过，但尚不足以阻断 Decision Candidate |
+| `not_passed_for_new_buy` | Hard Constraint 明确禁止新开仓 |
+| `not_passed_for_add_position` | Hard Constraint 禁止加仓 |
+| `not_suitable_for_playbook` | 当前资产或环境不适用此 Playbook |
+| `need_more_data` | 关键数据缺失或过期 |
+| `requires_human_review` | 触发人工复核条件 |
 
 ---
 
@@ -936,6 +989,8 @@ Playbook Evaluation 按以下顺序执行：
 5. Conflict Handling 可移除动作或降低 confidence；
 6. Preference 只影响动作排序，不得恢复被移除动作；
 7. Guardrail 与 Validation 仍可在 Resolved Decision Bounds 阶段覆盖 Playbook 结果。
+
+> **`blocking_conditions` dedup 策略（v0.1.4）：** 若同一禁止条件由 Hard Constraint `on_fail`（规则 1）和 Conflict Handling `actions`（规则 5）双重触发，`blocking_conditions` 列表应去重——同一条 `block_new_position` 只记录一次，来源标注为 `[constraint_id, conflict_type]`，但不重复计入。这是典型的 `valuation_margin_001`（Hard Constraint `on_fail = block_new_position`）与 `fundamentals_vs_valuation`（Conflict Handling `actions = [\"block_new_position\"]`）双重覆盖场景。建议 Playbook 设计时优先让 Hard Constraint 负责 block，Conflict Handling 负责 ranking（如 `fundamentals_vs_valuation` 的 action 改为 `prefer_wait`），以减少重叠。
 
 > **`overall_result` 优先级（v0.1.2）：** 规则 1（`fail`）优先于规则 2/3（`insufficient_data`/`stale_data`）。若同时存在 Hard Constraint `fail`，`overall_result` 应保持 `not_passed_for_new_buy`，不因数据缺口覆盖为 `need_more_data`。数据缺口仍须通过 Decision Trace 标记，但不应改变 `fail` 已确立的动作禁止信号。
 
@@ -1145,6 +1200,16 @@ archive_condition
 
 `snapshot_hash` 应基于 Playbook 完整规范内容生成。若内容发生实质变化，必须更新 `playbook_version`、`snapshot_hash`、`updated_at`。历史 Decision Trace 必须保留当时使用的 Playbook snapshot。
 
+`playbook_source` 枚举：
+
+```text
+built_in_static
+user_defined
+imported
+```
+
+MVP 阶段仅使用 `built_in_static`。`user_defined`、`imported` 为未来扩展预留。
+
 ---
 
 # Part A：默认 Playbook
@@ -1332,7 +1397,8 @@ archive_condition
   "input_refs": ["label://sentiment_state"],
   "operator": "!=",
   "threshold": "overheated",
-  "on_fail": "lower_confidence"
+  "on_fail": "lower_confidence",
+  "on_insufficient_data": "note"
 }
 ```
 
@@ -1347,7 +1413,8 @@ archive_condition
   "input_refs": ["metric://rsi_14d"],
   "operator": "<=",
   "threshold": 75,
-  "on_fail": "lower_confidence"
+  "on_fail": "lower_confidence",
+  "on_insufficient_data": "note"
 }
 ```
 
@@ -1364,7 +1431,8 @@ archive_condition
   "input_refs": ["fact://any_material_event_low_certainty"],
   "operator": "!=",
   "threshold": true,
-  "on_fail": "require_human_review"
+  "on_fail": "require_human_review",
+  "on_insufficient_data": "note"
 }
 ```
 
@@ -1556,7 +1624,7 @@ MVP 阶段执行顺序：
 ```text
 1. Load Playbook
 2. Check Applicability
-3. Resolve Required Domains
+3. Resolve Required Domains（同时检查 Optional Domains 状态）
 4. Resolve input_refs from constraint_exports
 5. Check data_freshness
 6. Evaluate Hard Constraints
@@ -1615,29 +1683,30 @@ MVP 暂不实现：用户可视化编辑复杂 Playbook、多 Playbook 对比、
 ## 44. 后续 SPEC 依赖
 
 1. SPEC-003：Agentic 投研工作流架构（Playbook 消费其核心对象定义）；
-2. SPEC-005：Capability Package 规范；
-3. SPEC-007：Orchestration 与执行路径；
-4. SPEC-008：Decision Trace 与 Observability；
-5. SPEC-009：Governance、Guardrails、Evaluator 与人工介入；
-6. SPEC-012：数据治理与用户私有数据。
+2. SPEC-004：五类分析能力域（Playbook 消费 Analysis Card 的 `constraint_exports`）；
+3. SPEC-005：Capability Package 规范；
+4. SPEC-007：Orchestration 与执行路径；
+5. SPEC-008：Decision Trace 与 Observability；
+6. SPEC-009：Governance、Guardrails、Evaluator 与人工介入；
+7. SPEC-012：数据治理与用户私有数据。
 
 ---
 
 ## 45. 开放问题
 
 1. `capital_cycle_fundamental_playbook` 的阈值是否应按行业调整；
-2. Metric Registry 应归入 SPEC-005 还是 SPEC-006；
+2. Metric Registry 应归入 SPEC-005 还是 SPEC-006 — **MVP 暂定：归 SPEC-005**。SPEC-006 只引用 `metric_id`，不负责定义 metric 的计算方式和元数据；
 3. Playbook Applicability Evaluator 是否需要独立 SPEC；
-4. 用户自定义 Playbook 是否允许引用 Interpreted Evidence；
+4. 用户自定义 Playbook 是否允许引用 Interpreted Evidence — **MVP 暂定：允许引用，但系统自动将该 Constraint 降级为 Soft Constraint，并在 Decision Trace 中标注**。该降级机制由 SPEC-009 Governance 统一定义；
 5. 多 Playbook 冲突时如何处理；
 6. Playbook 是否支持组合级约束；
-7. 用户历史交易行为是否应影响 Playbook Preference。
+7. 用户历史交易行为是否应影响 Playbook Preference — **MVP 暂定：不引入**。Playbook Preference 完全由 Playbook 定义决定。用户行为数据由 SPEC-012 数据治理单独处理。
 
 ---
 
-## 46. v0.1.3 总结
+## 46. v0.1.4 总结
 
-SPEC-006 v0.1.3 定义了 Investment Playbook 的核心结构、执行语义与 MVP 默认 Playbook。
+SPEC-006 v0.1.4 定义了 Investment Playbook 的核心结构、执行语义与 MVP 默认 Playbook。
 
 本版本完成：
 
