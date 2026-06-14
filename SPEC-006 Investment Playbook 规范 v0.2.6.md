@@ -1,6 +1,6 @@
 # SPEC-006：Investment Playbook 规范
 
-**版本：** v0.2.5
+**版本：** v0.2.6
 **状态：** Approved
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.3
@@ -274,7 +274,7 @@ suggested_action ∈ resolved_decision_bounds.allowed_actions
 
 Playbook 影响 Decision Candidate，但不直接决定最终建议动作。
 
-> **合并方向声明（v0.1.6）：** Playbook Evaluation Report 生成 `recommended_decision_bounds`，由 Resolved Decision Bounds 进一步合并 Guardrail、Validation 等约束。合并规则中，Guardrail 和 Validation 只能进一步收窄 `allowed_actions`（移除动作或降低 confidence），不得恢复已被 Playbook 移除的动作。完整合并规则由 SPEC-003 和 SPEC-009 定义。
+> **合并方向声明（v0.1.6）：** Playbook Evaluation Report 生成 `recommended_decision_bounds`，由 Resolved Decision Bounds 进一步合并 Guardrail、Validation 等约束。合并规则中，Guardrail 和 Validation 只能进一步收窄 `allowed_actions`（移除动作或降低 confidence），不得恢复已被 Playbook 移除的动作。`confidence_cap` 下调采用叠加语义——各来源（Playbook、Guardrail、Validation）的下调值依次累加，取最终结果（例如 Playbook 下调 0.05、Guardrail 再下调 0.05 → 累计下调 0.10），而非取各来源最大下调值。完整合并规则由 SPEC-003 和 SPEC-009 定义。
 
 ---
 
@@ -495,6 +495,8 @@ SPEC-006 继承 SPEC-003 的最小可用 Analysis Card 阈值。下文中的 `do
 
 > **§8.4 与 Optional Domains `on_missing` 的优先级（v0.1.4）：** §8.4 是 Playbook 级别的最小可用阈值，优先级高于单个 Optional Domain 的 `on_missing` 设定。若四个 Optional Domains 全部返回 `insufficient_data`，即使每个域单独设置了 `on_missing = continue_with_warning`，Playbook 级别仍因违反第 3 条而停止生成完整 Decision Candidate（`analysis_incomplete`）。单个域的 `on_missing` 仅在个别域缺失时生效。
 
+> **`analysis_incomplete` 早退与 `requires_human_review` 交叉保护（v0.2.6）：** §8.4 早退不影响在早退前已可识别的 `requires_human_review` 条件的标记（如 §18.3 `ambiguous_label_ref` 在步骤 4 触发）。若步骤 3 触发 `analysis_incomplete` 早退，步骤 4 未执行，但系统仍须在报告中输出已收集到的任何 `requires_human_review` 标记——即使无法生成完整 Decision Candidate。
+
 ---
 
 ## 9. Constraint 类型总览
@@ -710,7 +712,8 @@ none
 
 | 子规则状态 | condition_logic = all | condition_logic = any |
 |---|---|---|
-| 任一子规则 `insufficient_data` 或 `stale_data` | 整体为 `insufficient_data` | 跳过该子规则，按剩余子规则计算 |
+| 任一子规则 `insufficient_data` 或 `stale_data`（且无 `fail`） | 整体为 `insufficient_data` | 跳过该子规则，按剩余子规则计算 |
+| 同时存在 `fail` + `insufficient_data`/`stale_data` | 整体为 `fail`（fail 优先于 insufficient_data，同 §23.2 NOTE） | 整体为 `fail` |
 
 > `condition_logic = none` 不在 MVP 中实现（§13.2）。该列已从本表移除。
 
@@ -718,7 +721,7 @@ none
 
 **`any` 全部数据不足（v0.1.8）：** 若 `condition_logic = any` 下所有子规则均为 `insufficient_data` 或 `stale_data`（跳过后剩余子规则为空集），整体 Constraint status 升级为 `insufficient_data`，不返回 `pass` 或 `fail`。
 
-**`not_applicable` 子规则处理（v0.1.8）：** 子规则 status = `not_applicable`（如 §33.1 `growth_capex_flag` 触发的例外）时，无论 `condition_logic` 如何，均跳过该子规则按剩余子规则计算。此规则与 `any` 模式下 `insufficient_data` 的跳过逻辑平行。
+**`not_applicable` 子规则处理（v0.1.8）：** 子规则 status = `not_applicable`（如 §33.1 `growth_capex_flag` 触发的例外）时，无论 `condition_logic` 如何，均跳过该子规则按剩余子规则计算。**所有子规则均为 `not_applicable` 时，整体 Constraint status = `not_applicable`（`all` 模式下不等于 `pass`——vacuous pass 在投资风控语境下应保守处理；`any` 模式下同理）**。此规则与 §22.3 规则 9（all Hard not_applicable ≠ passed）对齐。
 
 ---
 
@@ -804,6 +807,12 @@ Soft Constraint 可以：降低 confidence、添加 caution、移除强动作、
 > v0.1.4 新增。
 
 `on_insufficient_data` 为 Soft Constraint 的可选字段。**缺省值为 `note`**（进入 Decision Trace 但不改变动作边界）。若 Playbook 需要更强的响应（如 `require_human_review`），必须显式声明。
+
+### 15.4 `on_stale_data` 缺省行为
+
+> v0.2.6 新增。
+
+`on_stale_data` 为 Soft Constraint 的可选字段。**缺省值为 `note`**（与 `on_insufficient_data` 一致——数据过期视为轻量信息缺口，不影响动作边界）。Soft Constraint 的 `on_stale_data` 字段与 Hard Constraint 的 `on_stale_data` 分离：Hard Constraint 中通常设为 `need_more_data`（阻断性），Soft Constraint 中默认 `note`（非阻断性）。若 Playbook 需要更强的响应，必须显式声明。
 
 ---
 
@@ -1314,6 +1323,8 @@ Conflict Handling 的 `prefer_wait` 和 `prefer_add_to_watchlist` 与 §16 Prefe
 > **宏观域数据缺失 hook（v0.2.5）：** `require_review_on` 列表新增 `macro_meso_insufficient_data` 事件标识符。当 Macro/Meso 域返回 `domain_status = insufficient_data` 时（即使其他 Optional 域正常），编排器应触发此事件；Playbook Human Review Policy 引用此项后，可仅因宏观数据缺失即触发人工复核，无需等所有 Optional 域全缺。事件的完整定义和触发机制由 SPEC-007 Orchestration 定义，SPEC-006 仅声明该事件标识符的存在。
 
 > **`high_conflict` 判定标准（v0.1.9）：** `high_conflict` 的判定暂定为：`default_severity = high` 的 Conflict Handling 规则被实际触发（其 `actions` 被执行）时，视为 `high_conflict`。完整判定逻辑由 SPEC-009 统一定义，MVP 暂以此规则为准。
+
+> **`requires_human_review` 触发后不短路（v0.2.6）：** 无论是 Playbook Constraint `on_fail`、`require_review_on` 列表匹配、还是 `ambiguous_label_ref` 触发，`requires_human_review = true` 标记后规则引擎不短路退出。步骤 7-12（Soft Constraints、Conflict Handling、Preferences、报告生成）仍须完整执行，以确保 Playbook Evaluation Report 包含完整的 `constraint_results` 和 `reasoning`。
 
 ---
 
