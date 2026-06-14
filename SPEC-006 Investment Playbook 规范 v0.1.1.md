@@ -219,6 +219,8 @@ suggested_action ∈ resolved_decision_bounds.allowed_actions
 
 Playbook 影响 Decision Candidate，但不直接决定最终建议动作。
 
+> **合并方向声明（v0.1.6）：** Playbook Evaluation Report 生成 `recommended_decision_bounds`，由 Resolved Decision Bounds 进一步合并 Guardrail、Validation 等约束。合并规则中，Guardrail 和 Validation 只能进一步收窄 `allowed_actions`（移除动作或降低 confidence），不得恢复已被 Playbook 移除的动作。完整合并规则由 SPEC-003 和 SPEC-009 定义。
+
 ---
 
 ## 5. Playbook 顶层 Schema
@@ -733,6 +735,8 @@ confidence_adjustment
 | `action_ranking` | 影响建议动作排序 | 由实现层定义排序权重；步骤 9 应用 |
 | `confidence_adjustment` | 降低框架层面的置信度 | MVP 阶段仅作为 Decision Trace 说明，不自动修改 confidence cap。若需要自动修改 cap，由 SPEC-009 Evaluator 后续统一定义 |
 
+> **`effect` 字段格式（v0.1.6）：** Preference 的 `effect` 字段在 MVP 阶段为自由文本字符串（如 `prefer_wait_over_buy_when_valuation_expensive`）。规则引擎不直接解析该文本——实际排序逻辑由实现层按 `preference_type` 分类硬编码，`effect` 文本仅用于 Decision Trace 展示和人类阅读。
+
 ---
 
 ## 17. Constraint Evaluation Result
@@ -972,7 +976,7 @@ requires_human_review
 | overall_result | 语义 |
 |---|---|
 | `passed` | 所有 Hard Constraint 通过，Soft Constraint 无显著 fail |
-| `passed_with_caution` | 所有 Hard Constraint 通过，但 ≥2 个 Soft Constraint fail |
+| `passed_with_caution` | 所有 Hard Constraint 通过，但 ≥2 个 Soft Constraint fail。`recommended_decision_bounds` 同 `passed`，`confidence_cap` 下调 0.05 |
 | `partially_passed` | 部分通过，但尚不足以阻断 Decision Candidate |
 | `not_passed_for_new_buy` | Hard Constraint 明确禁止新开仓 |
 | `not_passed_for_add_position` | Hard Constraint 禁止加仓 |
@@ -1016,7 +1020,11 @@ Playbook Evaluation 按以下顺序执行：
 7. Preference 只影响动作排序，不得恢复被移除动作；
 8. Guardrail 与 Validation 仍可在 Resolved Decision Bounds 阶段覆盖 Playbook 结果。
 
-> **`passed_with_caution` 与 `partially_passed` 的边界（v0.1.5）：** `passed_with_caution` = 所有 Hard Constraint 通过 + Soft Constraint fail ≥ 2。`partially_passed` = 无 Hard Constraint fail 但 Soft Constraint fail < 2，或存在 `partial` 状态的 Constraint 结果且 Playbook 可继续。两者均为非阻断状态，区别在于 Decision Trace 展示的醒目程度和 `confidence_cap` 的下调幅度。MVP 暂定 Soft Constraint fail 阈值为 2，可由 Run Config 配置。
+> **`passed_with_caution` 与 `partially_passed` 的边界（v0.1.5，v0.1.6 修正）：** `passed_with_caution` = 所有 Hard Constraint 通过 + Soft Constraint fail ≥ 2。`partially_passed` = 无 Hard Constraint fail 但 Soft Constraint fail < 2。两者均为非阻断状态，区别在于 Decision Trace 展示的醒目程度和 `confidence_cap` 的下调幅度。MVP 暂定 Soft Constraint fail 阈值为 2，可由 Run Config 配置。
+
+> **`partial` 状态 Constraint 处理（v0.1.6）：** `status = partial` 的 Constraint 不计入 Soft Constraint `fail` 计数，但必须进入 Decision Trace 注记。仅 `status = fail` 的 Constraint 计入 Soft Constraint fail 计数。
+
+> **`require_human_review` 优先级（v0.1.6）：** 若任何 Soft Constraint 的 `on_fail` 包含 `require_human_review` 且该 Constraint 实际 fail，`overall_result` 优先设为 `requires_human_review`。此值不参与 `passed_with_caution` 聚合——即使剩余 Soft Constraint fail < 2。
 
 > **`blocking_conditions` dedup 策略（v0.1.4）：** 若同一禁止条件由 Hard Constraint `on_fail` 和 Conflict Handling `actions` 双重触发，`blocking_conditions` 列表应去重——同一条 `block_new_position` 只记录一次，来源标注为 `[constraint_id, conflict_type]`。默认 Playbook 已按设计建议修正：Hard Constraint（`valuation_margin_001`）负责 block，Conflict Handling（`fundamentals_vs_valuation`）使用 `prefer_wait` 负责 ranking。
 
@@ -1078,20 +1086,22 @@ prefer_add_to_watchlist
 
 ### 25.2 Schema
 
-带条件的 Conflict Handling：
+带条件的 Conflict Handling（通用示例，演示 `condition` + `operator: "in"` 格式）：
 
 ```json
 {
-  "conflict_type": "fundamentals_vs_valuation",
-  "default_severity": "medium",
+  "conflict_type": "sentiment_vs_valuation",
+  "default_severity": "high",
   "condition": {
-    "input_ref": "label://valuation_state",
+    "input_ref": "label://sentiment_state",
     "operator": "in",
-    "values": ["expensive", "very_expensive"]
+    "values": ["overheated", "bullish"]
   },
-  "actions": ["block_new_position", "prefer_wait"]
+  "actions": ["prefer_wait"]
 }
 ```
+
+> **`operator: "in"` 语义（v0.1.6）：** `"in"` 表示集合成员判断——`input_ref 的值 ∈ values 集合`。支持 `"in"` 和 `"not_in"` 两种 variant，仅限 Conflict Handling `condition` 字段使用。与 Constraint 的 `operator`（`<=`、`>=`、`!=` 等数值比较算子）分属不同上下文。
 
 无条件的 Conflict Handling：
 
@@ -1104,6 +1114,8 @@ prefer_add_to_watchlist
 ```
 
 > **`label://valuation_state` 值域来源（v0.1.5）：** Conflict Handling condition 中引用的 label 值（如 `"expensive"`、`"very_expensive"`）的值域由 SPEC-004 能力域的 `constraint_exports` 声明。Playbook 引用的 label 值必须是该声明中的合法值（见 SPEC-004 §19.1 `valuation_state` 枚举）。MVP 阶段由实现层保证一致性；完整 label registry 由 SPEC-004/SPEC-005 定义。
+
+> **`condition input_ref` 降级（v0.1.6）：** Conflict Handling 规则带有 `condition` 且 `condition` 中引用的 `input_ref`（如 `label://valuation_state`）无法解析时，跳过 `condition` 检查，按无条件形式（全量触发 `actions`）执行，并在 Decision Trace 中标记 NOTE。
 
 ### 25.3 prefer_wait / prefer_add_to_watchlist 执行语义
 
@@ -1360,6 +1372,8 @@ MVP 阶段仅使用 `built_in_static`。`user_defined`、`imported` 为未来扩
 ```
 
 说明：允许毛利率小幅波动（下降 ≤ 5 百分点），且自由现金流率必须为正。
+
+> **资本扩张期例外（v0.1.6）：** 当公司处于资本扩张周期（`growth_capex_flag = true`）时，`fcf_margin_ttm > 0` 子规则自动跳过并进入 Decision Trace 注记。FCF 为负在资本扩张期属于合理经营状态，不应触发 `block_new_position`。`growth_capex_flag` 由能力域在 `constraint_exports` 中导出。
 
 ### 33.2 收入增长不弱于行业
 
@@ -1651,7 +1665,7 @@ MVP 阶段执行顺序：
 ```text
 1. Load Playbook
 2. Check Applicability
-3. Resolve Required Domains（同时检查 Optional Domains 状态。若违反 §8.4 最小可用阈值，在此步直接返回 `analysis_incomplete`，不继续执行后续步骤）
+3. Resolve Required Domains（同时检查 Optional Domains 状态。若违反 §8.4 最小可用阈值，在此步将 `run_status` 设为 `analysis_incomplete`，不继续执行后续步骤）
 4. Resolve input_refs from constraint_exports
 5. Check data_freshness
 6. Evaluate Hard Constraints
@@ -1732,9 +1746,9 @@ MVP 暂不实现：用户可视化编辑复杂 Playbook、多 Playbook 对比、
 
 ---
 
-## 46. v0.1.5 总结
+## 46. v0.1.6 总结
 
-SPEC-006 v0.1.5 定义了 Investment Playbook 的核心结构、执行语义与 MVP 默认 Playbook。
+SPEC-006 v0.1.6 定义了 Investment Playbook 的核心结构、执行语义与 MVP 默认 Playbook。
 
 本版本完成：
 
