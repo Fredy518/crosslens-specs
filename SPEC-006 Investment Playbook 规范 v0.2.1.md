@@ -1,6 +1,6 @@
 # SPEC-006：Investment Playbook 规范
 
-**版本：** v0.2.0
+**版本：** v0.2.1
 **状态：** Approved
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.3
@@ -479,7 +479,7 @@ SPEC-006 继承 SPEC-003 的最小可用 Analysis Card 阈值。下文中的 `do
 
 1. 至少 3/5 个能力域返回非 `insufficient_data` 的 Analysis Card；
 2. Fundamentals 必须可用；
-3. 至少一个非 Fundamentals 能力域 `domain_status ≠ insufficient_data`。该域无需满足特定 evidence 数量或 confidence 阈值——只要能力域完成或部分完成分析即为有效贡献（背景信息同样可辅助人类判断）；
+3. 至少一个非 Fundamentals 能力域 `domain_status ∈ {completed, partial}`。该域无需满足特定 evidence 数量或 confidence 阈值——只要能力域完成或部分完成分析即为有效贡献（背景信息同样可辅助人类判断）。`failed` 或 `skipped` 不计入有效贡献——此约束阻止实现者将能力域执行失败误认为有效参与；
 4. 不存在 Block 级 Validation Finding；
 5. Playbook 关键 Hard Constraint 可以判断。
 
@@ -637,7 +637,7 @@ value(left_ref) >= value(right_ref)
 5. `left_ref` 与 `right_ref` 的 value_type 必须兼容；
 6. 任一 ref 无法解析，Constraint status = `insufficient_data`；
 7. 任一 ref 数据过期，Constraint status = `stale_data`；
-8. `left_ref` 与 `right_ref` 的 `data_freshness.as_of` 差值应不超过约束基准值。基准值取两个 ref 各自在 Freshness Requirements 中定义的最大 `max_age_days` 的较小值。若任一 ref 未在 Freshness Requirements 中定义，取 Playbook 级默认值（如有）；若均无，跳过该检查并标记 NOTE。若超过，规则引擎应在 Decision Trace 中标记注记，但不自动变更 Constraint `status`。此处使用的 `flag` 为 Decision Trace 注记标记，非 `§17.2` Constraint `status` 枚举值——Constraint `status` 仍由主判断逻辑（pass/fail/insufficient_data）决定。
+8. `left_ref` 与 `right_ref` 的 `data_freshness.as_of` 差值应不超过约束基准值。基准值取两个 ref 各自在 Freshness Requirements 中定义的最大 `max_age_days` 的较小值。若任一 ref 未在 Freshness Requirements 中定义，取 Playbook 级默认值（如有）；若均无，跳过该检查并标记 NOTE。若超过，按 `as_of_mismatch_policy` 处理。`as_of_mismatch_policy` 由 Playbook 或 Run Config 配置，枚举为 `note | stale_data | require_human_review`，MVP 默认 `note`（进入 Decision Trace 注记但不改变 Constraint status）。`stale_data` 选项会将 Constraint status 设为 `stale_data`（仅建议用于 Hard Constraint）；`require_human_review` 会将该 Constraint 的 `on_fail` 覆盖为 `require_human_review`。
 
 ---
 
@@ -874,7 +874,7 @@ not_applicable
 error
 ```
 
-`partial` 触发条件（v0.2.0 修正）：Constraint 条件部分满足但不足以判定整体通过或失败。实际触发场景为：(1) `multi_label_avoid` 中部分 `input_ref` 无法解析但已解析 ref 已可判定不触发 fail；(2) `multi_rule + condition_logic = any` 时部分子规则 pass、部分 `insufficient_data`，整体无法确定为 pass（因 pass 的子规则已满足 any，但剩余 insufficient 子规则不足以覆盖）。`partial` 的整体 status 判定规则见 §13.3 和 §14。
+`partial` 触发条件（v0.2.1 修正）：Constraint 条件部分满足但不足以判定整体通过或失败。实际触发场景为：(1) `multi_label_avoid` 中部分 `input_ref` 无法解析但已解析 ref 已可判定不触发 fail；(2) `multi_rule + condition_logic = any` 时无子规则明确 pass，但存在 `fail` 与 `insufficient_data` 混合，整体无法确定。`multi_rule + any` 的判定规则为：若任一子规则 pass → 整体 pass；若全部 insufficient_data/stale_data → 整体 insufficient_data；若有 fail 但无 pass → 整体 fail；若有 fail 与 insufficient_data 混合但无 pass → 整体 partial。完整规则见 §13.3。
 
 ---
 
