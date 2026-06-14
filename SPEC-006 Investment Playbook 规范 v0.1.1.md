@@ -1,6 +1,6 @@
 # SPEC-006：Investment Playbook 规范
 
-**版本：** v0.1.5
+**版本：** v0.1.6
 **状态：** Review
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.3
@@ -10,6 +10,19 @@
 ---
 
 ## 0. 版本说明
+
+v0.1.6 在 v0.1.5 基础上关闭执行语义缺口与一致性矛盾。主要补齐：
+
+1. **P0** §23.2 补充 `partial` Constraint 不计入 `passed_with_caution` 触发计数（§23.2 NOTE）；
+2. **P0** §25 补充 `condition input_ref` 无法解析时的降级行为（跳过 condition，按无条件形式执行 + Decision Trace NOTE）；
+3. **P1** §23.2 补充 `require_human_review` 优先级：当 Soft Constraint fail 中包含 `require_human_review` 时，`overall_result` 优先设为 `requires_human_review`，不聚合为 `passed_with_caution`；
+4. **P1** §33.1 FCF 硬约束补充 capital expansion flag 例外说明（§33.1 NOTE）；
+5. **P2** §25.2 补充 `operator: "in"` 语义声明 + §10 operator 枚举扩展；
+6. **P2** §16 Preference `effect` 字段格式约束补充（MVP 为自由文本 + Decision Trace 展示语义）；
+7. **P2** §22.3 补充 `passed_with_caution` 的 `recommended_decision_bounds` 行为说明；
+8. **P2** §25.2 示例从 `fundamentals_vs_valuation` 抽象化为通用示例，消除与 §36 的不一致；
+9. **P2** §4.4 补充 Playbook 与 Resolved Decision Bounds 合并方向声明；
+10. 小修：§41 步骤 3 措辞从 `analysis_incomplete` 修正为 `run_status = analysis_incomplete`。
 
 v0.1.5 在 v0.1.4 基础上修复文档一致性与示范对齐。主要补齐：
 
