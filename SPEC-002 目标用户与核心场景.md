@@ -591,7 +591,7 @@ T=15+        记录反馈                          Feedback 写入 Case Library
 
 ### 6.2 SPEC-002 明确在边界外
 
-- 不定义具体 UI 交互设计（由 SPEC-XXX 定义）
+- 不定义具体 UI 交互设计（由 SPEC-008 Decision Trace 展示层或后续 UI 相关 SPEC 定义）
 - 不定义 Playbook 内部结构（由 SPEC-006 定义）
 - 不定义能力域实现细节（由 SPEC-004 定义）
 - 不定义数据源选型和接入（由 SPEC-012 定义）

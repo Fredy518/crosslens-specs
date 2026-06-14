@@ -1791,7 +1791,7 @@ Decision Trace 保存完整链路。
 | 4 | `determinism_level` 不可升级 | SPEC-005 |
 | 5 | Hard Constraint 输入仅限 `metric://` | SPEC-006 §18.1 |
 | 6 | Lineage 断链阻止 Hard Constraint 引用 | SPEC-005 |
-| 7 | `confidence` 的 `determination_type` 必须可追溯 | SPEC-003 §6.4 NOTE + SPEC-005 §8 |
+| 7 | `confidence` 的 `determination_type` 必须可追溯 | SPEC-003 §6.5 NOTE + SPEC-005 §8 |
 | 8 | Computed Evidence 的 confidence 默认为 1.0（非 Computed 不得） | SPEC-005 §8.2 |
 
 ---

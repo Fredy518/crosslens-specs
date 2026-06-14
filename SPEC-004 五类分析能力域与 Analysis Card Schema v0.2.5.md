@@ -1195,7 +1195,7 @@ Fundamentals 是 MVP 中最主要的 Hard Constraint 来源。
 | 冲突类型 | 示例 | 默认严重度 |
 |---|---|---|
 | fundamentals_vs_valuation | 增长强但估值过高 | medium |
-| **fundamentals_valuation_vs_sentiment** | **估值高且市场情绪极热，形成追高风险** | **high** |
+| **sentiment_vs_valuation** | **估值高且市场情绪极热，形成追高风险** | **high** |
 | fundamentals_vs_event | 基本面稳定但重大负面事件出现 | high |
 | fundamentals_vs_sentiment | 基本面改善但情绪极度悲观 | medium |
 | fundamentals_vs_technical | 长期基本面好但短期趋势走弱 | medium |
@@ -2144,7 +2144,7 @@ SPEC-004 v0.2.5 定义了五类分析能力域与 Analysis Card Schema。
 17. 各能力域 domain_payload 使用明确枚举 allowlist；
 18. Analysis Card 含 data_freshness（含条件必填规则和 valid_until 推导参考表）；
 19. time_horizon 标准化字段支持 Conflict Detection 机器判断；
-20. 增加 `macro_regime_vs_playbook`、`time_horizon_mismatch`、`fundamentals_valuation_vs_sentiment` 冲突规则；
+20. 增加 `macro_regime_vs_playbook`、`time_horizon_mismatch`、`sentiment_vs_valuation` 冲突规则；
 21. Conflict Detection 对 Flag Card 的处理对齐 SPEC-003；
 22. 每个能力域输出必须可被 Validation、Conflict Detection、Playbook Evaluation 和 Decision Trace 消费；
 23. `value_path` 已明确根节点为 Evidence.`metrics` 字典；

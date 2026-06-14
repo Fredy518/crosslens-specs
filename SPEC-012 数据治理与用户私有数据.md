@@ -503,7 +503,7 @@ SPEC-003 Investment Task 中的两个字段由本 SPEC 统一定义枚举：
   "uses_user_private_data": true,
   "user_private_data_types": [
     "current_position",
-    "historical_analysis_notes"
+    "private_notes"
   ]
 }
 ```
@@ -599,7 +599,7 @@ MVP 阶段，以下决策路径简化处理：
 
 ```text
 1. 无多用户协作 → 所有 user_private 和 system_generated 仅当前用户可见
-2. 无 Case Library → 匿名化路径暂不实现
+2. Case Library 匿名化由 SPEC-011 负责（MVP 阶段 SPEC-011 必须实现匿名化处理器 R1-R5）；本 SPEC 仅负责数据分类标记和 `uses_user_private_data` flag 管理
 3. 无分享功能 → check_share_authorization() 不调用
 4. 权限决策树简化为：
    - 是否为当前用户的数据？→ ALLOW（含 uses_user_private_data 三重检查）

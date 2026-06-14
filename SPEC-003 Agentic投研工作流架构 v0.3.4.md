@@ -15,7 +15,7 @@
 
 v0.3.4 不改变架构方向，只补齐四个规格完整性缺口：
 
-1. Evidence Packet `confidence` 字段取值规则占位（§6.4 NOTE）；
+1. Evidence Packet `confidence` 字段取值规则占位（§6.5 NOTE）；
 2. Pre-decision Validation 与 §23 最小阈值的交叉引用（§13.2）；
 3. Decision Candidate `key_supporting_reasons` / `key_opposing_reasons` / `next_steps` 填充规则（§18.1 新增）；
 4. `analysis_incomplete` 通知对象补齐 `task_id` 和 `run_id`（§17.3）。
@@ -230,7 +230,7 @@ Investment Task 是系统对用户请求的标准化表达。
   "uses_user_private_data": true,
   "user_private_data_types": [
     "current_position",
-    "historical_analysis_notes"
+    "private_notes"
   ],
   "created_at": "2026-06-14T00:00:00Z"
 }
@@ -256,7 +256,21 @@ unavailable
 unknown
 ```
 
-### 6.4 Evidence Packet
+### 6.4 分析能力域枚举
+
+五个分析能力域使用统一 `domain` 枚举值：
+
+```text
+macro_meso        — 宏观/中观环境
+fundamentals      — 公司基本面与估值
+company_event     — 公司事件与催化剂
+sentiment         — 市场情绪与叙事
+technical_market  — 技术面与市场状态
+```
+
+所有 Analysis Card、Evidence Packet、Analysis Domain Job 中的 `domain` 字段仅接受以上五个值。完整能力域定义见 SPEC-004。
+
+### 6.5 Evidence Packet
 
 Evidence Packet 是模型、工具、检索或解释过程生成的结构化证据对象。
 

@@ -345,7 +345,9 @@ stateDiagram-v2
     PRE_DECISION_VALIDATING --> VALIDATION_BLOCKED: pre_decision_block
 
     PLAYBOOK_EVALUATING --> GUARDRAIL_CHECKING: playbook_evaluation_ready
-    GUARDRAIL_CHECKING --> BOUNDS_RESOLVING: guardrail_report_ready
+    GUARDRAIL_CHECKING --> EVALUATING: guardrail_report_ready
+    EVALUATING --> BOUNDS_RESOLVING: evaluation_ready
+    EVALUATING --> HUMAN_REVIEW_REQUIRED: confidence_cap_below_threshold
 
     BOUNDS_RESOLVING --> CANDIDATE_GENERATING: candidate_allowed
     BOUNDS_RESOLVING --> HUMAN_REVIEW_REQUIRED: requires_human_review
@@ -406,6 +408,7 @@ stateDiagram-v2
 |`PRE_DECISION_VALIDATING`|正在执行决策前验证|
 |`PLAYBOOK_EVALUATING`|正在执行 Playbook Evaluation|
 |`GUARDRAIL_CHECKING`|正在执行 Guardrail 检查|
+|`EVALUATING`|正在执行 Evaluator 质量评估|
 |`BOUNDS_RESOLVING`|正在生成 Resolved Decision Bounds|
 |`CANDIDATE_GENERATING`|正在生成 Decision Candidate|
 |`HUMAN_REVIEW_REQUIRED`|需要人工复核|
@@ -798,6 +801,24 @@ def run_investment_workflow(user_request, run_config):
         )
 
         run.runtime_context.guardrail_report = guardrail_report
+
+        apply_cumulative_degradation_rules(
+            run=run,
+            degradations=run.runtime_context.accumulated_degradations
+        )
+
+        # --- Evaluator (SPEC-009 §4) ---
+        set_status(run, "EVALUATING")
+
+        evaluation_report = run_evaluator(
+            analysis_cards=cards,
+            playbook_eval_report=playbook_eval,
+            guardrail_report=guardrail_report,
+            conflict_report=conflict_report,
+            validation_reports=validation_reports
+        )
+
+        run.runtime_context.evaluation_report = evaluation_report
 
         apply_cumulative_degradation_rules(
             run=run,
