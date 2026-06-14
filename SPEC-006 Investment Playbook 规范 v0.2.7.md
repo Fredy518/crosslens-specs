@@ -1,6 +1,6 @@
 # SPEC-006：Investment Playbook 规范
 
-**版本：** v0.2.6
+**版本：** v0.2.7
 **状态：** Approved
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.3
@@ -413,7 +413,7 @@ MVP 阶段，Playbook Applicability 不作为独立 Evaluator。
 
 1. asset_type 是否匹配；
 2. task_type 是否匹配；
-3. 用户目标周期是否大幅偏离 Playbook 周期；
+3. 用户目标周期是否大幅偏离 Playbook 周期。偏离判断标准：偏离超过 `time_horizon_days_min` 的 50%（如 Playbook min=90 天、用户目标=30 天 → 偏离 66%，触发 `requires_human_review`）。完整检查见 §45 Q3；
 4. 是否存在显著 `macro_regime_vs_playbook` 风险（MVP 中通过 Conflict Handling §25 实现，非 Invalidating Conditions）；
 5. 是否应进入 `requires_human_review`。
 
@@ -486,7 +486,7 @@ Optional Domains 是辅助判断能力域。
 SPEC-006 继承 SPEC-003 的最小可用 Analysis Card 阈值。下文中的 `domain_status` 指 Analysis Card 的 `domain_status` 字段（在 SPEC-004 §5 中定义，枚举见 SPEC-004 §5.1），非 SPEC-006 自创概念——此字段由能力域在生成 Analysis Card 时填写，Playbook Evaluation 在步骤 3 消费：
 
 1. 至少 3/5 个能力域返回 `domain_status ∈ {completed, partial}` 的 Analysis Card。`failed`、`skipped` 和 `insufficient_data` 均不计入此阈值——仅完成或部分完成分析的能力域为有效参与；
-2. Fundamentals 必须可用；
+2. Fundamentals 必须可用（`domain_status ∈ {completed, partial}`，与第 1 条标准一致）；
 3. 至少一个非 Fundamentals 能力域 `domain_status ∈ {completed, partial}`。该域无需满足特定 evidence 数量或 confidence 阈值——只要能力域完成或部分完成分析即为有效贡献（背景信息同样可辅助人类判断）。`failed` 或 `skipped` 不计入有效贡献——此约束阻止实现者将能力域执行失败误认为有效参与；
 4. 不存在 Block 级 Validation Finding；
 5. Playbook 关键 Hard Constraint 可以判断。
@@ -603,9 +603,9 @@ value(input_refs[0]) <= threshold
 3. 必须包含 `threshold`；
 4. `threshold` 必须与 input_ref 的 value_type 可比较。
 
-> **字符串 threshold 支持（v0.1.7）：** `ref_vs_threshold` 的 `threshold` 支持数值和字符串两种类型。字符串 threshold 的合法 `operator` 为 `==` 和 `!=`。当 input_ref 引用 `label://` 类型时，`operator = "!="` 配合字符串 threshold 用于判断标签值不等于指定枚举值（如 `label://sentiment_state != "overheated"`）。此支持仅适用于 Soft Constraint。
+> **字符串 threshold 支持（v0.1.7）：** `ref_vs_threshold` 的 `threshold` 支持数值和字符串两种类型。字符串 threshold 的合法 `operator` 为 `==` 和 `!=`。当 input_ref 引用 `label://` 类型时，`operator = "!="` 配合字符串 threshold 用于判断标签值不等于指定枚举值（如 `label://sentiment_state != "overheated"`）。此支持仅适用于 Soft Constraint（与 §9.1 Hard Constraint 仅允许 Computed Evidence metrics 的限制一致）。
 
-> **boolean threshold 支持（v0.1.8）：** `ref_vs_threshold` 的 `threshold` 同时支持 boolean 类型（`true`/`false`），合法 `operator` 同为 `==` 和 `!=`。当 input_ref 引用 `fact://` 类型且值为 boolean 时（如 `fact://any_material_event_low_certainty != true`，见 §34.4），规则引擎按布尔相等性判断。此支持仅适用于 Soft Constraint。
+> **boolean threshold 支持（v0.1.8）：** `ref_vs_threshold` 的 `threshold` 同时支持 boolean 类型（`true`/`false`），合法 `operator` 同为 `==` 和 `!=`。当 input_ref 引用 `fact://` 类型且值为 boolean 时（如 `fact://any_material_event_low_certainty != true`，见 §34.4），规则引擎按布尔相等性判断。此支持仅适用于 Soft Constraint（与 §9.1 Hard Constraint 仅允许 Computed Evidence metrics 的限制一致）。
 
 > **字段名规则（v0.1.2）：** 顶层 `ref_vs_threshold` Constraint 使用 `input_refs`（数组）。`multi_rule` 内的子规则使用 `input_ref`（单数字符串，因子规则已预设单值语义）。规则引擎解析 `ref_vs_threshold` 时：若在顶层 Constraint 上下文中，读取 `input_refs[0]`；若在 `multi_rule` 子规则上下文中，读取 `input_ref`。文档校验器应在 Schema Validation 阶段检查字段名一致性。
 
@@ -702,7 +702,7 @@ none
 |---|---|
 | `all` | 所有子规则通过，Constraint 才通过 |
 | `any` | 任一子规则通过，Constraint 即通过 |
-| `none` | 所有子规则均不通过，Constraint 才通过（MVP 暂不使用此值。MVP 规则引擎应在 Schema Validation 阶段拒绝 `condition_logic = none` 的 Constraint，返回 validation error） |
+| `none` | 所有子规则均不通过，Constraint 才通过（`none` 为预留枚举值，MVP 从未实现。MVP 规则引擎应在 Schema Validation 阶段拒绝 `condition_logic = none` 的 Constraint，返回 validation error） |
 
 ### 13.3 子规则数据不足时的整体判断
 
@@ -1158,7 +1158,7 @@ Playbook Evaluation 按以下顺序执行：
 
 > **`require_human_review` 优先级（v0.1.6）：** 若任何 Soft Constraint 的 `on_fail` 包含 `require_human_review` 且该 Constraint 实际 fail，`overall_result` 优先设为 `requires_human_review`。此值不参与 `passed_with_caution` 聚合——即使剩余 Soft Constraint fail < 2。
 
-> **`confidence_cap` 下调幅度（v0.1.7）：** `passed_with_caution` 的 `confidence_cap` 默认绝对值下调 0.05，与 Soft Constraint fail 阈值（2）一样，可由 Run Config 配置。下调后 confidence_cap 下限为 0.5——若基础 cap 低于或接近 0.5，下调至不低于 0.5。
+> **`confidence_cap` 下调幅度（v0.1.7）：** `passed_with_caution` 的 `confidence_cap` 默认绝对值下调 0.05，与 Soft Constraint fail 阈值（2）一样，可由 Run Config 配置。多来源叠加后 confidence 低于 0.5 时（包括 Playbook 自身多层下调或与 Guardrail/Validation 叠加），`overall_result` 自动升级为 `requires_human_review`，而非截断输出。此行为防止多重 `passed_with_caution` 叠加导致 Decision Candidate 携带极低 confidence 却被静默输出。
 
 > **`blocking_conditions` dedup 策略（v0.1.4）：** 若同一禁止条件由 Hard Constraint `on_fail` 和 Conflict Handling `actions` 双重触发，`blocking_conditions` 列表应去重——同一条 `block_new_position` 只记录一次，来源标注为 `[constraint_id, conflict_type]`。默认 Playbook 已按设计建议修正：Hard Constraint（`valuation_margin_001`）负责 block，Conflict Handling（`fundamentals_vs_valuation`）使用 `prefer_wait` 负责 ranking。
 
@@ -1322,6 +1322,8 @@ Conflict Handling 的 `prefer_wait` 和 `prefer_add_to_watchlist` 与 §16 Prefe
 
 > **宏观域数据缺失 hook（v0.2.5）：** `require_review_on` 列表新增 `macro_meso_insufficient_data` 事件标识符。当 Macro/Meso 域返回 `domain_status = insufficient_data` 时（即使其他 Optional 域正常），编排器应触发此事件；Playbook Human Review Policy 引用此项后，可仅因宏观数据缺失即触发人工复核，无需等所有 Optional 域全缺。事件的完整定义和触发机制由 SPEC-007 Orchestration 定义，SPEC-006 仅声明该事件标识符的存在。
 
+> **`macro_regime_vs_playbook` 与域缺失（v0.2.7）：** 当宏观域 `domain_status ∈ {insufficient_data, failed}` 时，`macro_regime_vs_playbook` 冲突视为"存在但无法判断方向"。触发保底行为：`require_human_review`。此路径不依赖 Conflict Handling 的 `condition` 解析——即使 Conflict Handling 规则附带了需要宏观 label 的条件式，域缺失时系统仍走保底人工复核，与 §0 v0.2.0 设计意图"宏观域数据缺失本身即信号不确定性"一致。
+
 > **`high_conflict` 判定标准（v0.1.9）：** `high_conflict` 的判定暂定为：`default_severity = high` 的 Conflict Handling 规则被实际触发（其 `actions` 被执行）时，视为 `high_conflict`。完整判定逻辑由 SPEC-009 统一定义，MVP 暂以此规则为准。
 
 > **`requires_human_review` 触发后不短路（v0.2.6）：** 无论是 Playbook Constraint `on_fail`、`require_review_on` 列表匹配、还是 `ambiguous_label_ref` 触发，`requires_human_review = true` 标记后规则引擎不短路退出。步骤 7-12（Soft Constraints、Conflict Handling、Preferences、报告生成）仍须完整执行，以确保 Playbook Evaluation Report 包含完整的 `constraint_results` 和 `reasoning`。
@@ -1396,6 +1398,8 @@ archive_condition
 | `trigger_action` | 未来失效条件触发时 | 未来发生该条件时系统应如何响应 |
 
 > **MVP 执行性质（v0.1.2）：** Invalidating Conditions 在 MVP 阶段为前瞻性失效提示，不作为可自动检测的触发规则运行。`input_refs` 字段记录关联指标供人类阅读和未来系统自动检测使用。完整自动触发机制由后续 SPEC（Playbook Applicability Evaluator 或 SPEC-009 Governance）定义。当前版本中，`trigger_action` 值进入 Decision Trace，但不被规则引擎执行。
+
+> **双来源合并规则（v0.2.7）：** `invalidating_conditions` 存在两个来源：Playbook 级别（§5.1 顶层 schema）和 Analysis Card 级别（每个能力域均可输出）。Decision Trace 展示阶段按**并集不合并**方式处理——两个来源的条件各自保留来源标注（`source: playbook_default / source: domain_{domain_name}`），不进行语义合并也不去除重复描述。内容矛盾不归 Playbook Evaluation 层处理，交 Decision Trace 展示和人类判断。
 
 ---
 
@@ -1915,18 +1919,18 @@ MVP 暂不实现：用户可视化编辑复杂 Playbook、多 Playbook 对比、
 
 1. `capital_cycle_fundamental_playbook` 的阈值是否应按行业调整 — **MVP 已决：使用统一阈值（pe_percentile_5y ≤ 0.8），不适用于银行/保险/周期商品行业（见 §30.1）**。行业专用阈值由未来 Playbook 扩展实现；
 2. Metric Registry 应归入 SPEC-005 还是 SPEC-006 — **MVP 暂定：归 SPEC-005**。SPEC-006 只引用 `metric_id`，不负责定义 metric 的计算方式和元数据；
-3. Playbook Applicability Evaluator 是否需要独立 SPEC；
+3. Playbook Applicability Evaluator 是否需要独立 SPEC — **MVP 暂定：不需要独立 SPEC**。基础 Applicability 检查（asset_type、task_type、周期偏离）在本 SPEC §7.2 中定义。周期偏离判断标准：用户目标周期与 Playbook `time_horizon_days_min` 偏离超过 50% 时，触发 `requires_human_review`。完整 Applicability Evaluator 由 SPEC-011 定义；
 4. 用户自定义 Playbook 是否允许引用 Interpreted Evidence — **MVP 暂定：允许引用，但系统自动将该 Constraint 降级为 Soft Constraint，并在 Decision Trace 中标注**。该降级机制由 SPEC-009 Governance 统一定义；
-5. 多 Playbook 冲突时如何处理；
-6. Playbook 是否支持组合级约束；
+5. 多 Playbook 冲突时如何处理 — **MVP 暂定：仅支持单 Playbook 执行**。多 Playbook 支持需要在 schema 层引入 `playbook_set` 包装结构，不向后兼容现有单 Playbook schema；
+6. Playbook 是否支持组合级约束 — **MVP 暂定：不支持**。组合级约束（如组合最大仓位）需要在 Playbook schema 中新增 `portfolio_policy` 字段，不影响现有单股票判定逻辑；
 7. 用户历史交易行为是否应影响 Playbook Preference — **MVP 暂定：不引入**。Playbook Preference 完全由 Playbook 定义决定。用户行为数据由 SPEC-012 数据治理单独处理；
 8. Conflict Handling 是否应支持同类型多条规则（条件不同）— MVP 暂定每种冲突类型只允许一条规则（对象格式）。若未来需要同类型多条规则，冲突处理 schema 应从对象改为数组。
 
 ---
 
-## 46. v0.2.4 总结
+## 46. v0.2.7 总结
 
-SPEC-006 v0.2.4 定义了 Investment Playbook 的核心结构、执行语义与 MVP 默认 Playbook。
+SPEC-006 v0.2.7 定义了 Investment Playbook 的核心结构、执行语义与 MVP 默认 Playbook。
 
 本版本完成：
 
