@@ -1,7 +1,7 @@
 # SPEC-007：Orchestration 与执行路径
 
 **版本：** v0.6  
-**状态：** Approved Candidate  
+**状态：** Approved  
 **项目名称：** crosslens  
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.5；SPEC-006 v0.3.0  
 **文档类型：** 工作流编排 / Orchestration Runtime Spec  
