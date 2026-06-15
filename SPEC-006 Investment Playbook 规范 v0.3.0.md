@@ -47,7 +47,7 @@ v0.2.7 补齐多来源 `confidence_cap` 下限保护、宏观域缺失处理、`
 
 v0.2.6 补齐 Soft Constraint stale 缺省行为、all-not-applicable 的保守语义、`requires_human_review` 非短路执行以及多来源 confidence cap 叠加方向。
 
-更早版本的详细记录移至 [[SPEC-006-CHANGELOG]]。
+更早版本的详细记录移至 [[executable_specs/spec006/CHANGELOG]]。
 
 修订后的核心原则是：
 

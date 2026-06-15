@@ -29,7 +29,7 @@ Architecture Constitution: **Deterministic first, Agentic when necessary, Tracea
 | 文件 | 说明 |
 |------|------|
 | [SPEC-REGISTRY](./SPEC-REGISTRY.md) | 全仓库规格注册表——版本、状态、规范性枚举/schema、依赖关系、可执行覆盖 |
-| [SPEC-006-CHANGELOG](./SPEC-006-CHANGELOG.md) | SPEC-006 详细版本变更历史 |
+| [SPEC-006 CHANGELOG](./executable_specs/spec006/CHANGELOG.md) | SPEC-006 详细版本变更历史 |
 | [Executable Specs](./executable_specs/) | SPEC-006 Python 可执行规格（决策逻辑、Pydantic 契约、边界测试） |
 
 > ⚠️ **全仓库枚举一致性规则：** `domain` 枚举（5 values）、`generation_type`、`domain_status`、`OverallResult` 等规范性枚举的唯一定义源见 [SPEC-REGISTRY.md](./SPEC-REGISTRY.md)。任何 SPEC 中使用这些枚举必须以 Registry 为准。
