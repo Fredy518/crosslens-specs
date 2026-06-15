@@ -21,7 +21,7 @@
 | SPEC-006 | SPEC-006 Investment Playbook 规范 v0.3.0.md | v0.3.0 | Approved | Playbook schema、Constraint Evaluation Result schema、OverallResult 枚举 (8 values)、decision_logic 执行语义、confidence_cap 合并、Snapshot hash | ✅ `executable_specs/spec006/` |
 | SPEC-007 | SPEC-007 Orchestration 与执行路径 v0.6.md | v0.6 | Approved | Run 状态机 (26 states)、Workflow Node schema、路由决策树、域调度、双阶段 Validation、bounds 合并、Cumulative degradation | — |
 | SPEC-008 | SPEC-008 Decision Trace 与 Observability v0.1.md | v0.1 | Draft | Decision Trace 四层结构、Event Log 汇总、Observability 指标、数据源 lineage 展示 | — |
-| SPEC-009 | SPEC-009 Governance Guardrails Evaluator 与人工介入 v0.1.md | v0.1 | Draft | Guardrail (7 rules)、Evaluator (4 dims)、Human Review aggregation、Resolved Decision Bounds merge、证据污染检测 | — |
+| SPEC-009 | SPEC-009 Governance Guardrails Evaluator 与人工介入 v0.1.md | v0.1 | Draft | Guardrail (6 rules)、Evaluator (4 dims)、Human Review aggregation、Resolved Decision Bounds merge、证据污染检测 | — |
 | SPEC-010 | SPEC-010 MVP 范围与验证指标 v0.1.md | v0.1 | Draft | MVP 范围宪法、验证标准、交付清单、exclusion 列表 | — |
 | SPEC-011 | SPEC-011 Case Library 与历史案例记忆 v0.1.md | v0.1 | Draft | Case schema、索引六维、匿名化规则、隐私边界、相似度算法（defined but MVP-deferred） | — |
 | SPEC-012 | SPEC-012 数据治理与用户私有数据 v0.1.md | v0.1 | Draft | 数据三分类、访问控制决策树、生命周期、删除/导出 | — |

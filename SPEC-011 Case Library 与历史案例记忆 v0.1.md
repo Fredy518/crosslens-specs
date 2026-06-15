@@ -262,7 +262,7 @@ Case 写入 → 同步更新所有相关索引
 
 ## 5. 案例检索与相似匹配
 
-> ⚠️ **本节为 Post-MVP 规范。** MVP 仅实现 exact query：按 ticker / task_type / playbook_id / date / outcome 的精确过滤。MVP 不执行 `compute_similarity`，不排序相似度，不提供语义检索。Case Library 在 MVP 阶段为"只写不读"归档（见 §8.3）。
+> ⚠️ **本节为 Post-MVP 规范。** MVP 仅实现 exact query：按 ticker / task_type / playbook_id / date / outcome 的精确过滤。MVP 不执行 `compute_similarity`，不排序相似度，不提供语义检索。Case Library MVP 阶段支持匿名化写入、六维索引和基础只读精确查询；不提供案例驱动决策建议（见 §8.3）。
 
 ### 5.1 检索流程图
 
@@ -357,14 +357,15 @@ class CaseQuery:
 def compute_similarity(query: CaseQuery, case: dict) -> float:
     """
     计算 query 与 case 的相似度，返回 0.0 ~ 1.0。
-    MVP 版本使用加权线性组合，不涉及向量嵌入或语义匹配。
+    Post-MVP 版本使用加权线性组合，不涉及向量嵌入或语义匹配。
+    MVP 不调用本函数。
     """
     score = 0.0
 
     # ── Dimension 1: Ticker 精确匹配 (weight: 0.30) ──
     if query.ticker == case["index"]["ticker"]:
         score += WEIGHTS[MatchDimension.TICKER_EXACT]
-    # ticker 不匹配直接返回 0（MVP 阶段不跨股票匹配）
+    # ticker 不匹配直接返回 0（Post-MVP 阶段不跨股票匹配）
     else:
         return 0.0
 
@@ -848,7 +849,7 @@ def verify_anonymization(case: dict) -> bool:
 
 ### 8.3 MVP 一句话总结
 
-> **MVP 阶段的 Case Library 是"只写不读"的归档。** 系统在 Run 完成时（经用户授权后）将匿名化 Case 写入库中，但不主动读取、不主动匹配、不基于历史案例影响当前决策。
+> **MVP 阶段的 Case Library 支持匿名化写入、六维索引和基础只读精确查询。** 系统在 Run 完成时（经用户授权后）将匿名化 Case 写入库中并按索引提供精确查询，但不主动匹配、不基于历史案例影响当前决策，不提供案例驱动建议。
 
 ---
 
@@ -962,7 +963,7 @@ SPEC-011 v0.1 定义了 crosslens Case Library 的基础框架：
 
 5. **匿名化规则**：§7 以伪代码定义五条匿名化规则（R1–R5）及写入前验证，与 SPEC-012 §6.2 完全对齐。
 
-6. **MVP 最小范围**：§8 明确 MVP 阶段 Case Library 为"只写不读"的归档。必须实现：匿名化写入、索引构建、基础查询接口。**不实现：自动匹配、决策建议、语义检索。**
+6. **MVP 最小范围**：§8 明确 MVP 阶段 Case Library 支持匿名化写入、六维索引和基础只读精确查询。必须实现：匿名化写入、索引构建、基础查询接口。**不实现：自动匹配、决策建议、语义检索。**
 
 7. **接口契约**：§9 明确定义 SPEC-011 ↔ SPEC-012 的双向接口（`privacy_check`、`anonymize`、`verify_authorization`），以及数据流入 Case Library 的完整时序。
 
@@ -987,7 +988,7 @@ SPEC-011 依赖和影响以下文档：
 1. SPEC-007：Orchestration 与执行路径（Case 的快照来源——WorkflowResult Schema）；
 2. SPEC-008：Decision Trace 与 Observability（Decision Trace Schema）；
 3. SPEC-012：数据治理与用户私有数据（user_private 拒绝规则、匿名化流水线接口）；
-4. SPEC-010：MVP 范围与验证指标（MVP 阶段 Case Library 为"只写不读"归档）。
+4. SPEC-010：MVP 范围与验证指标（MVP 阶段 Case Library 支持匿名化写入 + 基础只读精确查询）。
 
 ---
 
@@ -1001,7 +1002,7 @@ SPEC-011 依赖和影响以下文档：
 | 匿名化 | Anonymization | — |
 | 来源追溯 | Provenance | — |
 | 相似度评分 | Similarity Scoring | — |
-| 只写不读 | Write-Only Archive | — |
+| 精确查询 | Exact Query | — |
 | 索引 | Index | — |
 
 ---

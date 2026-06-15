@@ -395,6 +395,7 @@ def narrow_bounds(
 5. Guardrail 规则在 MVP 中硬编码，不可被 Playbook 绕过。
 6. Guardrail 不重新评估投资条件——它只检查输出安全性和合规性。
 7. Guardrail action 不得引入 Registry.allowed_actions 之外的新 candidate action。所有方向性动作（如 buy、add_position、reduce、hold、avoid）必须以 SPEC-REGISTRY.md 中声明的枚举值域为准。
+8. `block_output` 是 governance control flag，不是 AllowedAction。它不得出现在 `recommended_decision_bounds`、`allowed_actions` 或任何表示投资候选动作的字段中。其唯一语义是终止整个 Run 输出。
 ```
 
 ---
