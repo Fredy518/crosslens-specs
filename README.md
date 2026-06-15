@@ -8,20 +8,22 @@ Architecture Constitution: **Deterministic first, Agentic when necessary, Tracea
 
 ## 文档索引
 
-| 编号 | 文件 | 版本 | 状态 | 核心定位 |
-|------|------|------|------|----------|
-| SPEC-001 | [产品定义与边界](./SPEC-001%20产品定义与边界.md) | v0.4 | Draft | 产品是什么/不是什么，七层架构边界 |
-| SPEC-002 | [目标用户与核心场景](./SPEC-002%20目标用户与核心场景.md) | v0.1 | Draft | 用户画像、场景、路由决策树 |
-| SPEC-003 | [Agentic投研工作流架构](./SPEC-003%20Agentic投研工作流架构%20v0.3.4.md) | v0.3.4 | Review | 七层架构、核心对象链、标准 Workflow |
-| SPEC-004 | [五类分析能力域与Analysis Card Schema](./SPEC-004%20五类分析能力域与%20Analysis%20Card%20Schema%20v0.2.5.md) | v0.2.5 | Review | 5个能力域定义、Analysis Card Schema |
-| SPEC-005 | [Capability Package与Metric Registry](./SPEC-005%20Capability%20Package%20与%20Metric%20Registry%20规范.md) | v0.2 | Review | 工具/模型打包、指标注册与解析、Evidence confidence规则 |
-| SPEC-006 | [Investment Playbook 规范](./SPEC-006%20Investment%20Playbook%20规范%20v0.3.0.md) | v0.3.0 | Approved | 投资决策手册、约束执行语义 |
-| SPEC-007 | [Orchestration与执行路径](./SPEC-007%20Orchestration%20与执行路径.md) | v0.6 | Approved | 运行状态机、编排图、路由决策 |
-| SPEC-008 | [Decision Trace与Observability](./SPEC-008%20Decision%20Trace%20与%20Observability.md) | v0.1 | Draft | 决策追踪四层结构、可观测性 |
-| SPEC-009 | [Governance Guardrails Evaluator 与人工介入](./SPEC-009%20Governance%20Guardrails%20Evaluator%20与人工介入.md) | v0.1 | Draft | 护栏、评估器、人工审核汇聚 |
-| SPEC-010 | [MVP范围与验证指标](./SPEC-010%20MVP%20范围与验证指标.md) | v0.1 | Draft | MVP范围宪法、验证标准 |
-| SPEC-011 | [Case Library与历史案例记忆](./SPEC-011%20Case%20Library%20与历史案例记忆.md) | v0.1 | Draft | 案例库结构、隐私边界 |
-| SPEC-012 | [数据治理与用户私有数据](./SPEC-012%20数据治理与用户私有数据.md) | v0.1 | Draft | 数据三级分类、访问控制、生命周期 |
+> **版本、状态、规范性枚举、Schema 来源、依赖关系均已收口到 [SPEC-REGISTRY.md](./SPEC-REGISTRY.md)。** 本表仅提供文件名链接与一句话定位；以 Registry 为唯一事实源。
+
+| 编号 | 文件 | 核心定位 |
+|------|------|----------|
+| SPEC-001 | [产品定义与边界](./SPEC-001%20产品定义与边界%20v0.4.md) | 产品是什么/不是什么，七层架构边界 |
+| SPEC-002 | [目标用户与核心场景](./SPEC-002%20目标用户与核心场景%20v0.1.md) | 用户画像、场景、路由决策树 |
+| SPEC-003 | [Agentic投研工作流架构](./SPEC-003%20Agentic投研工作流架构%20v0.3.4.md) | 七层架构、核心对象链、标准 Workflow |
+| SPEC-004 | [五类分析能力域与Analysis Card Schema](./SPEC-004%20五类分析能力域与%20Analysis%20Card%20Schema%20v0.2.5.md) | 5个能力域定义、Analysis Card Schema |
+| SPEC-005 | [Capability Package与Metric Registry](./SPEC-005%20Capability%20Package%20与%20Metric%20Registry%20规范%20v0.2.md) | 工具/模型打包、指标注册与解析、Evidence confidence规则 |
+| SPEC-006 | [Investment Playbook 规范](./SPEC-006%20Investment%20Playbook%20规范%20v0.3.0.md) | 投资决策手册、约束执行语义 |
+| SPEC-007 | [Orchestration与执行路径](./SPEC-007%20Orchestration%20与执行路径%20v0.6.md) | 运行状态机、编排图、路由决策 |
+| SPEC-008 | [Decision Trace与Observability](./SPEC-008%20Decision%20Trace%20与%20Observability%20v0.1.md) | 决策追踪四层结构、可观测性 |
+| SPEC-009 | [Governance Guardrails Evaluator 与人工介入](./SPEC-009%20Governance%20Guardrails%20Evaluator%20与人工介入%20v0.1.md) | 护栏、评估器、人工审核汇聚 |
+| SPEC-010 | [MVP范围与验证指标](./SPEC-010%20MVP%20范围与验证指标%20v0.1.md) | MVP范围宪法、验证标准 |
+| SPEC-011 | [Case Library与历史案例记忆](./SPEC-011%20Case%20Library%20与历史案例记忆%20v0.1.md) | 案例库结构、隐私边界 |
+| SPEC-012 | [数据治理与用户私有数据](./SPEC-012%20数据治理与用户私有数据%20v0.1.md) | 数据三级分类、访问控制、生命周期 |
 
 **辅助文件：**
 | 文件 | 说明 |
@@ -128,16 +130,16 @@ Investment Task → Context Bundle → Evidence Packets → Analysis Domain Jobs
 
 ## Executable Specs
 
-`executable_specs/spec006/` 包含 SPEC-006 关键决策语义的 Python 实现：
+可执行规格从 SPEC-006 起步，按 Registry 计划逐步覆盖 005 → 004 → 009。
 
-- `aggregate_multi_rule` — `all`/`any` 子状态聚合
-- `compute_overall_result` — 9规则决策树
-- `resolve_recommended_actions` — Hard fail 动作收窄
-- `merge_confidence_cap` — 多来源置信度上限合并
+| 包 | 位置 | 覆盖规范 | 状态 |
+|----|------|----------|------|
+| `crosslens_spec006` | [executable_specs/spec006/](./executable_specs/spec006/) | SPEC-006: aggregate_multi_rule, compute_overall_result, resolve_recommended_actions, merge_confidence_cap | ✅ 已验证 (17 tests) |
+| `crosslens_spec005` | [executable_specs/spec005/](./executable_specs/spec005/) | SPEC-005: resolve_input_ref, Metric Registry validation | 📋 计划中 |
+| `crosslens_spec004` | [executable_specs/spec004/](./executable_specs/spec004/) | SPEC-004: Analysis Card schema validation | 📋 计划中 |
+| `crosslens_spec009` | [executable_specs/spec009/](./executable_specs/spec009/) | SPEC-009: GuardrailReport, EvaluationReport, ResolvedDecisionBounds merge | 📋 计划中 |
 
 运行: `cd executable_specs/spec006 && python -m pytest`
-
-详见 [executable_specs/spec006/README.md](./executable_specs/spec006/README.md)
 
 ---
 
@@ -153,5 +155,6 @@ Investment Task → Context Bundle → Evidence Packets → Analysis Domain Jobs
 ## 版本策略
 
 - 每个 SPEC 独立版本号（SemVer），在文档头声明依赖文档的版本
-- 文件名包含主版本号（如 `v0.3.4`）
+- 版本号必须嵌入文件名（如 `v0.3.4`），防止重名歧义
 - SPEC-006 的 CHANGELOG 独立于 SPEC 编号体系
+- 唯事实源见 [SPEC-REGISTRY.md](./SPEC-REGISTRY.md)
