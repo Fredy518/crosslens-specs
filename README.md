@@ -138,6 +138,7 @@ Investment Task → Context Bundle → Evidence Packets → Analysis Domain Jobs
 | `crosslens_spec005` | [executable_specs/spec005/](./executable_specs/spec005/) | SPEC-005: MetricRegistryEntry, FactRegistryEntry, LabelRegistryEntry, DerivedMetricRuleTable | ✅ 已验证 (14 tests) |
 | `crosslens_spec004` | [executable_specs/spec004/](./executable_specs/spec004/) | SPEC-004: AnalysisCard, ConstraintExport, DataFreshness, post-card validation rules | ✅ 已验证 (18 tests) |
 | `crosslens_spec009` | [executable_specs/spec009/](./executable_specs/spec009/) | SPEC-009: apply_guardrails, run_evaluator, compute_final_confidence_cap, resolve_decision_bounds, check_evidence_contamination | ✅ 已验证 (55 tests) |
+| `crosslens_spec003` | [executable_specs/spec003/](./executable_specs/spec003/) | SPEC-003: Evidence Packet, Validation Report, Conflict Report, Decision Candidate, Event Log | 📋 scaffold 已创建 / implementation pending |
 
 运行:
 ```

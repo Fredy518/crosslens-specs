@@ -18,12 +18,12 @@
 | SPEC-001 | SPEC-001 产品定义与边界 v0.4.md | v0.4 | Draft | 产品边界、核心概念、七层架构命名 | — |
 | SPEC-002 | SPEC-002 目标用户与核心场景 v0.1.md | v0.1 | Draft | 用户画像、场景矩阵、task_type 枚举 (5 values) | — |
 | SPEC-003 | SPEC-003 Agentic投研工作流架构 v0.3.4.md | v0.3.4 | Review | 核心对象链 (13 objects)、domain 枚举 (5 values)、七层职责分层、Evidence Packet schema、Validation Report schema、Conflict Report schema、Decision Candidate schema、Event Log schema | — |
-| SPEC-004 | SPEC-004 五类分析能力域与 Analysis Card Schema v0.2.5.md | v0.2.5 | Review | Analysis Card schema、domain_status 枚举、stance 枚举、constraint_exports 契约、五域能力定义 | — |
-| SPEC-005 | SPEC-005 Capability Package 与 Metric Registry 规范 v0.2.md | v0.2 | Review | Metric/Fact/Label Registry schema、Capability Package schema、lineage 追踪、URI 格式规范、confidence 取值规则、resolve_input_ref 算法、Derived Metric 规则表格式 | — |
+| SPEC-004 | SPEC-004 五类分析能力域与 Analysis Card Schema v0.2.5.md | v0.2.5 | Review | Analysis Card schema、domain_status 枚举、stance 枚举、constraint_exports 契约、五域能力定义 | ✅ `executable_specs/spec004/` |
+| SPEC-005 | SPEC-005 Capability Package 与 Metric Registry 规范 v0.2.md | v0.2 | Review | Metric/Fact/Label Registry schema、Capability Package schema、lineage 追踪、URI 格式规范、confidence 取值规则、resolve_input_ref 算法、Derived Metric 规则表格式 | ✅ `executable_specs/spec005/` |
 | SPEC-006 | SPEC-006 Investment Playbook 规范 v0.3.0.md | v0.3.0 | Approved | Playbook schema、Constraint Evaluation Result schema、OverallResult 枚举 (8 values)、decision_logic 执行语义、confidence_cap 合并、Snapshot hash | ✅ `executable_specs/spec006/` |
 | SPEC-007 | SPEC-007 Orchestration 与执行路径 v0.6.md | v0.6 | Approved | Run 状态机 (26 states)、Workflow Node schema、路由决策树、域调度、双阶段 Validation、bounds 合并、Cumulative degradation | — |
 | SPEC-008 | SPEC-008 Decision Trace 与 Observability v0.1.md | v0.1 | Draft | Decision Trace 四层结构、Event Log 汇总、Observability 指标、数据源 lineage 展示 | — |
-| SPEC-009 | SPEC-009 Governance Guardrails Evaluator 与人工介入 v0.1.md | v0.1 | Draft | Guardrail (6 rules)、Evaluator (4 dims)、Human Review aggregation、Resolved Decision Bounds merge、证据污染检测 | — |
+| SPEC-009 | SPEC-009 Governance Guardrails Evaluator 与人工介入 v0.1.md | v0.1 | Review | Guardrail (6 rules)、Evaluator (4 dims)、Human Review aggregation、Resolved Decision Bounds merge、证据污染检测 | ✅ `executable_specs/spec009/` |
 | SPEC-010 | SPEC-010 MVP 范围与验证指标 v0.1.md | v0.1 | Draft | MVP 范围宪法、验证标准、交付清单、exclusion 列表 | — |
 | SPEC-011 | SPEC-011 Case Library 与历史案例记忆 v0.1.md | v0.1 | Draft | Case schema、索引六维、匿名化规则、隐私边界、相似度算法（defined but MVP-deferred） | — |
 | SPEC-012 | SPEC-012 数据治理与用户私有数据 v0.1.md | v0.1 | Draft | 数据三分类、访问控制决策树、生命周期、删除/导出 | — |
@@ -92,6 +92,7 @@ SPEC-001 (产品定义)
 | `crosslens_spec005` | `executable_specs/spec005/` | SPEC-005: MetricRegistryEntry, FactRegistryEntry, LabelRegistryEntry, DerivedMetricRuleTable | ✅ 已验证 (14 tests) |
 | `crosslens_spec004` | `executable_specs/spec004/` | SPEC-004: AnalysisCard, ConstraintExport, DataFreshness, post-card validation rules | ✅ 已验证 (18 tests) |
 | `crosslens_spec009` | `executable_specs/spec009/` | SPEC-009: GuardrailReport, EvaluationReport, ResolvedDecisionBounds merge, apply_guardrails, run_evaluator, compute_final_confidence_cap, resolve_decision_bounds, check_evidence_contamination | ✅ 已验证 (55 tests) |
+| `crosslens_spec003` | `executable_specs/spec003/` | SPEC-003: Evidence Packet, Validation Report, Conflict Report, Decision Candidate, Event Log | 📋 scaffold 已创建 / implementation pending |
 
 ---
 

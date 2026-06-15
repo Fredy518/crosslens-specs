@@ -1,7 +1,7 @@
 # SPEC-009：Governance、Guardrails、Evaluator 与人工介入
 
 **版本：** v0.1
-**状态：** Draft
+**状态：** Review
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.5；SPEC-006 v0.3.0；SPEC-007 v0.6
 **文档类型：** 治理规范
@@ -11,7 +11,7 @@
 
 ## 0. 版本说明
 
-v0.1 为 SPEC-009 初稿。
+v0.1 为 SPEC-009 初稿。状态升级为 Review：Governance 三组件（Guardrail / Evaluator / Human Review Agg）的完整执行语义已在 `executable_specs/spec009/` 中实现 Pydantic v2 契约 + 55 个边界测试 + JSON Schema，核心不变量均已通过自动化验证。
 
 本版本承接 SPEC-003 §16（Guardrail Report）、SPEC-003 §17（Resolved Decision Bounds）、SPEC-006 §45 Q4（confidence_adjustment 自动修改机制）、SPEC-004 §26.1 NOTE（lineage 递归污染检测）中的 deferred 项，定义 Governance 层三组件的完整执行语义。
 
