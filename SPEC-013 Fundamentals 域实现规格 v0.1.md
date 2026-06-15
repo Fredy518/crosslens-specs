@@ -195,7 +195,7 @@ can_support_hard_constraint: true
 | metric | 类型 | 单位 | 说明 |
 |--------|------|------|------|
 | `fcf_margin_ttm` | float | ratio | TTM FCF / Revenue |
-| `fcf_yield` | float | ratio | FCF / Market Cap（derived：cf 来自 cashflow_metrics，mcap 来自 market_data） |
+| `fcf_yield` | float | ratio | FCF / Market Cap（**derived**：跨 Evidence，非 cashflow_metrics 原生字段。详见 §4.2 metric://fcf_yield） |
 | `fcf_conversion_rate` | float | ratio | FCF / Net Income（TTM） |
 | `operating_cashflow_ttm` | float | currency | TTM 经营性现金流 |
 | `capex_to_revenue_ttm` | float | ratio | CapEx / Revenue（TTM） |
@@ -249,7 +249,7 @@ can_support_hard_constraint: true
 |--------|------|------|------|
 | `pe_percentile_5y` | float | ratio | 当前 PE 在 5 年序列中的百分位 |
 | `ev_ebitda_percentile_5y` | float | ratio | 当前 EV/EBITDA 在 5 年序列中的百分位 |
-| `fcf_yield` | float | ratio | FCF / Market Cap（derived：cf 来自 cashflow_metrics，mcap 来自 market_data） |
+| `fcf_yield` | float | ratio | FCF / Market Cap（**derived**：跨 Evidence，非 valuation_metrics 原生字段。详见 §4.2 metric://fcf_yield） |
 | `pe_current` | float | ratio | 当前 PE（TTM） |
 | `ev_ebitda_current` | float | ratio | 当前 EV/EBITDA |
 | `price_to_book` | float | ratio | P/B |
@@ -955,7 +955,7 @@ fcf_yield = fcf_ttm / market_cap
   },
   "lineage_constraints": {
     "requires_source_event_ref": false,
-    "description": "Derived metric: 需要 cashflow_metrics + market_data 两个 source Evidence）
+    "description": "TTM FCF / 市值。Derived metric：FCF 来自 cashflow_metrics，市值来自 market_data（行情 API）。衡量以当前价格买入时，公司产生自由现金流的回报率。"
   },
   "tags": ["valuation", "cashflow", "yield", "fundamentals", "hard_constraint", "derived"]
 }
@@ -1145,7 +1145,7 @@ function run_fundamentals_domain(job: AnalysisDomainJob) -> AnalysisCard:
         data_freshness=compute_freshness(available_evidence),
         key_risks=derive_key_risks(structured_labels, computed),
         invalidating_conditions=derive_invalidating_conditions(structured_labels),
-        warnings=derive_warnings(missing_required, evidence_packets)
+        warnings=derive_warnings(missing_required, available_evidence)
     )
 
     // ═══ Step 8: Domain-Level Validation ═══
@@ -1286,6 +1286,18 @@ function determine_stance(sub_stances: list[(string, float)]) -> Stance:
     else: return Stance.NEGATIVE
 ```
 
+**边界值定义：**
+
+| score 范围 | stance | 边界归属 |
+|-----------|--------|---------|
+| normalized ≥ 0.6 | positive | 0.6 inclusive |
+| 0.2 ≤ normalized < 0.6 | moderately_positive | 0.6 exclusive, 0.2 inclusive |
+| -0.2 ≤ normalized < 0.2 | mixed | 0.2 exclusive, -0.2 inclusive |
+| -0.6 ≤ normalized < -0.2 | moderately_negative | -0.2 exclusive, -0.6 inclusive |
+| normalized < -0.6 | negative | -0.6 exclusive |
+
+> 注意：此表使用 `>=`/`<` 语义，与上面 `if/elif` 的 `>=`/`elif` 链完全等价。阈值边界归属由 `>=` 运算符直接确定——达到阈值则归属于较高的 stance。
+
 ### 7.3 不可用处理
 
 如果 ≥3 个子信号为 unknown：
@@ -1350,8 +1362,10 @@ unavailable → 0.0
 
 ```
 confidence = min(confidence, confidence_cap_from_quality(data_quality))
-// data_quality 到 cap 的映射见 SPEC-004 §41:
+// data_quality → confidence cap 映射（SPEC-013 自定义，待与 SPEC-004/009 对齐）：
 //   high → 0.85, medium → 0.70, low → 0.45, unavailable → 0.20, unknown → 0.50
+// 注意：此映射目前仅在 SPEC-013 中定义。如果 SPEC-004 或 SPEC-009 后续定义了
+// 全局统一的 data_quality → confidence_cap 映射，本映射应被替换。
 ```
 
 ### 8.4 MVP 简化
@@ -1402,7 +1416,7 @@ confidence = min(confidence, confidence_cap_from_quality(data_quality))
 | 1 | 财报数据过期 > 90 天 | oldest_evidence_as_of > 90 days ago | flag | 降低 confidence，加入 warnings |
 | 2 | 财报数据过期 > 180 天 | oldest_evidence_as_of > 180 days ago | flag | domain_status = partial（降级），移除所有 `can_support_hard_constraint=true` 的 constraint_exports，confidence_cap = max(0.35, 当前 cap)，加入 warnings: "stale_data" |
 | 3 | 估值数据缺失 | valuation_metrics 不可用 | flag | 移除 valuation 相关 constraint_exports，valuation_state = unknown |
-| 4 | 收入增速与行业增速同源 | revenue_growth_ttm 和 industry_median 来自同一 Evidence Packet | flag | 标记 lineage 风险，加入 warnings |
+| 4 | 收入增速与行业增速 lineage 异常 | peer_comparison_metrics 的 industry_median 不是来自独立的行业数据库，而是从公司自身 filing 推导（即 financial_metrics 和 peer_comparison_metrics 共享同一个原始数据源） | flag | 标记 lineage 风险，加入 warnings: "peer_data_not_independent" |
 | 5 | completed + 无 supporting_evidence | domain_status=completed 但 supporting=[] | flag | 检查 stance 逻辑（neutral 时可能合法） |
 | 6 | growth_capex_flag 无法独立判断 | 公司级 CapEx 数据不足以独立判断（含一次性项目无法分离、或需 Macro label 推断） | flag | growth_capex_flag = null（不导出），can_support_hard_constraint = false，加入 warnings: "insufficient_company_level_capex_evidence" |
 | 7 | 负盈利导致 PE 不可用 | net_income_ttm <= 0 | flag | pe_percentile_5y = null，valuation_state 降权重 |
@@ -1466,6 +1480,7 @@ confidence = min(confidence, confidence_cap_from_quality(data_quality))
 3. **LLM summary 的最小质量门槛**：MVP 模板占位的 summary 是否满足下游消费？
 4. **金融股特殊处理**：银行/保险的杠杆指标（net_debt_to_ebitda）不适用，需要替代指标集。MVP 是否支持金融股？
 5. **上游 SPEC 未覆盖**：SPEC-004 §20 的 `operating_margin_3y_avg` 在 constraint_exports 中未列出但可能被 Playbook 引用。需确认是否需要补充。
+6. **data_quality → confidence_cap 映射统一化**：§8.3 的映射为 SPEC-013 自定义。需与 SPEC-004 §41 和 SPEC-009 确认是否需要全局统一的 data_quality → confidence_cap 规则。若需要，应提升为上游 SPEC 的规范性定义。
 
 ---
 
