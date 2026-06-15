@@ -18,9 +18,8 @@ class StrictModel(BaseModel):
 class DomainStatus(str, Enum):
     COMPLETED = "completed"
     PARTIAL = "partial"
-    INSUFFICIENT_DATA = "insufficient_data"
-    FAILED = "failed"
-    SKIPPED = "skipped"
+    ERROR = "error"
+    UNAVAILABLE = "unavailable"
 
 
 # ── Data Quality ───────────────────────────────────────────────
@@ -42,7 +41,7 @@ class Stance(str, Enum):
     MIXED = "mixed"
     MODERATELY_NEGATIVE = "moderately_negative"
     NEGATIVE = "negative"
-    INSUFFICIENT_DATA = "insufficient_data"
+    UNAVAILABLE = "unavailable"
     NOT_APPLICABLE = "not_applicable"
 
 
@@ -241,11 +240,10 @@ class AnalysisCard(StrictModel):
             DomainStatus.PARTIAL: {
                 Stance.POSITIVE, Stance.MODERATELY_POSITIVE, Stance.NEUTRAL,
                 Stance.MIXED, Stance.MODERATELY_NEGATIVE, Stance.NEGATIVE,
-                Stance.INSUFFICIENT_DATA,
+                Stance.UNAVAILABLE,
             },
-            DomainStatus.INSUFFICIENT_DATA: {Stance.INSUFFICIENT_DATA},
-            DomainStatus.FAILED: {Stance.NOT_APPLICABLE, None},
-            DomainStatus.SKIPPED: {Stance.NOT_APPLICABLE, None},
+            DomainStatus.UNAVAILABLE: {Stance.UNAVAILABLE},
+            DomainStatus.ERROR: {Stance.NOT_APPLICABLE, None},
         }
         if self.stance not in legal_stances.get(self.domain_status, set()):
             raise ValueError(
@@ -267,9 +265,8 @@ class AnalysisCard(StrictModel):
         cap_by_status = {
             DomainStatus.COMPLETED: 0.85,
             DomainStatus.PARTIAL: 0.60,
-            DomainStatus.INSUFFICIENT_DATA: 0.25,
-            DomainStatus.FAILED: 0.0,
-            DomainStatus.SKIPPED: 0.0,
+            DomainStatus.UNAVAILABLE: 0.25,
+            DomainStatus.ERROR: 0.0,
         }
         max_confidence = min(
             cap_by_quality.get(self.data_quality, 1.0),

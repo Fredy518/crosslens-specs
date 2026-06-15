@@ -189,9 +189,8 @@
       "enum": [
         "completed",
         "partial",
-        "insufficient_data",
-        "failed",
-        "skipped"
+        "error",
+        "unavailable"
       ],
       "title": "DomainStatus",
       "type": "string"
@@ -300,7 +299,7 @@
         "mixed",
         "moderately_negative",
         "negative",
-        "insufficient_data",
+        "unavailable",
         "not_applicable"
       ],
       "title": "Stance",

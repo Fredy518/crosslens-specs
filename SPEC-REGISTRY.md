@@ -54,7 +54,7 @@ SPEC-001 (产品定义)
 | `domain` | SPEC-003 §6.1 | `macro_meso`, `fundamentals`, `company_event`, `sentiment`, `technical_market` |
 | `generation_type` | SPEC-003 §6.5 | `computed`, `structured`, `interpreted` |
 | `domain_status` | SPEC-004 §10.1 | `completed`, `partial`, `error`, `unavailable` |
-| `stance` | SPEC-004 | `positive`, `negative`, `neutral`, `mixed`, `unavailable` |
+| `stance` | SPEC-004 | `positive`, `moderately_positive`, `neutral`, `mixed`, `moderately_negative`, `negative`, `unavailable`, `not_applicable` |
 | `OverallResult` | SPEC-006 + `decision_logic.py` | `passed`, `passed_with_caution`, `partially_passed`, `not_passed_for_new_buy`, `not_passed_for_add_position`, `not_suitable_for_playbook`, `need_more_data`, `requires_human_review` |
 | `ConstraintStatus` | SPEC-006 + `decision_logic.py` | `pass`, `fail`, `partial`, `insufficient_data`, `stale_data`, `not_applicable`, `error` |
 | `allowed_actions` | SPEC-006 + `decision_logic.py` | `buy`, `hold`, `wait`, `avoid`, `reduce`, `add_to_watchlist`, `hold_if_already_owned`, `need_more_data`, `add_position` |

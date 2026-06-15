@@ -105,7 +105,7 @@ def test_minimal_card_partial_without_exports():
     card = AnalysisCard.model_validate(
         _valid_card(
             domain_status=DomainStatus.PARTIAL,
-            stance=Stance.INSUFFICIENT_DATA,
+            stance=Stance.UNAVAILABLE,
             confidence=0.40,
             constraint_exports=[],
             data_freshness=None,
@@ -148,23 +148,23 @@ def test_directional_stance_requires_opposing():
             )
 
 
-def test_insufficient_data_stance_only_for_insufficient_data_or_partial():
-    # insufficient_data stance with completed → should fail per §8.3
+def test_unavailable_stance_only_for_unavailable_or_partial():
+    # unavailable stance with completed → should fail per §8.3
     with pytest.raises(ValueError, match="illegal"):
         AnalysisCard.model_validate(
             _valid_card(
                 domain_status=DomainStatus.COMPLETED,
-                stance=Stance.INSUFFICIENT_DATA,
+                stance=Stance.UNAVAILABLE,
             )
         )
 
 
-def test_failed_must_be_not_applicable():
-    # failed with directional stance → illegal
+def test_error_must_be_not_applicable():
+    # error with directional stance → illegal
     with pytest.raises(ValueError, match="illegal"):
         AnalysisCard.model_validate(
             _valid_card(
-                domain_status=DomainStatus.FAILED,
+                domain_status=DomainStatus.ERROR,
                 stance=Stance.POSITIVE,
                 confidence=0.0,
                 data_freshness=None,
