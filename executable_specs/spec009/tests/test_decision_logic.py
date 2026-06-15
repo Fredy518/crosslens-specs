@@ -495,7 +495,7 @@ class TestResolveDecisionBounds:
             evaluation_report=ev,
         )
         assert result.output_control == "block_output"
-        assert "wait" in result.allowed_actions  # fallback
+        assert len(result.allowed_actions) == 0  # block_output skips fallback "wait"
 
     def test_contamination_removes_directional_actions(self):
         gr = self._gr_report()

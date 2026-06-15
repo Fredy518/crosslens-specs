@@ -345,10 +345,6 @@ def narrow_bounds(
         if blocked in narrowed:
             narrowed.remove(blocked)
 
-    # 确保移除了强建议动作（已被 blocked）
-    narrowed.discard("buy")
-    narrowed.discard("add_position")
-
     # 如果所有方向性动作都被移除，保留 wait
     directional_actions = {"buy", "add_position", "reduce", "hold"}
     if not (narrowed & directional_actions):

@@ -559,6 +559,7 @@ def resolve_decision_bounds(
 
     output_control = guardrail_report.output_control
     if output_control == "block_output":
+        # block_output terminates the entire run — clear bounds regardless
         allowed = set()
 
     # Step 3: Contamination detection
@@ -611,7 +612,7 @@ def resolve_decision_bounds(
     requires_review = requires_review or cap_triggers_review or guardrail_report.requires_human_review
 
     # Step 6: Final bounds check
-    if not allowed:
+    if not allowed and output_control != "block_output":
         allowed = {"wait"}
 
     return ResolvedDecisionBounds(
