@@ -27,7 +27,7 @@
 | SPEC-010 | SPEC-010 MVP 范围与验证指标 v0.1.md | v0.1 | Draft | 需求 | MVP 范围宪法、验证标准、交付清单、exclusion 列表 | — |
 | SPEC-011 | SPEC-011 Case Library 与历史案例记忆 v0.1.md | v0.1 | Draft | 设计 | Case schema、索引六维、匿名化规则、隐私边界、相似度算法（defined but MVP-deferred） | — |
 | SPEC-012 | SPEC-012 数据治理与用户私有数据 v0.1.md | v0.1 | Draft | 需求 | 数据三分类、访问控制决策树、生命周期、删除/导出 | — |
-| SPEC-013 | SPEC-013 Fundamentals 域实现规格 v0.1.md | v0.1 | Draft | 实现 | — | — |
+| SPEC-013 | SPEC-013 Fundamentals 域实现规格 v0.1.2.md | v0.1.2 | Draft | 实现 | — | — |
 
 ---
 

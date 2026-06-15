@@ -1,6 +1,6 @@
 # SPEC-013：Fundamentals 域实现规格
 
-**版本：** v0.1
+**版本：** v0.1.2
 **状态：** Draft
 **项目名称：** crosslens
 **文档类型：** 实现
@@ -195,11 +195,13 @@ can_support_hard_constraint: true
 | metric | 类型 | 单位 | 说明 |
 |--------|------|------|------|
 | `fcf_margin_ttm` | float | ratio | TTM FCF / Revenue |
-| `fcf_yield` | float | ratio | FCF / Market Cap（**derived**：跨 Evidence，非 cashflow_metrics 原生字段。详见 §4.2 metric://fcf_yield） |
 | `fcf_conversion_rate` | float | ratio | FCF / Net Income（TTM） |
 | `operating_cashflow_ttm` | float | currency | TTM 经营性现金流 |
 | `capex_to_revenue_ttm` | float | ratio | CapEx / Revenue（TTM） |
 | `fcf_stability` | float | ratio | 过去 4 年正 FCF 年数占比 |
+| `fcf_ttm` | float | currency | TTM 自由现金流（internal：用于派生 fcf_yield，见 §4.2） |
+
+> **NOTE：** `fcf_yield` 不在 consumed Evidence Packet 中。它是 Fundamentals runtime 内部派生的 derived metric（FCF_ttm / market_cap），只出现在 constraint_exports 中，不回流到 Evidence Pool。详见 §4.2。
 
 **facts 字段：**
 | fact | 类型 | 说明 |
@@ -249,11 +251,12 @@ can_support_hard_constraint: true
 |--------|------|------|------|
 | `pe_percentile_5y` | float | ratio | 当前 PE 在 5 年序列中的百分位 |
 | `ev_ebitda_percentile_5y` | float | ratio | 当前 EV/EBITDA 在 5 年序列中的百分位 |
-| `fcf_yield` | float | ratio | FCF / Market Cap（**derived**：跨 Evidence，非 valuation_metrics 原生字段。详见 §4.2 metric://fcf_yield） |
 | `pe_current` | float | ratio | 当前 PE（TTM） |
 | `ev_ebitda_current` | float | ratio | 当前 EV/EBITDA |
 | `price_to_book` | float | ratio | P/B |
 | `dividend_yield` | float | ratio | 股息率 |
+
+> **NOTE：** `fcf_yield` 不在 consumed Evidence Packet 中。它是 derived metric——FCF 来自 cashflow_metrics.`fcf_ttm`，市值来自 market_data.`market_cap`。定义和导出规则见 §4.2。
 
 **公式：**
 ```
@@ -916,7 +919,9 @@ fcf_yield = fcf_ttm / market_cap
 若 fcf_ttm <= 0 → fcf_yield = null, 标记 negative_fcf
 
 // fcf_yield 是 derived metric：现金流来自 cashflow_metrics，市值来自 market_data（行情 API）
-// constraint_exports 导出 fcf_yield 时，必须在 lineage 中记录 2 个 source_evidence_refs
+// MVP 兼容：ConstraintExport.evidence_ref 指向承载该值的 valuation_metrics Evidence Packet
+//   valuation_metrics EP 必须在 limitations 中记录其 lineage（cashflow_metrics + market_data）
+// Post-MVP：评估是否需要向 SPEC-004 提变更，为 ConstraintExport 增加 source_evidence_refs 字段
 // 若 market_data 不可用 → fcf_yield = null → 不可作为 Hard Constraint 支撑
 ```
 
@@ -1414,7 +1419,7 @@ confidence = min(confidence, confidence_cap_from_quality(data_quality))
 | # | 检查项 | 触发条件 | 严重度 | 处理 |
 |---|---|---|---|---|
 | 1 | 财报数据过期 > 90 天 | oldest_evidence_as_of > 90 days ago | flag | 降低 confidence，加入 warnings |
-| 2 | 财报数据过期 > 180 天 | oldest_evidence_as_of > 180 days ago | flag | domain_status = partial（降级），移除所有 `can_support_hard_constraint=true` 的 constraint_exports，confidence_cap = max(0.35, 当前 cap)，加入 warnings: "stale_data" |
+| 2 | 财报数据过期 > 180 天 | oldest_evidence_as_of > 180 days ago | flag | domain_status = partial（降级），移除所有 `can_support_hard_constraint=true` 的 constraint_exports，confidence_cap = min(当前 cap, 0.35)，加入 warnings: "stale_data" |
 | 3 | 估值数据缺失 | valuation_metrics 不可用 | flag | 移除 valuation 相关 constraint_exports，valuation_state = unknown |
 | 4 | 收入增速与行业增速 lineage 异常 | peer_comparison_metrics 的 industry_median 不是来自独立的行业数据库，而是从公司自身 filing 推导（即 financial_metrics 和 peer_comparison_metrics 共享同一个原始数据源） | flag | 标记 lineage 风险，加入 warnings: "peer_data_not_independent" |
 | 5 | completed + 无 supporting_evidence | domain_status=completed 但 supporting=[] | flag | 检查 stance 逻辑（neutral 时可能合法） |
