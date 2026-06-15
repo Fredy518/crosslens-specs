@@ -55,13 +55,14 @@ SPEC-001 (产品定义)
   │     ├─► SPEC-006 (Playbook) ──► SPEC-005 (指标注册)
   │     └─► SPEC-007 (编排) ──► SPEC-008 (决策追踪)
   │                              └─► SPEC-009 (治理)
-  └─► SPEC-010 (MVP范围) ──► SPEC-011 (案例库)
-                              └─► SPEC-012 (数据治理)
+  └─► SPEC-010 (MVP范围) ──► SPEC-011 (案例库) ──► SPEC-012 (数据治理)
 ```
 
 ---
 
 ## 文档关系图
+
+> ⚠️ **本图为派生视图。** Canonical dependency graph 以 [SPEC-REGISTRY.md](./SPEC-REGISTRY.md) 为准。当本图与 Registry 不一致时，Registry 优先。
 
 ```mermaid
 graph TD
@@ -75,12 +76,11 @@ graph TD
     SPEC007 --> SPEC008[SPEC-008 Decision Trace与Observability]
     SPEC007 --> SPEC009[SPEC-009 Governance Guardrails]
     SPEC010 --> SPEC011[SPEC-011 Case Library]
-    SPEC010 --> SPEC012[SPEC-012 数据治理]
+    SPEC011 --> SPEC012[SPEC-012 数据治理]
     SPEC009 --> SPEC010
     SPEC005 --> SPEC010
     SPEC006 --> SPEC010
     SPEC008 --> SPEC010
-    SPEC011 --> SPEC012
 
     style SPEC006 fill:#90EE90
     style SPEC007 fill:#90EE90

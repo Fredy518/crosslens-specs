@@ -138,7 +138,7 @@ MVP 的目标不是功能完整，而是**验证核心架构假设**：
 | 项目 | 要求 |
 |---|---|
 | 七层架构 | 全部层必须存在，但细节可简化 |
-| 核心对象链 | 全部 10 个对象必须实现 |
+| 核心对象链 | 全部 13 个对象必须实现 |
 | 能力域隔离 | 域之间不得直接调用 |
 | 两阶段 Validation | 完整实现 |
 | Event Log | MVP schema 完整 |
@@ -320,8 +320,8 @@ Success Metric: 端到端完成率 ≥ 90%（给定合理输入）
 
 Input: 用户提交分析任务，但指定 ticker 无足够财务数据
 Expected:
-  1. Fundamentals Card → domain_status = insufficient_data
-  2. Validation → 检测到 required domain insufficient
+  1. Fundamentals Card → domain_status = partial / unavailable
+  2. Validation → 检测到 required domain domain_status ∈ {partial, unavailable}
   3. Playbook Evaluation → overall_result = need_more_data
   4. Guardrail → insufficient_data_guard 触发
   5. Bounds → allowed_actions 仅包含 {wait, add_to_watchlist} 或 need_more_data
@@ -349,15 +349,15 @@ Success Metric: Hard Constraint 执行正确率 = 100%
 ```text
 验证路径 4：Guardrail 触发
 
-Input: 系统产生强买入建议但置信度不足
+Input: 系统产生买入建议但置信度不足
 Expected:
   1. Playbook Evaluation → 通过
   2. Guardrail → no_ungrounded_strong_opinion 触发
-  3. Guardrail Report → blocked_actions 包含 strong_buy
-  4. Bounds → strong_buy 被移除
-  5. Candidate → suggested_action ≠ strong_buy
+  3. Guardrail Report → blocked_actions 包含 buy / add_position
+  4. Bounds → buy / add_position 被移除
+  5. Candidate → suggested_action ∉ {buy, add_position}
 
-Success Metric: Guardrail 阻止率 = 100%（Guardrail 触发后强建议不出现在 Candidate）
+Success Metric: Guardrail 阻止率 = 100%（Guardrail 触发后方向性建议不出现在 Candidate）
 ```
 
 ```text

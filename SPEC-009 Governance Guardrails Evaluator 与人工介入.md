@@ -151,9 +151,9 @@ GUARDRAIL_RULES = {
     },
     "no_ungrounded_strong_opinion": {
         "severity": "critical", 
-        "description": "无充分证据时不得输出强买入/强卖出",
-        "check": "suggested_action in {strong_buy, strong_sell} AND confidence < 0.7",
-        "action": "downgrade_to_neutral"
+        "description": "无充分证据时不得输出强买入/强卖出——当 suggested_action 为 buy 或 add_position，但支撑证据的 confidence < 0.7 时触发",
+        "check": "suggested_action in {buy, add_position} AND confidence < 0.7",
+        "action": "downgrade_to_hold_or_wait"
     },
     "no_hidden_opposing_evidence": {
         "severity": "high",
@@ -166,7 +166,7 @@ GUARDRAIL_RULES = {
     "insufficient_data_guard": {
         "severity": "high",
         "description": "关键数据缺失时不得输出方向性建议",
-        "check": "domain_status == insufficient_data for required domain",
+        "check": "domain_status in {partial, unavailable} for required domain",
         "action": "cap_action_to_wait_or_watchlist"
     },
     "stale_data_guard": {
@@ -227,7 +227,7 @@ def apply_guardrails(
 
     # Rule: no_ungrounded_strong_opinion
     for action in playbook_eval_report.recommended_decision_bounds:
-        if action in {"strong_buy", "strong_sell"}:
+        if action in {"buy", "add_position"}:
             supporting_confidence = get_supporting_evidence_confidence(
                 analysis_cards, playbook_eval_report
             )
@@ -235,8 +235,8 @@ def apply_guardrails(
                 findings.append(Finding(
                     guardrail_id="no_ungrounded_strong_opinion",
                     severity="critical",
-                    action="downgrade_to_neutral",
-                    description=f"强建议 {action} 缺乏充分证据支撑"
+                    action="downgrade_to_hold_or_wait",
+                    description=f"建议动作 {action} 缺乏充分证据支撑"
                 ))
                 blocked_actions.add(action)
 
@@ -261,7 +261,7 @@ def apply_guardrails(
             description="关键能力域数据不足"
         ))
         # 收窄允许的动作
-        blocked_actions.update({"buy", "add_position", "strong_buy", "strong_sell"})
+        blocked_actions.update({"buy", "add_position", "reduce"})
 
     # Rule: stale_data_guard
     stale_exports = find_stale_constraint_exports(analysis_cards)
@@ -343,11 +343,11 @@ def narrow_bounds(
             narrowed.remove(blocked)
 
     # 确保移除了强建议动作（已被 blocked）
-    narrowed.discard("strong_buy")
-    narrowed.discard("strong_sell")
+    narrowed.discard("buy")
+    narrowed.discard("add_position")
 
     # 如果所有方向性动作都被移除，保留 wait
-    directional_actions = {"buy", "add_position", "reduce_position", "sell"}
+    directional_actions = {"buy", "add_position", "reduce", "hold"}
     if not (narrowed & directional_actions):
         narrowed.add("wait")
 
@@ -372,7 +372,7 @@ def narrow_bounds(
     }
   ],
   "overall_status": "passed_with_constraints",
-  "blocked_actions": ["buy", "strong_buy"],
+  "blocked_actions": ["buy", "add_position"],
   "requires_disclosure": false,
   "confidence_cap_adjustments": [
     {
@@ -394,6 +394,7 @@ def narrow_bounds(
 4. Guardrail 的所有 findings 必须进入 Decision Trace。
 5. Guardrail 规则在 MVP 中硬编码，不可被 Playbook 绕过。
 6. Guardrail 不重新评估投资条件——它只检查输出安全性和合规性。
+7. Guardrail action 不得引入 Registry.allowed_actions 之外的新 candidate action。所有方向性动作（如 buy、add_position、reduce、hold、avoid）必须以 SPEC-REGISTRY.md 中声明的枚举值域为准。
 ```
 
 ---
@@ -752,7 +753,7 @@ def aggregate_human_review_signals(
 
     # Source 6: Fundamentals 域不可用（从 SPEC-003 继承）
     fundamentals_card = find_card(analysis_cards, "fundamentals")
-    if not fundamentals_card or fundamentals_card.domain_status in {"insufficient_data", "error"}:
+    if not fundamentals_card or fundamentals_card.domain_status in {"partial", "unavailable", "error"}:
         triggers.append(HumanReviewTrigger(
             source="orchestration",
             source_ref="task_config",
@@ -1077,8 +1078,8 @@ def resolve_decision_bounds(
 
     if contaminations:
         # 移除可能已被污染的强建议
-        allowed_actions.discard("strong_buy")
-        allowed_actions.discard("strong_sell")
+        allowed_actions.discard("buy")
+        allowed_actions.discard("add_position")
         reasons.append(ReasonEntry(
             source="contamination_detection",
             action="remove",
@@ -1128,10 +1129,10 @@ def resolve_decision_bounds(
 ```text
 # 硬性禁止的组合
 forbidden_combinations = {
-    ("buy", "sell"),           # 不可同时买入卖出
-    ("strong_buy", "sell"),    # 不可同时强买和卖出
-    ("buy", "strong_sell"),    # 不可同时买入和强卖
-    ("strong_buy", "strong_sell"),  # 不可同时强买强卖
+    ("buy", "avoid"),           # 不可同时买入和避开
+    ("add_position", "avoid"),  # 不可同时加仓和避开
+    ("buy", "reduce"),          # 不可同时买入和卖出
+    ("add_position", "reduce"), # 不可同时加仓和减仓
 }
 
 # 如果 Resolved Bounds 包含禁止组合，降级为 wait + human_review

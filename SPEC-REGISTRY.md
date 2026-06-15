@@ -15,10 +15,10 @@
 |------|--------|------|------|------------|--------|
 | SPEC-001 | SPEC-001 产品定义与边界.md | v0.4 | Draft | 产品边界、核心概念、七层架构命名 | — |
 | SPEC-002 | SPEC-002 目标用户与核心场景.md | v0.1 | Draft | 用户画像、场景矩阵、task_type 枚举 (5 values) | — |
-| SPEC-003 | SPEC-003 Agentic投研工作流架构 v0.3.4.md | v0.3.4 | Review | 核心对象链 (12 objects)、domain 枚举 (5 values)、七层职责分层、Evidence Packet schema、Validation Report schema、Conflict Report schema、Decision Candidate schema、Event Log schema | — |
+| SPEC-003 | SPEC-003 Agentic投研工作流架构 v0.3.4.md | v0.3.4 | Review | 核心对象链 (13 objects)、domain 枚举 (5 values)、七层职责分层、Evidence Packet schema、Validation Report schema、Conflict Report schema、Decision Candidate schema、Event Log schema | — |
 | SPEC-004 | SPEC-004 五类分析能力域与 Analysis Card Schema v0.2.5.md | v0.2.5 | Review | Analysis Card schema、domain_status 枚举、stance 枚举、constraint_exports 契约、五域能力定义 | — |
 | SPEC-005 | SPEC-005 Capability Package 与 Metric Registry 规范.md | v0.2 | Review | Metric/Fact/Label Registry schema、Capability Package schema、lineage 追踪、URI 格式规范、confidence 取值规则、resolve_input_ref 算法、Derived Metric 规则表格式 | — |
-| SPEC-006 | SPEC-006 Investment Playbook 规范 v0.3.0.md | v0.3.0 | Approved | Playbook schema、Constraint Evaluation Result schema、OverallResult 枚举 (9 values)、decision_logic 执行语义、confidence_cap 合并、Snapshot hash | ✅ `executable_specs/spec006/` |
+| SPEC-006 | SPEC-006 Investment Playbook 规范 v0.3.0.md | v0.3.0 | Approved | Playbook schema、Constraint Evaluation Result schema、OverallResult 枚举 (8 values)、decision_logic 执行语义、confidence_cap 合并、Snapshot hash | ✅ `executable_specs/spec006/` |
 | SPEC-007 | SPEC-007 Orchestration 与执行路径.md | v0.6 | Approved | Run 状态机 (26 states)、Workflow Node schema、路由决策树、域调度、双阶段 Validation、bounds 合并、Cumulative degradation | — |
 | SPEC-008 | SPEC-008 Decision Trace 与 Observability.md | v0.1 | Draft | Decision Trace 四层结构、Event Log 汇总、Observability 指标、数据源 lineage 展示 | — |
 | SPEC-009 | SPEC-009 Governance Guardrails Evaluator 与人工介入.md | v0.1 | Draft | Guardrail (6 rules)、Evaluator (4 dims)、Human Review aggregation、Resolved Decision Bounds merge、证据污染检测 | — |

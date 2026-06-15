@@ -262,6 +262,8 @@ Case 写入 → 同步更新所有相关索引
 
 ## 5. 案例检索与相似匹配
 
+> ⚠️ **本节为 Post-MVP 规范。** MVP 仅实现 exact query：按 ticker / task_type / playbook_id / date / outcome 的精确过滤。MVP 不执行 `compute_similarity`，不排序相似度，不提供语义检索。Case Library 在 MVP 阶段为"只写不读"归档（见 §8.3）。
+
 ### 5.1 检索流程图
 
 ```text
