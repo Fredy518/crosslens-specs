@@ -1,7 +1,7 @@
 # SPEC-013：Fundamentals 域实现规格
 
 **版本：** v0.1.2
-**状态：** Draft
+**状态：** Review
 **项目名称：** crosslens
 **文档类型：** 实现
 **依赖文档：** SPEC-003 v0.3.4；SPEC-004 v0.2.5；SPEC-005 v0.2
