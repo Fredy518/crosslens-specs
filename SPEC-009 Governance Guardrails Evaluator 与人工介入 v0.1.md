@@ -201,7 +201,8 @@ def apply_guardrails(
     """
 
     findings = []
-    blocked_actions = set()
+    blocked_candidate_actions = set()
+    output_control = None  # "block_output" | None
     requires_disclosure = False
     confidence_cap_adjustments = []
 
@@ -215,13 +216,14 @@ def apply_guardrails(
             action="block_output",
             description="检测到收益承诺语言"
         ))
-        blocked_actions.add("block_output")
+        output_control = "block_output"
         # block_output 是最严重的——终止输出
         return GuardrailReport(
             triggered=True,
             findings=findings,
             overall_status="blocked",
-            blocked_actions=list(blocked_actions),
+            blocked_candidate_actions=[],
+            output_control=output_control,
             requires_human_review=True
         )
 
@@ -238,7 +240,7 @@ def apply_guardrails(
                     action="downgrade_to_hold_or_wait",
                     description=f"建议动作 {action} 缺乏充分证据支撑"
                 ))
-                blocked_actions.add(action)
+                blocked_candidate_actions.add(action)
 
     # Rule: no_hidden_opposing_evidence
     if has_hidden_opposing_evidence(analysis_cards, playbook_eval_report):
@@ -261,7 +263,7 @@ def apply_guardrails(
             description="关键能力域数据不足"
         ))
         # 收窄允许的动作
-        blocked_actions.update({"buy", "add_position", "reduce"})
+        blocked_candidate_actions.update({"buy", "add_position", "reduce"})
 
     # Rule: stale_data_guard
     stale_exports = find_stale_constraint_exports(analysis_cards)
@@ -312,7 +314,8 @@ def apply_guardrails(
         triggered=len(findings) > 0,
         findings=findings,
         overall_status=overall_status,
-        blocked_actions=list(blocked_actions),
+        blocked_candidate_actions=sorted(list(blocked_candidate_actions)),
+        output_control=output_control,
         requires_disclosure=requires_disclosure,
         confidence_cap_adjustments=confidence_cap_adjustments,
         requires_human_review=(has_critical or has_block)
@@ -338,7 +341,7 @@ def narrow_bounds(
     """
     narrowed = set(playbook_bounds)
 
-    for blocked in guardrail_report.blocked_actions:
+    for blocked in guardrail_report.blocked_candidate_actions:
         if blocked in narrowed:
             narrowed.remove(blocked)
 
@@ -372,7 +375,8 @@ def narrow_bounds(
     }
   ],
   "overall_status": "passed_with_constraints",
-  "blocked_actions": ["buy", "add_position"],
+  "blocked_candidate_actions": ["buy", "add_position"],
+  "output_control": null,
   "requires_disclosure": false,
   "confidence_cap_adjustments": [
     {
@@ -1056,7 +1060,7 @@ def resolve_decision_bounds(
     ))
 
     # Step 2: Guardrail 收窄
-    for blocked in guardrail_report.blocked_actions:
+    for blocked in guardrail_report.blocked_candidate_actions:
         if blocked in allowed_actions:
             allowed_actions.discard(blocked)
             reasons.append(ReasonEntry(
@@ -1065,6 +1069,11 @@ def resolve_decision_bounds(
                 detail=f"Guardrail removed '{blocked}'"
             ))
             applied_rules.append(f"guardrail:block_{blocked}")
+
+    # Step 2b: 检查 output_control
+    if guardrail_report.output_control == "block_output":
+        # 终止整个 Run 输出；bounds 在该路径下无关
+        allowed_actions = set()
 
     # Step 3: 污染检测
     contaminations = []
@@ -1114,7 +1123,8 @@ def resolve_decision_bounds(
         task_id=analysis_cards[0].task_id,
         run_id=analysis_cards[0].run_id,
         allowed_actions=sorted(list(allowed_actions)),
-        blocked_actions=[],  # 在 upstream 中跟踪
+        blocked_candidate_actions=[],  # 在 upstream 中跟踪
+        output_control=guardrail_report.output_control,
         requires_human_review=requires_review,
         human_review_triggers=review_triggers,
         confidence_cap=confidence_cap,
