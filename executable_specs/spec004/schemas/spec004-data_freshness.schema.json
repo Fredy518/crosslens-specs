@@ -1,0 +1,100 @@
+{
+  "$defs": {
+    "FreshnessLevel": {
+      "enum": [
+        "real_time",
+        "intraday",
+        "daily",
+        "quarterly",
+        "event_based",
+        "static"
+      ],
+      "title": "FreshnessLevel",
+      "type": "string"
+    },
+    "StalenessRisk": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "unknown"
+      ],
+      "title": "StalenessRisk",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "as_of": {
+      "format": "date",
+      "title": "As Of",
+      "type": "string"
+    },
+    "oldest_evidence_as_of": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Oldest Evidence As Of"
+    },
+    "newest_evidence_as_of": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Newest Evidence As Of"
+    },
+    "freshness_level": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FreshnessLevel"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "staleness_risk": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StalenessRisk"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "valid_until": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Valid Until"
+    }
+  },
+  "required": [
+    "as_of"
+  ],
+  "title": "DataFreshness",
+  "type": "object"
+}

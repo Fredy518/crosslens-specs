@@ -1,0 +1,352 @@
+{
+  "$defs": {
+    "ComputationConstraints": {
+      "additionalProperties": false,
+      "properties": {
+        "must_not_infer_from_macro_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Must Not Infer From Macro Label"
+        },
+        "required_inputs": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Inputs",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "title": "ComputationConstraints",
+      "type": "object"
+    },
+    "ConfidenceMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "determination_type": {
+          "$ref": "#/$defs/DeterminationType"
+        },
+        "default_confidence": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Default Confidence"
+        },
+        "confidence_cap_reason": {
+          "default": "",
+          "title": "Confidence Cap Reason",
+          "type": "string"
+        },
+        "confidence_downgrade_factors": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Confidence Downgrade Factors",
+          "type": "array"
+        },
+        "model_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Id"
+        },
+        "model_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Version"
+        },
+        "confidence_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence Source"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "determination_type"
+      ],
+      "title": "ConfidenceMetadata",
+      "type": "object"
+    },
+    "DeterminationType": {
+      "enum": [
+        "computed_default",
+        "computed_with_event_lineage_check",
+        "model_output",
+        "derived_rule",
+        "llm_interpreted"
+      ],
+      "title": "DeterminationType",
+      "type": "string"
+    },
+    "FreshnessRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "update_frequency": {
+          "default": "",
+          "title": "Update Frequency",
+          "type": "string"
+        },
+        "staleness_threshold_days": {
+          "minimum": 0,
+          "title": "Staleness Threshold Days",
+          "type": "integer"
+        },
+        "valid_until_rule": {
+          "default": "",
+          "title": "Valid Until Rule",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "staleness_threshold_days"
+      ],
+      "title": "FreshnessRequirement",
+      "type": "object"
+    },
+    "LineageConstraints": {
+      "additionalProperties": false,
+      "properties": {
+        "requires_source_event_ref": {
+          "default": false,
+          "title": "Requires Source Event Ref",
+          "type": "boolean"
+        },
+        "source_event_certainty_must_be": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Event Certainty Must Be"
+        },
+        "source_event_generation_type_must_not_be": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Event Generation Type Must Not Be"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "title": "LineageConstraints",
+      "type": "object"
+    },
+    "MetricCategory": {
+      "enum": [
+        "computed",
+        "structured",
+        "interpreted",
+        "derived"
+      ],
+      "title": "MetricCategory",
+      "type": "string"
+    },
+    "ValueType": {
+      "enum": [
+        "number",
+        "boolean",
+        "string"
+      ],
+      "title": "ValueType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "metric_id": {
+      "minLength": 1,
+      "title": "Metric Id",
+      "type": "string"
+    },
+    "display_name": {
+      "default": "",
+      "title": "Display Name",
+      "type": "string"
+    },
+    "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+    },
+    "value_type": {
+      "$ref": "#/$defs/ValueType"
+    },
+    "unit": {
+      "default": "",
+      "title": "Unit",
+      "type": "string"
+    },
+    "metric_category": {
+      "$ref": "#/$defs/MetricCategory"
+    },
+    "source_domain": {
+      "minLength": 1,
+      "title": "Source Domain",
+      "type": "string"
+    },
+    "producing_package": {
+      "default": "",
+      "title": "Producing Package",
+      "type": "string"
+    },
+    "producing_capability": {
+      "default": "",
+      "title": "Producing Capability",
+      "type": "string"
+    },
+    "evidence_type": {
+      "default": "",
+      "title": "Evidence Type",
+      "type": "string"
+    },
+    "generation_type": {
+      "default": "",
+      "title": "Generation Type",
+      "type": "string"
+    },
+    "determinism_level": {
+      "default": "",
+      "title": "Determinism Level",
+      "type": "string"
+    },
+    "can_support_hard_constraint": {
+      "title": "Can Support Hard Constraint",
+      "type": "boolean"
+    },
+    "evidence_value_path": {
+      "default": "",
+      "title": "Evidence Value Path",
+      "type": "string"
+    },
+    "expected_export_ref": {
+      "minLength": 1,
+      "title": "Expected Export Ref",
+      "type": "string"
+    },
+    "freshness_requirement": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FreshnessRequirement"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "confidence_metadata": {
+      "$ref": "#/$defs/ConfidenceMetadata"
+    },
+    "lineage_constraints": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LineageConstraints"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "computation_constraints": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ComputationConstraints"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "related_metrics": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Related Metrics",
+      "type": "array"
+    },
+    "tags": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags",
+      "type": "array"
+    }
+  },
+  "required": [
+    "metric_id",
+    "value_type",
+    "metric_category",
+    "source_domain",
+    "can_support_hard_constraint",
+    "expected_export_ref",
+    "confidence_metadata"
+  ],
+  "title": "MetricRegistryEntry",
+  "type": "object"
+}

@@ -1,18 +1,27 @@
 # SPEC-004 Executable Specification
 
-> 📋 **计划中** — 尚未实现。
+✅ **已实现** — Analysis Card Pydantic v2 契约 + 边界测试 + JSON Schema。
 
-## Planned Scope
+## Scope
 
-- Analysis Card schema: Pydantic v2 契约 + JSON Schema 生成。
-- `domain_status` 枚举：规范性校验。
-- `stance` 枚举：规范性校验。
-- `constraint_exports` 契约：接口定义与边界测试。
-- Post-card Validation (8 项 schema 检查) 可执行版本。
+- `AnalysisCard`: Pydantic v2 模型，含 8 项 post-card validation rules（SPEC-004 §41）。
+- `ConstraintExport`: 多态结构（metric / fact / label），含类型特定校验。
+- `DataFreshness`: 条件必填规则（hard-capable export 存在时）。
+- `domain_status` ↔ `stance` 硬约束映射（SPEC-004 §8.3）。
+- `confidence` dual cap（data_quality + domain_status）。
+- `completed + unavailable` 禁止组合（§5.3）。
+- Extra fields forbidden（严格落实）。
+- 生成的 JSON Schema。
 
-## Target Normative Order
+## Run
 
-实现后，规范优先级为：
+```powershell
+cd executable_specs/spec004
+python -m pytest
+python scripts/export_schema.py
+```
+
+## Normative Order
 
 1. Functions in `src/crosslens_spec004/`.
 2. Contracts in `src/crosslens_spec004/models.py`.

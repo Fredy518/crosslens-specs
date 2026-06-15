@@ -1,0 +1,294 @@
+"""Tests for SPEC-004 Analysis Card Pydantic contracts."""
+
+from datetime import date, datetime
+
+import pytest
+
+from crosslens_spec004.models import (
+    AnalysisCard,
+    ConstraintExport,
+    DataFreshness,
+    DataQuality,
+    DeterminismLevel,
+    Domain,
+    DomainStatus,
+    EvidenceCoverage,
+    EvidenceRef,
+    ExportType,
+    FreshnessLevel,
+    StalenessRisk,
+    Stance,
+    TimeHorizonBucket,
+)
+
+
+# ── Helpers ────────────────────────────────────────────────────
+
+def _valid_card(**overrides) -> dict:
+    base = {
+        "card_id": "card_fundamentals_001",
+        "schema_version": "SPEC-004@0.2.5",
+        "task_id": "task_001",
+        "run_id": "run_001",
+        "domain": Domain.FUNDAMENTALS,
+        "domain_status": DomainStatus.COMPLETED,
+        "summary": "基本面偏正面，但估值安全边际不足。",
+        "stance": Stance.MODERATELY_POSITIVE,
+        "confidence": 0.66,
+        "confidence_reason": ["财务数据完整且来自 Computed Evidence"],
+        "time_horizon": "6-12 months",
+        "time_horizon_bucket": TimeHorizonBucket.MEDIUM_TERM,
+        "time_horizon_days_min": 180,
+        "time_horizon_days_max": 365,
+        "data_quality": DataQuality.MEDIUM,
+        "data_freshness": {
+            "as_of": "2026-06-14",
+            "oldest_evidence_as_of": "2026-03-31",
+            "newest_evidence_as_of": "2026-06-14",
+            "freshness_level": FreshnessLevel.QUARTERLY,
+            "staleness_risk": StalenessRisk.MEDIUM,
+            "valid_until": "2026-07-31",
+        },
+        "evidence_coverage": {
+            "supporting_evidence_count": 3,
+            "opposing_evidence_count": 2,
+            "missing_required_evidence": [],
+        },
+        "supporting_evidence": [
+            {
+                "evidence_id": "ev_financial_001",
+                "evidence_type": "financial_metrics",
+                "description": "收入增速高于行业中位数。",
+                "determinism_level": DeterminismLevel.COMPUTED,
+            }
+        ],
+        "opposing_evidence": [
+            {
+                "evidence_id": "ev_valuation_001",
+                "evidence_type": "valuation_metrics",
+                "description": "估值位于过去五年较高分位。",
+                "determinism_level": DeterminismLevel.COMPUTED,
+            }
+        ],
+        "key_findings": ["收入增长仍强于行业"],
+        "key_risks": ["估值压缩风险"],
+        "invalidating_conditions": ["下季度收入增速低于行业中位数"],
+        "constraint_exports": [
+            {
+                "export_type": ExportType.METRIC,
+                "export_ref": "metric://revenue_growth_ttm",
+                "evidence_ref": "ev_financial_001",
+                "value_path": "revenue_growth_ttm",
+                "determinism_level": DeterminismLevel.COMPUTED,
+                "can_support_hard_constraint": True,
+                "allowed_constraint_types": ["hard", "soft"],
+            }
+        ],
+        "domain_payload": {},
+        "warnings": [],
+        "limitations": [],
+        "created_at": "2026-06-14T10:30:00Z",
+    }
+    base.update(overrides)
+    return base
+
+
+# ── Valid Card ─────────────────────────────────────────────────
+
+def test_valid_analysis_card():
+    card = AnalysisCard.model_validate(_valid_card())
+    assert card.card_id == "card_fundamentals_001"
+    assert card.domain == Domain.FUNDAMENTALS
+
+
+def test_minimal_card_partial_without_exports():
+    card = AnalysisCard.model_validate(
+        _valid_card(
+            domain_status=DomainStatus.PARTIAL,
+            stance=Stance.INSUFFICIENT_DATA,
+            confidence=0.40,
+            constraint_exports=[],
+            data_freshness=None,
+            supporting_evidence=[],
+            opposing_evidence=[],
+        )
+    )
+    assert card.domain_status == DomainStatus.PARTIAL
+
+
+# ── Forbidden Combinations ─────────────────────────────────────
+
+def test_completed_unavailable_forbidden():
+    with pytest.raises(ValueError, match="completed.*unavailable.*forbidden"):
+        AnalysisCard.model_validate(
+            _valid_card(data_quality=DataQuality.UNAVAILABLE)
+        )
+
+
+def test_completed_requires_evidence():
+    with pytest.raises(ValueError, match="supporting_evidence or opposing_evidence"):
+        AnalysisCard.model_validate(
+            _valid_card(
+                supporting_evidence=[],
+                opposing_evidence=[],
+            )
+        )
+
+
+# ── Stance Constraints ─────────────────────────────────────────
+
+def test_directional_stance_requires_opposing():
+    for stance in [
+        Stance.POSITIVE, Stance.MODERATELY_POSITIVE, Stance.MIXED,
+        Stance.NEGATIVE, Stance.MODERATELY_NEGATIVE,
+    ]:
+        with pytest.raises(ValueError, match="opposing_evidence"):
+            AnalysisCard.model_validate(
+                _valid_card(stance=stance, opposing_evidence=[])
+            )
+
+
+def test_insufficient_data_stance_only_for_insufficient_data_or_partial():
+    # insufficient_data stance with completed → should fail per §8.3
+    with pytest.raises(ValueError, match="illegal"):
+        AnalysisCard.model_validate(
+            _valid_card(
+                domain_status=DomainStatus.COMPLETED,
+                stance=Stance.INSUFFICIENT_DATA,
+            )
+        )
+
+
+def test_failed_must_be_not_applicable():
+    # failed with directional stance → illegal
+    with pytest.raises(ValueError, match="illegal"):
+        AnalysisCard.model_validate(
+            _valid_card(
+                domain_status=DomainStatus.FAILED,
+                stance=Stance.POSITIVE,
+                confidence=0.0,
+                data_freshness=None,
+            )
+        )
+
+
+# ── Confidence Caps ────────────────────────────────────────────
+
+def test_confidence_exceeds_cap_by_quality():
+    with pytest.raises(ValueError, match="exceeds cap"):
+        AnalysisCard.model_validate(
+            _valid_card(data_quality=DataQuality.MEDIUM, confidence=0.75)
+        )
+
+
+def test_confidence_exceeds_cap_by_status():
+    with pytest.raises(ValueError, match="exceeds cap"):
+        AnalysisCard.model_validate(
+            _valid_card(
+                domain_status=DomainStatus.PARTIAL,
+                stance=Stance.MODERATELY_POSITIVE,
+                confidence=0.70,
+            )
+        )
+
+
+# ── Data Freshness ─────────────────────────────────────────────
+
+def test_data_freshness_required_with_hard_capable_export():
+    with pytest.raises(ValueError, match="data_freshness"):
+        AnalysisCard.model_validate(
+            _valid_card(data_freshness=None)
+        )
+
+
+def test_data_freshness_omitted_when_no_exports():
+    card = AnalysisCard.model_validate(
+        _valid_card(
+            constraint_exports=[],
+            data_freshness=None,
+            supporting_evidence=[
+                {"evidence_id": "ev_financial_001", "description": "test"}
+            ],
+        )
+    )
+    assert card.data_freshness is None
+
+
+# ── Constraint Export ──────────────────────────────────────────
+
+def test_metric_export_requires_value_path():
+    with pytest.raises(ValueError, match="value_path"):
+        ConstraintExport(
+            export_type=ExportType.METRIC,
+            export_ref="metric://test",
+            evidence_ref="ev_001",
+            determinism_level=DeterminismLevel.COMPUTED,
+            can_support_hard_constraint=True,
+            allowed_constraint_types=["hard", "soft"],
+        )
+
+
+def test_fact_export_requires_fact_value():
+    with pytest.raises(ValueError, match="fact_value"):
+        ConstraintExport(
+            export_type=ExportType.FACT,
+            export_ref="fact://test",
+            evidence_ref="ev_001",
+            determinism_level=DeterminismLevel.STRUCTURED,
+            can_support_hard_constraint=False,
+            allowed_constraint_types=["soft"],
+        )
+
+
+def test_label_export_requires_label_value():
+    with pytest.raises(ValueError, match="label_value"):
+        ConstraintExport(
+            export_type=ExportType.LABEL,
+            export_ref="label://test",
+            evidence_ref="ev_001",
+            determinism_level=DeterminismLevel.STRUCTURED,
+            can_support_hard_constraint=False,
+            allowed_constraint_types=["soft"],
+        )
+
+
+def test_hard_capable_requires_hard_in_allowed_types():
+    with pytest.raises(ValueError, match="hard.*allowed_constraint_types"):
+        ConstraintExport(
+            export_type=ExportType.METRIC,
+            export_ref="metric://test",
+            evidence_ref="ev_001",
+            value_path="test",
+            determinism_level=DeterminismLevel.COMPUTED,
+            can_support_hard_constraint=True,
+            allowed_constraint_types=["soft"],
+        )
+
+
+# ── Schema Version ─────────────────────────────────────────────
+
+def test_schema_version_format():
+    with pytest.raises(ValueError, match="SPEC-004@"):
+        AnalysisCard.model_validate(
+            _valid_card(schema_version="1.0")
+        )
+
+
+# ── Extra Fields Forbidden ─────────────────────────────────────
+
+def test_extra_fields_forbidden():
+    with pytest.raises(ValueError, match="extra.*forbid|Extra inputs"):
+        AnalysisCard.model_validate(_valid_card(unknown_field=42))
+
+
+# ── Data Quality Low Requires Warnings ─────────────────────────
+
+def test_low_quality_requires_warnings():
+    with pytest.raises(ValueError, match="data_quality=low.*warning"):
+        AnalysisCard.model_validate(
+            _valid_card(
+                data_quality=DataQuality.LOW,
+                confidence=0.30,
+                warnings=[],
+            )
+        )

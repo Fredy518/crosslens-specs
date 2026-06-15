@@ -1,0 +1,196 @@
+{
+  "$defs": {
+    "ConfidenceRule": {
+      "enum": [
+        "inherit_min"
+      ],
+      "title": "ConfidenceRule",
+      "type": "string"
+    },
+    "DerivedRule": {
+      "additionalProperties": false,
+      "properties": {
+        "rule_id": {
+          "minLength": 1,
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "condition": {
+          "$ref": "#/$defs/DerivedRuleCondition"
+        },
+        "output": {
+          "$ref": "#/$defs/DerivedRuleOutput"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule_id",
+        "condition",
+        "output"
+      ],
+      "title": "DerivedRule",
+      "type": "object"
+    },
+    "DerivedRuleCondition": {
+      "additionalProperties": false,
+      "properties": {
+        "input_ref": {
+          "minLength": 1,
+          "title": "Input Ref",
+          "type": "string"
+        },
+        "operator": {
+          "$ref": "#/$defs/RuleOperator"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "input_ref",
+        "operator",
+        "value"
+      ],
+      "title": "DerivedRuleCondition",
+      "type": "object"
+    },
+    "DerivedRuleOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "fact_value": {
+          "title": "Fact Value",
+          "type": "boolean"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fact_value",
+        "label"
+      ],
+      "title": "DerivedRuleOutput",
+      "type": "object"
+    },
+    "DerivedRuleTestCase": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Input",
+          "type": "object"
+        },
+        "expected_output": {
+          "$ref": "#/$defs/DerivedRuleOutput"
+        }
+      },
+      "required": [
+        "input",
+        "expected_output"
+      ],
+      "title": "DerivedRuleTestCase",
+      "type": "object"
+    },
+    "RuleOperator": {
+      "enum": [
+        "eq",
+        "neq",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "between",
+        "in",
+        "not_in"
+      ],
+      "title": "RuleOperator",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "rule_table_id": {
+      "minLength": 1,
+      "title": "Rule Table Id",
+      "type": "string"
+    },
+    "derived_metric_id": {
+      "minLength": 1,
+      "title": "Derived Metric Id",
+      "type": "string"
+    },
+    "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+    },
+    "spec_version": {
+      "default": "",
+      "title": "Spec Version",
+      "type": "string"
+    },
+    "rules": {
+      "items": {
+        "$ref": "#/$defs/DerivedRule"
+      },
+      "minItems": 1,
+      "title": "Rules",
+      "type": "array"
+    },
+    "default_output": {
+      "$ref": "#/$defs/DerivedRuleOutput"
+    },
+    "determinism_level": {
+      "default": "computed",
+      "title": "Determinism Level",
+      "type": "string"
+    },
+    "confidence_rule": {
+      "$ref": "#/$defs/ConfidenceRule",
+      "default": "inherit_min"
+    },
+    "test_cases": {
+      "items": {
+        "$ref": "#/$defs/DerivedRuleTestCase"
+      },
+      "minItems": 1,
+      "title": "Test Cases",
+      "type": "array"
+    }
+  },
+  "required": [
+    "rule_table_id",
+    "derived_metric_id",
+    "rules",
+    "default_output",
+    "test_cases"
+  ],
+  "title": "DerivedMetricRuleTable",
+  "type": "object"
+}

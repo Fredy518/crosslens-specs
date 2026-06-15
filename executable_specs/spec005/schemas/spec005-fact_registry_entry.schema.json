@@ -1,0 +1,67 @@
+{
+  "$defs": {
+    "ValueType": {
+      "enum": [
+        "number",
+        "boolean",
+        "string"
+      ],
+      "title": "ValueType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "fact_id": {
+      "minLength": 1,
+      "title": "Fact Id",
+      "type": "string"
+    },
+    "display_name": {
+      "default": "",
+      "title": "Display Name",
+      "type": "string"
+    },
+    "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+    },
+    "value_type": {
+      "$ref": "#/$defs/ValueType"
+    },
+    "source_domain": {
+      "minLength": 1,
+      "title": "Source Domain",
+      "type": "string"
+    },
+    "producing_package": {
+      "default": "",
+      "title": "Producing Package",
+      "type": "string"
+    },
+    "can_support_hard_constraint": {
+      "title": "Can Support Hard Constraint",
+      "type": "boolean"
+    },
+    "expected_export_ref": {
+      "minLength": 1,
+      "title": "Expected Export Ref",
+      "type": "string"
+    },
+    "production_contract": {
+      "default": "",
+      "title": "Production Contract",
+      "type": "string"
+    }
+  },
+  "required": [
+    "fact_id",
+    "value_type",
+    "source_domain",
+    "can_support_hard_constraint",
+    "expected_export_ref"
+  ],
+  "title": "FactRegistryEntry",
+  "type": "object"
+}

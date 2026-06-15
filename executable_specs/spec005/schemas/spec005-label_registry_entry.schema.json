@@ -1,0 +1,56 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "label_id": {
+      "minLength": 1,
+      "title": "Label Id",
+      "type": "string"
+    },
+    "display_name": {
+      "default": "",
+      "title": "Display Name",
+      "type": "string"
+    },
+    "allowed_values": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Allowed Values",
+      "type": "array"
+    },
+    "source_domain": {
+      "minLength": 1,
+      "title": "Source Domain",
+      "type": "string"
+    },
+    "producing_package": {
+      "default": "",
+      "title": "Producing Package",
+      "type": "string"
+    },
+    "can_support_hard_constraint": {
+      "title": "Can Support Hard Constraint",
+      "type": "boolean"
+    },
+    "expected_export_ref": {
+      "minLength": 1,
+      "title": "Expected Export Ref",
+      "type": "string"
+    },
+    "derivation_rule": {
+      "default": "",
+      "title": "Derivation Rule",
+      "type": "string"
+    }
+  },
+  "required": [
+    "label_id",
+    "allowed_values",
+    "source_domain",
+    "can_support_hard_constraint",
+    "expected_export_ref"
+  ],
+  "title": "LabelRegistryEntry",
+  "type": "object"
+}

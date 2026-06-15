@@ -1,0 +1,98 @@
+{
+  "$defs": {
+    "DeterminismLevel": {
+      "enum": [
+        "computed",
+        "structured",
+        "interpreted"
+      ],
+      "title": "DeterminismLevel",
+      "type": "string"
+    },
+    "ExportType": {
+      "enum": [
+        "metric",
+        "fact",
+        "label"
+      ],
+      "title": "ExportType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "export_type": {
+      "$ref": "#/$defs/ExportType"
+    },
+    "export_ref": {
+      "minLength": 1,
+      "title": "Export Ref",
+      "type": "string"
+    },
+    "evidence_ref": {
+      "minLength": 1,
+      "title": "Evidence Ref",
+      "type": "string"
+    },
+    "value_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Value Path"
+    },
+    "determinism_level": {
+      "$ref": "#/$defs/DeterminismLevel"
+    },
+    "can_support_hard_constraint": {
+      "title": "Can Support Hard Constraint",
+      "type": "boolean"
+    },
+    "allowed_constraint_types": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed Constraint Types",
+      "type": "array"
+    },
+    "fact_value": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fact Value"
+    },
+    "label_value": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Label Value"
+    }
+  },
+  "required": [
+    "export_type",
+    "export_ref",
+    "evidence_ref",
+    "determinism_level",
+    "can_support_hard_constraint",
+    "allowed_constraint_types"
+  ],
+  "title": "ConstraintExport",
+  "type": "object"
+}
