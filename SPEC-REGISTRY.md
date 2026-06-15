@@ -6,6 +6,8 @@
 > - **Approved** 下游只能依赖 **Review** 或 **Approved** 上游。
 > - **Review** 下游可依赖 **Review**、**Approved** 或 **Draft** 上游（但依赖 Draft 项在 Approval gate 前必须解除）。
 > - 任何 SPEC 变更其 `normative_for` 中声明的枚举、schema 或对象签名时，必须遍历 `consumed_by` 做兼容性检查。
+>
+> **例外说明：** SPEC-006（Approved）和 SPEC-007（Approved）早于 Registry 规则建立前已先于部分上游通过 Approval。这是有意识的历史先行——两份 SPEC 的枚举/schema/状态机在各自定义域内已稳定，且其上游 SPEC-003/SPEC-004 处于 Review 而非 Draft，语义上满足"上游足够稳定"的意图。后续 SPEC 审批必须严格按上述规则执行。
 
 ---
 
@@ -68,9 +70,14 @@ SPEC-001 (产品定义)
 | PlaybookEvaluationReport | SPEC-006 `models.py` | Pydantic v2 + JSON Schema |
 | ConstraintEvaluationResult | SPEC-006 `models.py` | Pydantic v2 + JSON Schema |
 | ConfidenceCapResult | SPEC-006 `models.py` | Pydantic v2 + JSON Schema |
-| Analysis Card | SPEC-004 | Markdown schema (下一步 → JSON Schema) |
-| Evidence Packet | SPEC-003 §6.5 | Markdown schema |
-| Metric Registry Entry | SPEC-005 §5.2 | Markdown schema (JSON Schema 待生成) |
+| Analysis Card | SPEC-004 + `executable_specs/spec004/models.py` | Pydantic v2 + JSON Schema |
+| Evidence Packet | SPEC-003 §6.5 | Markdown schema（下一步 → Pydantic v2） |
+| Metric Registry Entry | SPEC-005 §5.2 + `executable_specs/spec005/models.py` | Pydantic v2 + JSON Schema |
+| Constraint Export | SPEC-004 + `executable_specs/spec004/models.py` | Pydantic v2 + JSON Schema |
+| Data Freshness | SPEC-004 + `executable_specs/spec004/models.py` | Pydantic v2 + JSON Schema |
+| Fact Registry Entry | SPEC-005 + `executable_specs/spec005/models.py` | Pydantic v2 + JSON Schema |
+| Label Registry Entry | SPEC-005 + `executable_specs/spec005/models.py` | Pydantic v2 + JSON Schema |
+| Derived Metric Rule Table | SPEC-005 §15.2 + `executable_specs/spec005/models.py` | Pydantic v2 + JSON Schema |
 
 ---
 

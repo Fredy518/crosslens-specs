@@ -137,7 +137,7 @@ Investment Task → Context Bundle → Evidence Packets → Analysis Domain Jobs
 | `crosslens_spec006` | [executable_specs/spec006/](./executable_specs/spec006/) | SPEC-006: aggregate_multi_rule, compute_overall_result, resolve_recommended_actions, merge_confidence_cap | ✅ 已验证 (17 tests) |
 | `crosslens_spec005` | [executable_specs/spec005/](./executable_specs/spec005/) | SPEC-005: MetricRegistryEntry, FactRegistryEntry, LabelRegistryEntry, DerivedMetricRuleTable | ✅ 已验证 (14 tests) |
 | `crosslens_spec004` | [executable_specs/spec004/](./executable_specs/spec004/) | SPEC-004: AnalysisCard, ConstraintExport, DataFreshness, post-card validation rules | ✅ 已验证 (18 tests) |
-| `crosslens_spec009` | [executable_specs/spec009/](./executable_specs/spec009/) | SPEC-009: GuardrailReport, EvaluationReport, ResolvedDecisionBounds merge | 📋 计划中 |
+| `crosslens_spec009` | [executable_specs/spec009/](./executable_specs/spec009/) | SPEC-009: GuardrailReport, EvaluationReport, ResolvedDecisionBounds merge | 📋 scaffold 已创建 / implementation pending |
 
 运行:
 ```
