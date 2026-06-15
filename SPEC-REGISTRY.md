@@ -78,6 +78,9 @@ SPEC-001 (产品定义)
 | Fact Registry Entry | SPEC-005 + `executable_specs/spec005/models.py` | Pydantic v2 + JSON Schema |
 | Label Registry Entry | SPEC-005 + `executable_specs/spec005/models.py` | Pydantic v2 + JSON Schema |
 | Derived Metric Rule Table | SPEC-005 §15.2 + `executable_specs/spec005/models.py` | Pydantic v2 + JSON Schema |
+| Guardrail Report | SPEC-009 + `executable_specs/spec009/models.py` | Pydantic v2 + JSON Schema |
+| Evaluation Report | SPEC-009 + `executable_specs/spec009/models.py` | Pydantic v2 + JSON Schema |
+| Resolved Decision Bounds | SPEC-009 + `executable_specs/spec009/models.py` | Pydantic v2 + JSON Schema |
 
 ---
 
@@ -88,7 +91,7 @@ SPEC-001 (产品定义)
 | `crosslens_spec006` | `executable_specs/spec006/` | SPEC-006: aggregate_multi_rule, compute_overall_result, resolve_recommended_actions, merge_confidence_cap | ✅ 已验证 (17 tests) |
 | `crosslens_spec005` | `executable_specs/spec005/` | SPEC-005: MetricRegistryEntry, FactRegistryEntry, LabelRegistryEntry, DerivedMetricRuleTable | ✅ 已验证 (14 tests) |
 | `crosslens_spec004` | `executable_specs/spec004/` | SPEC-004: AnalysisCard, ConstraintExport, DataFreshness, post-card validation rules | ✅ 已验证 (18 tests) |
-| `crosslens_spec009` | `executable_specs/spec009/` | SPEC-009: GuardrailReport, EvaluationReport, ResolvedDecisionBounds merge | 📋 scaffold 已创建 / implementation pending |
+| `crosslens_spec009` | `executable_specs/spec009/` | SPEC-009: GuardrailReport, EvaluationReport, ResolvedDecisionBounds merge, apply_guardrails, run_evaluator, compute_final_confidence_cap, resolve_decision_bounds, check_evidence_contamination | ✅ 已验证 (55 tests) |
 
 ---
 

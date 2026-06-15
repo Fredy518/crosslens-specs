@@ -1,0 +1,247 @@
+{
+  "$defs": {
+    "ConfidenceCapReason": {
+      "additionalProperties": false,
+      "properties": {
+        "source_type": {
+          "minLength": 1,
+          "title": "Source Type",
+          "type": "string"
+        },
+        "source_ref": {
+          "default": "",
+          "title": "Source Ref",
+          "type": "string"
+        },
+        "reason": {
+          "default": "",
+          "title": "Reason",
+          "type": "string"
+        },
+        "effect": {
+          "default": "",
+          "title": "Effect",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_type"
+      ],
+      "title": "ConfidenceCapReason",
+      "type": "object"
+    },
+    "ContaminationFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_id": {
+          "minLength": 1,
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "contamination_level": {
+          "$ref": "#/$defs/ContaminationLevel"
+        },
+        "contamination_path": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Contamination Path",
+          "type": "array"
+        },
+        "reason": {
+          "default": "",
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "contamination_level"
+      ],
+      "title": "ContaminationFinding",
+      "type": "object"
+    },
+    "ContaminationLevel": {
+      "enum": [
+        "clean",
+        "potentially_contaminated",
+        "contaminated",
+        "unknown"
+      ],
+      "title": "ContaminationLevel",
+      "type": "string"
+    },
+    "HumanReviewTrigger": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        },
+        "source_ref": {
+          "default": "",
+          "title": "Source Ref",
+          "type": "string"
+        },
+        "trigger_type": {
+          "$ref": "#/$defs/HumanReviewTriggerType"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "trigger_type"
+      ],
+      "title": "HumanReviewTrigger",
+      "type": "object"
+    },
+    "HumanReviewTriggerType": {
+      "enum": [
+        "guardrail_block_or_critical",
+        "blocking_conflict",
+        "playbook_requires_review",
+        "confidence_cap_below_threshold",
+        "macro_partial_with_conflict",
+        "fundamentals_unavailable"
+      ],
+      "title": "HumanReviewTriggerType",
+      "type": "string"
+    },
+    "ReasonEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        },
+        "action": {
+          "default": "",
+          "title": "Action",
+          "type": "string"
+        },
+        "detail": {
+          "default": "",
+          "title": "Detail",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "ReasonEntry",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "resolved_decision_bounds_id": {
+      "minLength": 1,
+      "title": "Resolved Decision Bounds Id",
+      "type": "string"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "allowed_actions": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed Actions",
+      "type": "array"
+    },
+    "blocked_candidate_actions": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Blocked Candidate Actions",
+      "type": "array"
+    },
+    "output_control": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Output Control"
+    },
+    "requires_human_review": {
+      "title": "Requires Human Review",
+      "type": "boolean"
+    },
+    "human_review_triggers": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/HumanReviewTrigger"
+      },
+      "title": "Human Review Triggers",
+      "type": "array"
+    },
+    "confidence_cap": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Confidence Cap",
+      "type": "number"
+    },
+    "confidence_cap_reason": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ConfidenceCapReason"
+      },
+      "title": "Confidence Cap Reason",
+      "type": "array"
+    },
+    "applied_rules": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Applied Rules",
+      "type": "array"
+    },
+    "reasoning": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ReasonEntry"
+      },
+      "title": "Reasoning",
+      "type": "array"
+    },
+    "contamination_findings": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ContaminationFinding"
+      },
+      "title": "Contamination Findings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "resolved_decision_bounds_id",
+    "task_id",
+    "run_id",
+    "requires_human_review",
+    "confidence_cap"
+  ],
+  "title": "ResolvedDecisionBounds",
+  "type": "object"
+}

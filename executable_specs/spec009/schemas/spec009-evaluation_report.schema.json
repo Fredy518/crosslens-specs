@@ -1,0 +1,153 @@
+{
+  "$defs": {
+    "ConfidenceCapAdjustment": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        },
+        "reason": {
+          "default": "",
+          "title": "Reason",
+          "type": "string"
+        },
+        "cap_value": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Cap Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "source",
+        "cap_value"
+      ],
+      "title": "ConfidenceCapAdjustment",
+      "type": "object"
+    },
+    "EvaluationFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "dimension": {
+          "$ref": "#/$defs/EvaluatorDimension"
+        },
+        "severity": {
+          "$ref": "#/$defs/EvaluatorSeverity"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "recommended_action": {
+          "default": "",
+          "title": "Recommended Action",
+          "type": "string"
+        },
+        "details": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Details"
+        }
+      },
+      "required": [
+        "dimension",
+        "severity"
+      ],
+      "title": "EvaluationFinding",
+      "type": "object"
+    },
+    "EvaluatorDimension": {
+      "enum": [
+        "evidence_quality",
+        "reasoning_coherence",
+        "confidence_calibration",
+        "completeness"
+      ],
+      "title": "EvaluatorDimension",
+      "type": "string"
+    },
+    "EvaluatorSeverity": {
+      "enum": [
+        "error",
+        "warning"
+      ],
+      "title": "EvaluatorSeverity",
+      "type": "string"
+    },
+    "OverallQuality": {
+      "enum": [
+        "acceptable",
+        "acceptable_with_caveats",
+        "needs_revision"
+      ],
+      "title": "OverallQuality",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "evaluation_report_id": {
+      "minLength": 1,
+      "title": "Evaluation Report Id",
+      "type": "string"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "findings": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/EvaluationFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "quality_flags": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Quality Flags",
+      "type": "array"
+    },
+    "overall_quality": {
+      "$ref": "#/$defs/OverallQuality"
+    },
+    "confidence_cap_adjustments": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ConfidenceCapAdjustment"
+      },
+      "title": "Confidence Cap Adjustments",
+      "type": "array"
+    }
+  },
+  "required": [
+    "evaluation_report_id",
+    "task_id",
+    "run_id",
+    "overall_quality"
+  ],
+  "title": "EvaluationReport",
+  "type": "object"
+}
