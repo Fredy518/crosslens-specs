@@ -1,0 +1,104 @@
+# SPEC Registry
+
+> 本文件是 CrossLens 规格体系的元数据索引。每个 SPEC 的版本、状态、规范性范围、上下依赖在此统一声明。
+>
+> 规则：
+> - **Approved** 下游只能依赖 **Review** 或 **Approved** 上游。
+> - **Review** 下游可依赖 **Review**、**Approved** 或 **Draft** 上游（但依赖 Draft 项在 Approval gate 前必须解除）。
+> - 任何 SPEC 变更其 `normative_for` 中声明的枚举、schema 或对象签名时，必须遍历 `consumed_by` 做兼容性检查。
+
+---
+
+## SPEC 索引
+
+| 编号 | 文件名 | 版本 | 状态 | 规范性范围 | 可执行 |
+|------|--------|------|------|------------|--------|
+| SPEC-001 | SPEC-001 产品定义与边界.md | v0.4 | Draft | 产品边界、核心概念、七层架构命名 | — |
+| SPEC-002 | SPEC-002 目标用户与核心场景.md | v0.1 | Draft | 用户画像、场景矩阵、task_type 枚举 (5 values) | — |
+| SPEC-003 | SPEC-003 Agentic投研工作流架构 v0.3.4.md | v0.3.4 | Review | 核心对象链 (12 objects)、domain 枚举 (5 values)、七层职责分层、Evidence Packet schema、Validation Report schema、Conflict Report schema、Decision Candidate schema、Event Log schema | — |
+| SPEC-004 | SPEC-004 五类分析能力域与 Analysis Card Schema v0.2.5.md | v0.2.5 | Review | Analysis Card schema、domain_status 枚举、stance 枚举、constraint_exports 契约、五域能力定义 | — |
+| SPEC-005 | SPEC-005 Capability Package 与 Metric Registry 规范.md | v0.2 | Review | Metric/Fact/Label Registry schema、Capability Package schema、lineage 追踪、URI 格式规范、confidence 取值规则、resolve_input_ref 算法、Derived Metric 规则表格式 | — |
+| SPEC-006 | SPEC-006 Investment Playbook 规范 v0.3.0.md | v0.3.0 | Approved | Playbook schema、Constraint Evaluation Result schema、OverallResult 枚举 (9 values)、decision_logic 执行语义、confidence_cap 合并、Snapshot hash | ✅ `executable_specs/spec006/` |
+| SPEC-007 | SPEC-007 Orchestration 与执行路径.md | v0.6 | Approved | Run 状态机 (26 states)、Workflow Node schema、路由决策树、域调度、双阶段 Validation、bounds 合并、Cumulative degradation | — |
+| SPEC-008 | SPEC-008 Decision Trace 与 Observability.md | v0.1 | Draft | Decision Trace 四层结构、Event Log 汇总、Observability 指标、数据源 lineage 展示 | — |
+| SPEC-009 | SPEC-009 Governance Guardrails Evaluator 与人工介入.md | v0.1 | Draft | Guardrail (6 rules)、Evaluator (4 dims)、Human Review aggregation、Resolved Decision Bounds merge、证据污染检测 | — |
+| SPEC-010 | SPEC-010 MVP 范围与验证指标.md | v0.1 | Draft | MVP 范围宪法、验证标准、交付清单、exclusion 列表 | — |
+| SPEC-011 | SPEC-011 Case Library 与历史案例记忆.md | v0.1 | Draft | Case schema、索引六维、匿名化规则、隐私边界、相似度算法（defined but MVP-deferred） | — |
+| SPEC-012 | SPEC-012 数据治理与用户私有数据.md | v0.1 | Draft | 数据三分类、访问控制决策树、生命周期、删除/导出 | — |
+
+---
+
+## 依赖关系（canonical）
+
+```
+SPEC-001 (产品定义)
+  ├─► SPEC-003 (架构) ──► SPEC-004 (能力域) ──► SPEC-005 (能力包 + Registry)
+  │     │                      │
+  │     ├─► SPEC-007 (编排) ──► SPEC-008 (Trace)
+  │     │                      │
+  │     ├─► SPEC-006 (Playbook) ──► SPEC-005
+  │     │                      │
+  │     └─► SPEC-009 (治理)
+  │
+  └─► SPEC-010 (MVP) ──► SPEC-011 (案例库) ──► SPEC-012 (数据治理)
+```
+
+---
+
+## 规范性枚举（全仓库唯一定义源）
+
+| 枚举 | 定义位置 | 值 |
+|------|----------|----|
+| `domain` | SPEC-003 §6.1 | `macro_meso`, `fundamentals`, `company_event`, `sentiment`, `technical_market` |
+| `generation_type` | SPEC-003 §6.5 | `computed`, `structured`, `interpreted` |
+| `domain_status` | SPEC-004 §10.1 | `completed`, `partial`, `error`, `unavailable` |
+| `stance` | SPEC-004 | `positive`, `negative`, `neutral`, `mixed`, `unavailable` |
+| `OverallResult` | SPEC-006 + `decision_logic.py` | `passed`, `passed_with_caution`, `partially_passed`, `not_passed_for_new_buy`, `not_passed_for_add_position`, `not_suitable_for_playbook`, `need_more_data`, `requires_human_review` |
+| `ConstraintStatus` | SPEC-006 + `decision_logic.py` | `pass`, `fail`, `partial`, `insufficient_data`, `stale_data`, `not_applicable`, `error` |
+| `allowed_actions` | SPEC-006 + `decision_logic.py` | `buy`, `hold`, `wait`, `avoid`, `reduce`, `add_to_watchlist`, `hold_if_already_owned`, `need_more_data`, `add_position` |
+
+> **全仓库枚举一致性规则：** 任何 SPEC 中使用上述枚举时，必须以本表声明的值域为准。如产品端需要不同 display name（如 "Company Event / Catalyst"），仅作为 human-facing label，不进入机器枚举。
+
+---
+
+## 规范性 Schema（全仓库唯一定义源）
+
+| Schema | 定义位置 | 规范性格式 |
+|--------|----------|------------|
+| PlaybookEvaluationReport | SPEC-006 `models.py` | Pydantic v2 + JSON Schema |
+| ConstraintEvaluationResult | SPEC-006 `models.py` | Pydantic v2 + JSON Schema |
+| ConfidenceCapResult | SPEC-006 `models.py` | Pydantic v2 + JSON Schema |
+| Analysis Card | SPEC-004 | Markdown schema (下一步 → JSON Schema) |
+| Evidence Packet | SPEC-003 §6.5 | Markdown schema |
+| Metric Registry Entry | SPEC-005 §5.2 | Markdown schema (JSON Schema 待生成) |
+
+---
+
+## 可执行规格覆盖
+
+| 包 | 位置 | 覆盖规范 | 状态 |
+|----|------|----------|------|
+| `crosslens_spec006` | `executable_specs/spec006/` | SPEC-006: aggregate_multi_rule, compute_overall_result, resolve_recommended_actions, merge_confidence_cap | ✅ 已验证 (17 tests) |
+| `crosslens_spec005` | `executable_specs/spec005/` (待创建) | SPEC-005: resolve_input_ref, Metric Registry validation | 📋 计划中 |
+| `crosslens_spec004` | — (待创建) | SPEC-004: Analysis Card schema validation | 📋 计划中 |
+| `crosslens_spec009` | — (待创建) | SPEC-009: GuardrailReport, EvaluationReport, ResolvedDecisionBounds merge | 📋 计划中 |
+
+---
+
+## 文件命名规范
+
+- SPEC 文件: `SPEC-{NNN} {English Title}.md`
+- 禁止中文标点（`、` `：`）在文件名中；使用空格分隔
+- Canonical 路径以本 Registry 中的 `文件名` 字段为准
+- 版本号嵌入文件名（如 `v0.3.4`），防止重名歧义
+
+---
+
+## 变更 Checklist
+
+任何人对任何 SPEC 做以下变更时，必须：
+
+1. [ ] 更新本 Registry 中对应 SPEC 的 version
+2. [ ] 检查 `normative_for` 中声明的枚举/schema 是否被修改 → 如是，遍历 `consumed_by` 做兼容检查
+3. [ ] 若该 SPEC 被 `approved` 状态的 SPEC 依赖，评估是否需要 downgrade 下游状态
+4. [ ] 更新 README.md 中的版本号
