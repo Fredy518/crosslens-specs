@@ -3,7 +3,7 @@
 **版本：** v0.1
 **状态：** Draft
 **项目名称：** crosslens
-**依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.5；SPEC-005 v0.1；SPEC-006 v0.3.0；SPEC-007 v0.6；SPEC-008 v0.1；SPEC-009 v0.1；SPEC-011 v0.1；SPEC-012 v0.1
+**依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.5；SPEC-005 v0.2；SPEC-006 v0.3.0；SPEC-007 v0.6；SPEC-008 v0.1；SPEC-009 v0.1；SPEC-011 v0.1；SPEC-012 v0.1
 **文档类型：** MVP 范围定义
 **目标阶段：** MVP 范围划定 / 验证指标定义
 
@@ -94,7 +94,7 @@ MVP 的目标不是功能完整，而是**验证核心架构假设**：
 | **Evaluator** | 四维质量检查（证据、推理、置信度、完整性） | 自动重生成循环 |
 | **Human Review** | 信号汇聚 + Candidate 阻止 | 实时交互界面、超时自动降级 |
 | **Decision Trace** | 完整四层 Trace（Run/Phase/Node/Evidence） | Trace 可视化 UI、Trace 对比 |
-| **Case Library** | 只写不读归档 | 案例匹配、语义检索、决策建议 |
+| **Case Library** | 匿名化写入 + 六维索引 + 基础只读查询（按 ticker/date 精确查） | 案例相似匹配、语义检索、决策建议 |
 | **数据治理** | 三分类（user_private/system_generated/public_reference）、基本隔离 | 协作共享、数据导出 |
 | **Capability Package** | Metric Registry（33 metrics, 6 facts, 7 labels） | 完整 Package 市场、动态加载 |
 | **用户界面** | CLI + Decision Trace 文本输出 | Web UI、图表、交互式仪表盘 |
@@ -116,7 +116,8 @@ MVP 的目标不是功能完整，而是**验证核心架构假设**：
 | Bounds Resolution | 完整合并算法 | 所有约束的终点 |
 | Candidate Generation | 完整——从 Bounds 生成 | 终端输出 |
 | Decision Trace | 完整四层 + 伪代码 | 核心假设验证 |
-| Case Write | 归档（不检索） | 为未来案例库做准备 |
+| Case Write | 匿名化写入 + 索引（精确查不检索） | 为未来语义检索做准备 |
+| Case Query | 按 ticker / date 精确查询 | 不从索引做模糊/语义匹配 |
 | Research Explanation | 完整——解释性输出 | 第二个 task_type |
 
 ---
@@ -425,7 +426,7 @@ Success Metric: 解释输出包含所有引用来源
 10. Playbook 自动生成/优化
 11. 自定义能力域
 12. 能力域动态加载
-13. Case Library 检索/匹配
+13. Case Library 语义检索/相似匹配
 14. 多用户协作
 15. 可视化 Workflow 编辑
 16. 图表输出
@@ -497,7 +498,7 @@ Success Metric: 解释输出包含所有引用来源
 □ SPEC-002 v0.1（目标用户与核心场景）
 □ SPEC-003 v0.3.4（架构）
 □ SPEC-004 v0.2.5（能力域）
-□ SPEC-005 v0.1（Capability Package & Metric Registry）
+□ SPEC-005 v0.2（Capability Package & Metric Registry）
 □ SPEC-006 v0.3.0（Playbook）+ Executable Specification
 □ SPEC-007 v0.6（Orchestration）
 □ SPEC-008 v0.1（Decision Trace）

@@ -1,7 +1,7 @@
 # SPEC-005：Capability Package 与 Metric Registry 规范
 
-**版本：** v0.1
-**状态：** Draft
+**版本：** v0.2
+**状态：** Review
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.5
 **文档类型：** 能力包规范
@@ -10,6 +10,12 @@
 ---
 
 ## 0. 版本说明
+
+v0.2 在 v0.1 基础上关闭了三个阻塞 MVP 的规格缺口。状态从 Draft 升级为 Review。主要补齐：
+
+1. **新增 §4.4 Evidence Packet `confidence` 取值规则**：关闭 SPEC-003 §6.5 NOTE。按 `generation_type` 区分 Computed（默认 1.0）、Structured（模型自评分）、Interpreted（LLM 输出）三类 confidence 赋值规则，包括降级条件与 MVP 实现指引；
+2. **新增 §15.1 `metric://` / `fact://` / `label://` URI 格式规范**：关闭了 #4 open issue。MVP 使用无版本号 URI，版本锁定由 Metric Registry snapshot + Playbook `dependency_snapshot_refs` 承担；
+3. **新增 §15.2 Derived Metric 映射规则表格式**：关闭了 #5 open issue。定义声明式 JSON 规则表格式，支持 `operator`、首匹配短路、强制 test_cases 和 `confidence_rule = "inherit_min"`。
 
 v0.1 为 SPEC-005 的首个正式 Draft 版本。
 
@@ -578,9 +584,96 @@ function trace_lineage_to_source(
 4. 对于支撑 Hard Constraint 的 Evidence Packet，其 lineage 必须是完整且无断链的——如果存在 lineage gap，该 Evidence Packet 不得用于 Hard Constraint；
 5. `confidence` 字段的 lineage 追溯规则见 §8。
 
----
+### 4.4 Evidence Packet `confidence` 取值规则
 
-## 5. Metric Registry
+本小节关闭 SPEC-003 §6.5 NOTE 中的 open issue。Evidence Packet 的 `confidence` 字段取值规则必须根据 `generation_type` 区分：
+
+#### 4.4.1 Computed Evidence
+
+```text
+generation_type = "computed"
+
+confidence 默认 = 1.0
+
+降级条件（任一触发即下调）：
+  1. 数据源延迟 > freshness_requirement.staleness_threshold_days
+     → confidence 取 0.0 并由 Evidence Packet 标记 data_quality = "stale"
+  2. 源数据存在已知质量问题（如财报重述、数据修正中）
+     → confidence 取 Registry 中 confidence_metadata.confidence_downgrade_factors 的对应幅度
+  3. 跨数据源验证失败（如不同 Data Connector 返回的同一 metric 偏差 > 阈值）
+     → confidence 取两数据源的最小值
+
+MV 实现：
+  - 仅实现降级条件 1（数据过期检查），条件 2 和 3 由 Capability Package 的 validator 函数提供。
+  - confidence 赋值逻辑：
+    ├─ 数据未过期 → 1.0
+    └─ 数据已过期 → data_quality = "stale", confidence = 0.0
+```
+
+#### 4.4.2 Structured Evidence
+
+```text
+generation_type = "structured"
+
+confidence = 模型自评分（model_self_reported）
+
+约束：
+  1. confidence 值直接取自模型输出的 confidence 字段
+  2. 必须同时记录 model_id + model_version
+  3. 如果模型输出不含 confidence，Evidence Packet.confidence = null，由下游 Analysis Card 自行评估
+  4. 不得手动设为 1.0
+
+MV 实现：
+  - 模型输出 confidence 字段 → 直接赋值
+  - 模型输出无 confidence 字段 → Evidence Packet.confidence = null
+```
+
+#### 4.4.3 Interpreted Evidence
+
+```text
+generation_type = "interpreted"
+
+confidence = LLM 输出值（不可复现）
+
+约束：
+  1. confidence 值由 LLM 在生成时自评得出
+  2. 必须同时记录 model_id + temperature + prompt_hash
+  3. 如果 LLM 输出不含 confidence，evidence.confidence = null
+  4. 永不得支撑 Hard Constraint（继承 SPEC-003 §12）
+
+MV 实现：
+  - LLM 输出 confidence 字段 → 直接赋值
+  - LLM 输出无 confidence 字段 → Evidence Packet.confidence = null
+  - 标记为 data_quality = "interpreted", determinism_level = "interpreted"
+```
+
+#### 4.4.4 跨类型通用规则
+
+```text
+1. confidence ∈ [0.0, 1.0] | null
+   null 仅允许用于 MVP 阶段 Structured/Interpreted Evidence（当模型/LLM 不输出 confidence 时）
+2. Computed Evidence 的 confidence = null 属于实现错误（应回退为 1.0）
+3. 所有 confidence 值在进入 Analysis Card 前不降级；
+   降级检查在 Post-card Validation 和 Pre-decision Validation 阶段执行（SPEC-003 §13, §14）
+4. confidence = 0.0 表示证据不可用，不等于 "不可信"；
+   不可信的 Computed Evidence 应升级为 data_quality 问题而不修改 confidence
+```
+
+#### 4.4.5 与 Metric Registry 的关系
+
+Evidence Packet 中每个 metric 的 confidence 由 Registry 的 `confidence_metadata.determination_type` 继承其默认规则：
+
+| determination_type | generation_type | confidence 来源 | 默认值 |
+|---|---|---|---|
+| `computed_default` | computed | 确定性计算 | 1.0 |
+| `computed_with_event_lineage_check` | computed | 确定性计算 + lineage 检查 | 1.0（检查失败则继承 source_event.confidence） |
+| `derived_rule` | computed | 继承输入 metric 的最小 confidence | null（由输入决定） |
+| `model_output` | structured | 模型自评分 | null（模型不输出则为 null） |
+| `llm_interpreted` | interpreted | LLM 上下文自评 | null（LLM 不输出则为 null） |
+
+上述映射已在 §8.2 `determination_type` 规范中定义，本小节仅补充 Evidence Packet 层面的赋值规则。
+
+> **SPEC-003 §6.5 NOTE 已通过本小节关闭。** MVP 实现时，Evidence Packet 的 `confidence` 字段依据本节的 generation_type 规则赋值。
 
 ### 5.1 Metric Registry 的职责
 
@@ -733,7 +826,7 @@ Metric Registry 是 **metric_id 到 Evidence Packet + value_path + freshness 规
       "unit": "percent",
       "metric_category": "computed",
       
-      "source_domain": "company_event_catalyst",
+      "source_domain": "company_event",
       "producing_package": "pkg_event_price_tracker_v1",
       "producing_capability": "cap_event_price_reaction",
       
@@ -826,7 +919,7 @@ Metric Registry 是 **metric_id 到 Evidence Packet + value_path + freshness 规
       "display_name": "存在高重要度低确定性事件",
       "description": "存在至少一条 materiality=high 但 certainty 非 confirmed 的事件",
       "value_type": "boolean",
-      "source_domain": "company_event_catalyst",
+      "source_domain": "company_event",
       "producing_package": "pkg_event_analyzer_v1",
       "can_support_hard_constraint": false,
       "expected_export_ref": "fact://any_material_event_low_certainty",
@@ -837,7 +930,7 @@ Metric Registry 是 **metric_id 到 Evidence Packet + value_path + freshness 规
       "display_name": "最新高重要度事件已确认",
       "description": "最新一条 materiality=high 事件的 certainty=confirmed",
       "value_type": "boolean",
-      "source_domain": "company_event_catalyst",
+      "source_domain": "company_event",
       "producing_package": "pkg_event_analyzer_v1",
       "can_support_hard_constraint": false,
       "expected_export_ref": "fact://latest_material_event_is_confirmed",
@@ -848,7 +941,7 @@ Metric Registry 是 **metric_id 到 Evidence Packet + value_path + freshness 规
       "display_name": "存在高重要度负面未解决事件",
       "description": "存在 materiality=high、direction=negative、resolution_status=open 的事件",
       "value_type": "boolean",
-      "source_domain": "company_event_catalyst",
+      "source_domain": "company_event",
       "producing_package": "pkg_event_analyzer_v1",
       "can_support_hard_constraint": false,
       "expected_export_ref": "fact://any_material_negative_event_unresolved",
@@ -1817,9 +1910,130 @@ SPEC-005 依赖和影响以下文档：
 1. Metric Registry 的完整管理工具（CLI/API）是否需要独立 SPEC？
 2. Capability Package 的沙箱执行环境（容器化/进程隔离）应在哪个 SPEC 定义？
 3. 多个 Package 版本共存（例如同一能力域使用不同版本 Package 对比）是否进入 MVP？
-4. `metric://` URI 是否需要支持带版本号的形式（如 `metric://revenue_growth_ttm@0.1.0`）以支持多版本共存？
-5. Derived Metric 的映射规则表是否需要独立可测试的规则文件格式？
+4. ~~`metric://` URI 是否需要支持带版本号的形式（如 `metric://revenue_growth_ttm@0.1.0`）以支持多版本共存？~~ 已关闭。MVP 使用无版本号 URI（`metric://revenue_growth_ttm`）；版本号由 Registry 的 `registry_version` + Playbook 的 `dependency_snapshot_refs` 锁定，不在 URI 中表达。URI 格式见 §15.1。
+5. ~~Derived Metric 的映射规则表是否需要独立可测试的规则文件格式？~~ 已关闭。Derived Metric 的映射规则使用声明式 JSON 规则表，格式见 §15.2。
 6. Fact Registry 和 Label Registry 是否应拆分为独立 Registry 对象，还是合并进统一的 Metric Registry？
+
+### 15.1 `metric://` / `fact://` / `label://` URI 格式规范
+
+MVP 统一使用无版本号的 URI 格式。版本锁定由 Metric Registry 的 `registry_version` 字段和 Playbook 的 `dependency_snapshot_refs` 共同承担，不在 URI 中表达。
+
+```
+格式：
+  metric://<metric_id>
+  fact://<fact_id>
+  label://<label_id>
+
+约束：
+  1. <metric_id> / <fact_id> / <label_id> 必须在对应的 Registry 中存在
+  2. URI 大小写敏感，全部小写，使用下划线分隔
+  3. 不接受 query string（?version=...）——版本锁定通过 Registry snapshot 实现
+  4. 不接受 fragment（#suffix）——如需引用 metric 的子属性，使用 value_path 而非 URI fragment
+
+示例：
+  metric://revenue_growth_ttm
+  metric://pe_percentile_5y
+  fact://capital_cycle_expansion
+  label://market_regime
+
+有效来源：
+  - Playbook Constraint.input_refs[] 中引用
+  - Analysis Card.constraint_exports[].export_ref 中声明
+  - Metric Registry.metrics.<id>.expected_export_ref 中注册
+
+校验规则：
+  1. Resolution: registry.resolve(uri) → MetricRegistryEntry | Error
+  2. 未注册的 metric_id → resolution error，Constraint 标记为 INSUFFICIENT_DATA
+  3. 已注册但 producing_package 版本与 Playbook dependency_snapshot 不匹配 → 标记为 INSUFFICIENT_DATA
+```
+
+### 15.2 Derived Metric 映射规则表格式
+
+Derived Metric 的映射使用声明式 JSON 规则表，每条规则定义输入条件与输出值之间的确定性关系。
+
+```json
+{
+  "rule_table_id": "rule_valuation_state_v1",
+  "derived_metric_id": "valuation_state",
+  "description": "将 PE 分位数映射为估值状态",
+  "spec_version": "SPEC-005@0.1.0",
+  "rules": [
+    {
+      "rule_id": "r001",
+      "condition": {
+        "input_ref": "metric://pe_percentile_5y",
+        "operator": "gte",
+        "value": 0.80
+      },
+      "output": {
+        "fact_value": true,
+        "label": "expensive"
+      },
+      "description": "PE 5年分位数 ≥ 80% → expensive"
+    },
+    {
+      "rule_id": "r002",
+      "condition": {
+        "input_ref": "metric://pe_percentile_5y",
+        "operator": "between",
+        "value": [0.30, 0.80]
+      },
+      "output": {
+        "fact_value": true,
+        "label": "fair"
+      },
+      "description": "30% ≤ PE 分位数 < 80% → fair"
+    },
+    {
+      "rule_id": "r003",
+      "condition": {
+        "input_ref": "metric://pe_percentile_5y",
+        "operator": "lt",
+        "value": 0.30
+      },
+      "output": {
+        "fact_value": true,
+        "label": "cheap"
+      },
+      "description": "PE 分位数 < 30% → cheap"
+    }
+  ],
+  "default_output": {
+    "fact_value": false,
+    "label": "unavailable"
+  },
+  "determinism_level": "computed",
+  "confidence_rule": "inherit_min",
+  "test_cases": [
+    {
+      "input": {"metric://pe_percentile_5y": 0.85},
+      "expected_output": {"label": "expensive", "fact_value": true}
+    },
+    {
+      "input": {"metric://pe_percentile_5y": 0.50},
+      "expected_output": {"label": "fair", "fact_value": true}
+    },
+    {
+      "input": {"metric://pe_percentile_5y": 0.15},
+      "expected_output": {"label": "cheap", "fact_value": true}
+    },
+    {
+      "input": {"metric://pe_percentile_5y": null},
+      "expected_output": {"label": "unavailable", "fact_value": false}
+    }
+  ]
+}
+```
+
+规则表约束：
+1. 规则按 rule_id 顺序匹配，**首匹配短路**（first-match wins）
+2. `operator` 支持: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `between`, `in`, `not_in`
+3. `between` 的 value 为 `[lower, upper)`，左闭右开
+4. 输入为 null 时不匹配任何规则，返回 `default_output`
+5. `test_cases` 为强制项——每条规则表必须附带至少覆盖所有 rule_id 的边界测试
+6. Derived Metric 的 confidence 继承所有输入 metric 的最小 confidence（`confidence_rule = "inherit_min"`）
+
+> **已关闭的 SPEC-005 开放问题 #5：** Derived Metric 的映射规则表使用上述 JSON 格式，可独立测试、可版本化、可审计。
 
 ---
 

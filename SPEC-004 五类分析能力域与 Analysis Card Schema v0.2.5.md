@@ -11,7 +11,11 @@
 
 ## 0. 版本说明
 
-v0.2.5 在 v0.2.4 基础上将 Company Event derived fact 的生产责任正式归入能力域输出契约，并版本化 Analysis Card 输入契约。状态保持 Review。主要补齐：
+v0.2.5 在 v0.2.4 基础上将 Company Event derived fact 的生产责任正式归入能力域输出契约，并版本化 Analysis Card 输入契约。状态保持 Review。
+
+> **对齐声明：** SPEC-004 v0.2.5 已与 SPEC-003 v0.3.4 完全对齐。版本号差异仅反映两份文档的独立修订频次——SPEC-003 经历了 4 次微修订（v0.3.1→v0.3.4），而 SPEC-004 通过 v0.2.4+v0.2.5 两次集中修订批处理了与 SPEC-003 v0.3.4 的所有互操作接口。§4、§7、§44、§47 等关键章节均已显式引用 SPEC-003 v0.3.4 的对应规则。
+
+主要补齐：
 
 1. §25.1 新增 `event_resolution_status` 枚举；
 2. §26.2 定义三个事件类 derived facts 的计算、缺失与导出规则；
@@ -1272,7 +1276,7 @@ Company Event / Catalyst 不负责：
 ```json
 {
   "evidence_id": "ev_event_001",
-  "domain": "company_event_catalyst",
+  "domain": "company_event",
   "evidence_type": "guidance_change_event",
   "generation_type": "structured",
   "determinism_level": "structured",
@@ -1291,7 +1295,7 @@ Company Event / Catalyst 不负责：
 ```json
 {
   "evidence_id": "ev_event_price_001",
-  "domain": "company_event_catalyst",
+  "domain": "company_event",
   "evidence_type": "post_event_price_reaction",
   "generation_type": "computed",
   "determinism_level": "computed",

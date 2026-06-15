@@ -1,7 +1,7 @@
 # SPEC-003：Agentic 投研工作流架构
 
 **版本：** v0.3.4  
-**状态：** Draft  
+**状态：** Review  
 **项目名称：** crosslens  
 **依赖文档：** SPEC-001 v0.4  
 **文档类型：** 架构规格  
@@ -15,10 +15,12 @@
 
 v0.3.4 不改变架构方向，只补齐四个规格完整性缺口：
 
-1. Evidence Packet `confidence` 字段取值规则占位（§6.5 NOTE）；
+1. Evidence Packet `confidence` 字段取值规则占位（§6.5 NOTE）→ **已在 SPEC-005 §4.4 中关闭**；
 2. Pre-decision Validation 与 §23 最小阈值的交叉引用（§13.2）；
 3. Decision Candidate `key_supporting_reasons` / `key_opposing_reasons` / `next_steps` 填充规则（§18.1 新增）；
 4. `analysis_incomplete` 通知对象补齐 `task_id` 和 `run_id`（§17.3）。
+
+状态升级为 Review：核心对象链、工作流架构、七层职责分层已稳定，confidence 取值规则已通过 SPEC-005 §4.4 闭环。
 
 自本版本起，`SPEC-003 Agentic投研工作流架构 v0.3.4.md` 是当前唯一有效的 SPEC-003 正文。
 
@@ -293,7 +295,7 @@ Evidence Packet 至少包含：
 15. time_horizon；
 16. limitations。
 
-> **NOTE：** `confidence` 的取值规则取决于 `generation_type`。Computed Evidence 的 confidence 是否默认为 1.0、Structured Evidence 的 confidence 由哪个模型输出、Interpreted Evidence 的 confidence 如何赋值——这些规则尚未在 SPEC-003 中定义。MVP 实现前必须在 SPEC-004（能力域）或 SPEC-005（Capability Package）中明确，否则 §12（Hard Constraint 确定性污染）中的"不得默认为 1.0"规则将缺少下游实现依据。
+> **已关闭 (SPEC-005 §4.4)：** `confidence` 的取值规则已在 SPEC-005 §4.4 "Evidence Packet `confidence` 取值规则" 中明确定义。规则按 `generation_type` 区分：Computed Evidence 默认 1.0（受数据过期降级）、Structured Evidence 取模型自评分、Interpreted Evidence 取 LLM 输出（不可复现）。MVP 实现时以此为准。
 
 ```json
 {

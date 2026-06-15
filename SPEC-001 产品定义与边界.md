@@ -420,7 +420,7 @@ MVP 暂不实现：
 6. Bull / Bear 多 Agent 辩论；
 7. Evaluator 自动重写；
 8. 完整 Observability Dashboard；
-9. 完整 Case Library；
+9. 完整 Case Library（含语义检索、案例匹配、决策建议）；
 10. Playbook Applicability Evaluator；
 11. 复杂宏观预测系统；
 12. 完整行业供需模型。
