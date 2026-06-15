@@ -1,0 +1,62 @@
+{
+  "$defs": {
+    "DataQuality": {
+      "enum": [
+        "high",
+        "medium",
+        "low",
+        "unavailable",
+        "unknown"
+      ],
+      "title": "DataQuality",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A single data source within a Context Bundle.\n\nMVP minimal shape — full Context Bundle source taxonomy defined by later SPEC.",
+  "properties": {
+    "source_id": {
+      "minLength": 1,
+      "title": "Source Id",
+      "type": "string"
+    },
+    "source_type": {
+      "default": "",
+      "title": "Source Type",
+      "type": "string"
+    },
+    "source_name": {
+      "default": "",
+      "title": "Source Name",
+      "type": "string"
+    },
+    "as_of": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "As Of"
+    },
+    "data_quality": {
+      "$ref": "#/$defs/DataQuality",
+      "default": "unknown"
+    },
+    "payload": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Payload",
+      "type": "object"
+    }
+  },
+  "required": [
+    "source_id"
+  ],
+  "title": "ContextSource",
+  "type": "object"
+}

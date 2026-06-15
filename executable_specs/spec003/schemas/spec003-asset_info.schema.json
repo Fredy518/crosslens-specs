@@ -1,0 +1,25 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "symbol": {
+      "minLength": 1,
+      "title": "Symbol",
+      "type": "string"
+    },
+    "asset_type": {
+      "default": "",
+      "title": "Asset Type",
+      "type": "string"
+    },
+    "market": {
+      "default": "",
+      "title": "Market",
+      "type": "string"
+    }
+  },
+  "required": [
+    "symbol"
+  ],
+  "title": "AssetInfo",
+  "type": "object"
+}

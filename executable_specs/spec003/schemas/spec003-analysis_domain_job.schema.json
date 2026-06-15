@@ -10,6 +10,16 @@
       ],
       "title": "Domain",
       "type": "string"
+    },
+    "DomainStatusReason": {
+      "enum": [
+        "insufficient_data",
+        "skipped_by_config",
+        "execution_failure",
+        "data_source_unavailable"
+      ],
+      "title": "DomainStatusReason",
+      "type": "string"
     }
   },
   "additionalProperties": false,
@@ -66,6 +76,17 @@
       "default": {},
       "title": "Run Config",
       "type": "object"
+    },
+    "reason_code": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DomainStatusReason"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "created_at": {
       "anyOf": [

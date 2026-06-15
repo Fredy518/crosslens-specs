@@ -6,9 +6,12 @@ import pytest
 
 from crosslens_spec003.models import (
     AnalysisDomainJob,
+    AssetInfo,
     ConflictEntry,
     ConflictReport,
     ConflictSeverity,
+    ContextBundle,
+    ContextSource,
     DataQuality,
     DecisionCandidate,
     DeterminismLevel,
@@ -17,8 +20,10 @@ from crosslens_spec003.models import (
     DomainStatusReason,
     EvidencePacket,
     GenerationType,
+    InvestmentTask,
     PostCardValidationReport,
     Stance,
+    TaskType,
     ValidationFinding,
     ValidationOverallStatus,
     ValidationSeverity,
@@ -97,6 +102,18 @@ class TestEvidencePacket:
                 unknown_field="bad",
             )
 
+    def test_evidence_type_empty_rejected(self):
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError, match="evidence_type"):
+            EvidencePacket(
+                evidence_id="ev_006",
+                task_id="task_001",
+                domain=Domain.MACRO_MESO,
+                evidence_type="",
+                generation_type=GenerationType.COMPUTED,
+                determinism_level=DeterminismLevel.COMPUTED,
+            )
+
 
 # ═══════════════════════════════════════════════════════════════════
 # Analysis Domain Job Tests
@@ -123,6 +140,39 @@ class TestAnalysisDomainJob:
             domain=Domain.MACRO_MESO,
         )
         assert job.evidence_refs == []
+
+    def test_reason_code_can_be_set(self):
+        """reason_code allows the orchestrator to tag why a domain is error/unavailable."""
+        job = AnalysisDomainJob(
+            job_id="job_003",
+            task_id="task_001",
+            run_id="run_001",
+            domain=Domain.FUNDAMENTALS,
+            reason_code=DomainStatusReason.DATA_SOURCE_UNAVAILABLE,
+        )
+        assert job.reason_code == DomainStatusReason.DATA_SOURCE_UNAVAILABLE
+
+    def test_reason_code_defaults_to_none(self):
+        """When not set, reason_code should default to None."""
+        job = AnalysisDomainJob(
+            job_id="job_004",
+            task_id="task_001",
+            run_id="run_001",
+            domain=Domain.SENTIMENT,
+        )
+        assert job.reason_code is None
+
+    def test_reason_code_values_work_correctly(self):
+        """Verify all DomainStatusReason values can be used."""
+        for reason in DomainStatusReason:
+            job = AnalysisDomainJob(
+                job_id=f"job_{reason.value}",
+                task_id="task_001",
+                run_id="run_001",
+                domain=Domain.FUNDAMENTALS,
+                reason_code=reason,
+            )
+            assert job.reason_code == reason
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -317,3 +367,179 @@ class TestStanceCanonical:
     def test_insufficient_data_is_not_stance(self):
         with pytest.raises((ValueError, KeyError, AttributeError)):
             Stance("insufficient_data")
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Context Bundle Tests (§6.2)
+# ═══════════════════════════════════════════════════════════════════
+
+class TestContextBundle:
+
+    def test_valid_context_bundle(self):
+        source = ContextSource(
+            source_id="src_001",
+            source_type="market_data",
+            source_name="Bloomberg RTH Quote",
+            as_of=date(2026, 6, 14),
+            data_quality=DataQuality.HIGH,
+            payload={"price": 150.25, "volume": 1_200_000},
+        )
+        bundle = ContextBundle(
+            context_bundle_id="cb_001",
+            task_id="task_001",
+            run_id="run_001",
+            sources=[source],
+        )
+        assert bundle.context_bundle_id == "cb_001"
+        assert len(bundle.sources) == 1
+        assert bundle.sources[0].source_id == "src_001"
+        assert bundle.sources[0].payload["price"] == 150.25
+
+    def test_context_bundle_empty_sources_allowed(self):
+        """Empty sources list is OK — MVP may run with sources populated incrementally."""
+        bundle = ContextBundle(
+            context_bundle_id="cb_002",
+            task_id="task_001",
+            run_id="run_001",
+        )
+        assert bundle.sources == []
+        assert bundle.data_quality_overall == DataQuality.UNKNOWN
+
+    def test_context_bundle_with_multiple_sources(self):
+        src1 = ContextSource(
+            source_id="src_001",
+            source_type="market_data",
+            source_name="Bloomberg RTH",
+            data_quality=DataQuality.HIGH,
+            payload={"price": 150.25},
+        )
+        src2 = ContextSource(
+            source_id="src_002",
+            source_type="news",
+            source_name="Reuters Feed",
+            data_quality=DataQuality.MEDIUM,
+            payload={"headline": "Earnings beat expectations"},
+        )
+        src3 = ContextSource(
+            source_id="src_003",
+            source_type="financial_report",
+            source_name="10-K Filing",
+            as_of=date(2026, 3, 31),
+            data_quality=DataQuality.HIGH,
+            payload={"revenue": 5_200_000_000},
+        )
+        bundle = ContextBundle(
+            context_bundle_id="cb_003",
+            task_id="task_001",
+            run_id="run_001",
+            sources=[src1, src2, src3],
+            data_quality_overall=DataQuality.MEDIUM,
+        )
+        assert len(bundle.sources) == 3
+        assert bundle.sources[0].source_type == "market_data"
+        assert bundle.sources[1].source_type == "news"
+        assert bundle.sources[2].source_type == "financial_report"
+        assert bundle.data_quality_overall == DataQuality.MEDIUM
+
+    def test_context_source_extra_fields_forbidden(self):
+        with pytest.raises(ValueError):
+            ContextSource(
+                source_id="src_001",
+                source_type="market_data",
+                unknown_field="bad",
+            )
+
+    def test_context_bundle_extra_fields_forbidden(self):
+        with pytest.raises(ValueError):
+            ContextBundle(
+                context_bundle_id="cb_004",
+                task_id="task_001",
+                run_id="run_001",
+                unknown_field="bad",
+            )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Investment Task Tests
+# ═══════════════════════════════════════════════════════════════════
+
+class TestInvestmentTask:
+
+    def test_valid_investment_task(self):
+        task = InvestmentTask(
+            task_id="task_001",
+            task_type=TaskType.SINGLE_STOCK_BUY_DECISION,
+            asset=AssetInfo(
+                symbol="AAPL",
+                asset_type="stock",
+                market="US",
+            ),
+            user_intent="whether_to_buy",
+            time_horizon="6m",
+            playbook_id="pb_001",
+            depth="standard",
+            risk_preference="medium",
+            uses_user_private_data=False,
+            user_private_data_types=[],
+        )
+        assert task.task_id == "task_001"
+        assert task.task_type == TaskType.SINGLE_STOCK_BUY_DECISION
+        assert task.asset.symbol == "AAPL"
+        assert task.playbook_id == "pb_001"
+        assert task.depth == "standard"
+        assert task.risk_preference == "medium"
+
+    def test_investment_task_symbol_empty_rejected(self):
+        from pydantic import ValidationError
+        with pytest.raises((ValueError, ValidationError)):
+            InvestmentTask(
+                task_id="task_002",
+                task_type=TaskType.SINGLE_STOCK_BUY_DECISION,
+                asset=AssetInfo(
+                    symbol="",
+                    asset_type="stock",
+                    market="US",
+                ),
+                playbook_id="pb_002",
+            )
+
+    def test_investment_task_extra_fields_forbidden(self):
+        with pytest.raises(ValueError):
+            InvestmentTask(
+                task_id="task_003",
+                task_type=TaskType.SINGLE_STOCK_BUY_DECISION,
+                asset=AssetInfo(
+                    symbol="AAPL",
+                    asset_type="stock",
+                    market="US",
+                ),
+                playbook_id="pb_003",
+                unknown_field="bad",
+            )
+
+    def test_investment_task_nested_asset_validation(self):
+        with pytest.raises(ValueError, match="asset.symbol must be non-empty"):
+            InvestmentTask(
+                task_id="task_004",
+                task_type=TaskType.SINGLE_STOCK_BUY_DECISION,
+                asset=AssetInfo(
+                    symbol="   ",  # whitespace only
+                    asset_type="stock",
+                    market="US",
+                ),
+                playbook_id="pb_004",
+            )
+
+    def test_investment_task_playbook_id_empty_rejected(self):
+        from pydantic import ValidationError
+        with pytest.raises((ValueError, ValidationError)):
+            InvestmentTask(
+                task_id="task_005",
+                task_type=TaskType.SINGLE_STOCK_BUY_DECISION,
+                asset=AssetInfo(
+                    symbol="AAPL",
+                    asset_type="stock",
+                    market="US",
+                ),
+                playbook_id="",
+            )

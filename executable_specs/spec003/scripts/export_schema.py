@@ -5,9 +5,13 @@ from pathlib import Path
 
 from crosslens_spec003.models import (
     AnalysisDomainJob,
+    AssetInfo,
     ConflictReport,
+    ContextBundle,
+    ContextSource,
     DecisionCandidate,
     EvidencePacket,
+    InvestmentTask,
     PostCardValidationReport,
 )
 
@@ -16,6 +20,10 @@ SCHEMAS_DIR.mkdir(exist_ok=True)
 
 specs = {
     "spec003-evidence_packet.schema.json": EvidencePacket,
+    "spec003-context_bundle.schema.json": ContextBundle,
+    "spec003-context_source.schema.json": ContextSource,
+    "spec003-investment_task.schema.json": InvestmentTask,
+    "spec003-asset_info.schema.json": AssetInfo,
     "spec003-analysis_domain_job.schema.json": AnalysisDomainJob,
     "spec003-post_card_validation_report.schema.json": PostCardValidationReport,
     "spec003-conflict_report.schema.json": ConflictReport,

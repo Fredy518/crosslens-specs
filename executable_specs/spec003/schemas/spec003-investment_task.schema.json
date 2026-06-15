@@ -1,0 +1,114 @@
+{
+  "$defs": {
+    "AssetInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "symbol": {
+          "minLength": 1,
+          "title": "Symbol",
+          "type": "string"
+        },
+        "asset_type": {
+          "default": "",
+          "title": "Asset Type",
+          "type": "string"
+        },
+        "market": {
+          "default": "",
+          "title": "Market",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ],
+      "title": "AssetInfo",
+      "type": "object"
+    },
+    "TaskType": {
+      "enum": [
+        "single_stock_buy_decision",
+        "single_stock_hold_review",
+        "single_stock_watchlist_review",
+        "industry_scan",
+        "position_review",
+        "research_note_to_decision"
+      ],
+      "title": "TaskType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
+    },
+    "task_type": {
+      "$ref": "#/$defs/TaskType"
+    },
+    "asset": {
+      "$ref": "#/$defs/AssetInfo"
+    },
+    "user_intent": {
+      "default": "",
+      "title": "User Intent",
+      "type": "string"
+    },
+    "time_horizon": {
+      "default": "",
+      "title": "Time Horizon",
+      "type": "string"
+    },
+    "playbook_id": {
+      "minLength": 1,
+      "title": "Playbook Id",
+      "type": "string"
+    },
+    "depth": {
+      "default": "standard",
+      "title": "Depth",
+      "type": "string"
+    },
+    "risk_preference": {
+      "default": "medium",
+      "title": "Risk Preference",
+      "type": "string"
+    },
+    "uses_user_private_data": {
+      "default": false,
+      "title": "Uses User Private Data",
+      "type": "boolean"
+    },
+    "user_private_data_types": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "User Private Data Types",
+      "type": "array"
+    },
+    "created_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Created At"
+    }
+  },
+  "required": [
+    "task_id",
+    "task_type",
+    "asset",
+    "playbook_id"
+  ],
+  "title": "InvestmentTask",
+  "type": "object"
+}

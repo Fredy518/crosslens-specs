@@ -1,0 +1,115 @@
+{
+  "$defs": {
+    "ContextSource": {
+      "additionalProperties": false,
+      "description": "A single data source within a Context Bundle.\n\nMVP minimal shape — full Context Bundle source taxonomy defined by later SPEC.",
+      "properties": {
+        "source_id": {
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_type": {
+          "default": "",
+          "title": "Source Type",
+          "type": "string"
+        },
+        "source_name": {
+          "default": "",
+          "title": "Source Name",
+          "type": "string"
+        },
+        "as_of": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As Of"
+        },
+        "data_quality": {
+          "$ref": "#/$defs/DataQuality",
+          "default": "unknown"
+        },
+        "payload": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Payload",
+          "type": "object"
+        }
+      },
+      "required": [
+        "source_id"
+      ],
+      "title": "ContextSource",
+      "type": "object"
+    },
+    "DataQuality": {
+      "enum": [
+        "high",
+        "medium",
+        "low",
+        "unavailable",
+        "unknown"
+      ],
+      "title": "DataQuality",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Execution context collection — raw material for Evidence Packet generation.\n\nMVP minimal shape — full Context Bundle design defined by later SPEC.",
+  "properties": {
+    "context_bundle_id": {
+      "minLength": 1,
+      "title": "Context Bundle Id",
+      "type": "string"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "sources": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ContextSource"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "created_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Created At"
+    },
+    "data_quality_overall": {
+      "$ref": "#/$defs/DataQuality",
+      "default": "unknown"
+    }
+  },
+  "required": [
+    "context_bundle_id",
+    "task_id",
+    "run_id"
+  ],
+  "title": "ContextBundle",
+  "type": "object"
+}

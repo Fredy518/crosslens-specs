@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -13,7 +13,57 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-# ── Enums (§6.3, §6.5, §7) ────────────────────────────────────
+# ── Type Aliases (§6.1) ───────────────────────────────────────
+
+RiskPreference = Literal["low", "medium", "high"]
+Depth = Literal["quick", "standard", "deep"]
+
+
+# ── Task Types (§6.1, SPEC-002 routing decision tree) ─────────
+
+class TaskType(str, Enum):
+    SINGLE_STOCK_BUY_DECISION = "single_stock_buy_decision"
+    SINGLE_STOCK_HOLD_REVIEW = "single_stock_hold_review"
+    SINGLE_STOCK_WATCHLIST_REVIEW = "single_stock_watchlist_review"
+    INDUSTRY_SCAN = "industry_scan"
+    POSITION_REVIEW = "position_review"
+    RESEARCH_NOTE_TO_DECISION = "research_note_to_decision"
+
+
+# ── Asset Info (§6.1) ─────────────────────────────────────────
+
+class AssetInfo(StrictModel):
+    symbol: str = Field(min_length=1)
+    asset_type: str = ""          # "stock", "etf", "bond", etc.
+    market: str = ""              # "US", "HK", "CN", etc.
+
+
+# ── Investment Task (§6.1) ────────────────────────────────────
+
+class InvestmentTask(StrictModel):
+    task_id: str = Field(min_length=1)
+    task_type: TaskType
+    asset: AssetInfo
+    user_intent: str = ""                  # "whether_to_buy", "whether_to_hold", etc.
+    time_horizon: str = ""
+    playbook_id: str = Field(min_length=1)
+    depth: str = "standard"                # Depth literal
+    risk_preference: str = "medium"        # RiskPreference literal
+    uses_user_private_data: bool = False
+    user_private_data_types: list[str] = []
+    created_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def _symbol_not_empty(self) -> "InvestmentTask":
+        if not self.asset.symbol or len(self.asset.symbol.strip()) == 0:
+            raise ValueError("asset.symbol must be non-empty")
+        return self
+
+    @model_validator(mode="after")
+    def _playbook_id_not_empty(self) -> "InvestmentTask":
+        if not self.playbook_id or len(self.playbook_id.strip()) == 0:
+            raise ValueError("playbook_id must be non-empty and cannot be whitespace")
+        return self
 
 class GenerationType(str, Enum):
     COMPUTED = "computed"
@@ -109,7 +159,7 @@ class EvidencePacket(StrictModel):
     source_type: str = ""
     source_name: str = ""
     as_of: date | None = None
-    evidence_type: str = ""
+    evidence_type: str = Field(min_length=1)
     generation_type: GenerationType
     determinism_level: DeterminismLevel
     can_support_hard_constraint: bool = False
@@ -138,6 +188,34 @@ class EvidencePacket(StrictModel):
         return self
 
 
+# ── Context Bundle (§6.2) ─────────────────────────────────────
+
+class ContextSource(StrictModel):
+    """A single data source within a Context Bundle.
+
+    MVP minimal shape — full Context Bundle source taxonomy defined by later SPEC.
+    """
+    source_id: str = Field(min_length=1)
+    source_type: str = ""           # e.g. "market_data", "financial_report", "news", "user_private"
+    source_name: str = ""
+    as_of: date | None = None
+    data_quality: DataQuality = DataQuality.UNKNOWN
+    payload: dict[str, Any] = {}    # source-specific content; MVP uses Any
+
+
+class ContextBundle(StrictModel):
+    """Execution context collection — raw material for Evidence Packet generation.
+
+    MVP minimal shape — full Context Bundle design defined by later SPEC.
+    """
+    context_bundle_id: str = Field(min_length=1)
+    task_id: str = Field(min_length=1)
+    run_id: str = Field(min_length=1)
+    sources: list[ContextSource] = []  # may be empty in MVP — sources populated incrementally
+    created_at: datetime | None = None
+    data_quality_overall: DataQuality = DataQuality.UNKNOWN
+
+
 # ── Analysis Domain Job (§8) ──────────────────────────────────
 
 class AnalysisDomainJob(StrictModel):
@@ -148,15 +226,11 @@ class AnalysisDomainJob(StrictModel):
     domain: Domain
     task: dict[str, Any] = {}                       # Investment Task snapshot
     context_bundle_ref: str = ""                     # ref to Context Bundle
-    evidence_refs: list[str] = []                    # domain-relevant Evidence Packet IDs
+    evidence_refs: list[str] = []                    # may be empty for domains that generate their own evidence (e.g., sentiment from raw social data)
     constraints: list[dict[str, Any]] = []            # Playbook constraints to check
     run_config: dict[str, Any] = {}                  # RunConfig snapshot
+    reason_code: DomainStatusReason | None = None    # set by orchestrator when domain produces error/unavailable status
     created_at: datetime | None = None
-
-    @model_validator(mode="after")
-    def _evidence_refs_not_empty(self) -> "AnalysisDomainJob":
-        # soft: warn but don't block — some domains may run without evidence
-        return self
 
 
 # ── Post-card Validation Report (§13) ─────────────────────────

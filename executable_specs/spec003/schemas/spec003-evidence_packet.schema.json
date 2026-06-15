@@ -83,7 +83,7 @@
       "title": "As Of"
     },
     "evidence_type": {
-      "default": "",
+      "minLength": 1,
       "title": "Evidence Type",
       "type": "string"
     },
@@ -170,6 +170,7 @@
     "evidence_id",
     "task_id",
     "domain",
+    "evidence_type",
     "generation_type",
     "determinism_level"
   ],

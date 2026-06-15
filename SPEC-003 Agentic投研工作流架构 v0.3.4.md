@@ -409,27 +409,48 @@ Analysis Domain Job 是编排器调度能力域的基本单元。
 {
   "job_id": "job_fundamentals_001",
   "task_id": "task_001",
+  "run_id": "run_001",
   "domain": "fundamentals",
-  "input": {
-    "investment_task_ref": "task_001",
-    "context_bundle_ref": "ctx_001",
-    "evidence_packet_refs": [
-      "ev_financial_001",
-      "ev_valuation_001"
-    ],
-    "playbook_constraints": [
-      "constraint://capital_cycle_fundamental_playbook/0.1.0/growth_001"
-    ]
+  "task": {
+    "task_id": "task_001",
+    "task_type": "single_stock_buy_decision",
+    "asset": {
+      "symbol": "NVDA",
+      "asset_type": "stock",
+      "market": "US"
+    },
+    "user_intent": "whether_to_buy",
+    "time_horizon": "3-6 months",
+    "playbook_id": "capital_cycle_fundamental_playbook",
+    "depth": "standard",
+    "risk_preference": "medium",
+    "uses_user_private_data": true,
+    "user_private_data_types": ["current_position", "private_notes"],
+    "created_at": "2026-06-14T10:30:00Z"
   },
+  "context_bundle_ref": "ctx_001",
+  "evidence_refs": ["ev_financial_001", "ev_valuation_001"],
+  "constraints": [
+    {
+      "constraint_id": "growth_001",
+      "name": "收入增速高于行业中位数",
+      "condition_type": "hard",
+      "input_refs": ["metric://revenue_growth_ttm", "metric://industry_median_revenue_growth_ttm"],
+      "operator": ">",
+      "priority": "high",
+      "on_fail": "block_strong_buy",
+      "on_insufficient_data": "flag"
+    }
+  ],
   "run_config": {
     "depth": "standard",
-    "allow_agent_reasoning": true,
-    "require_opposing_evidence": true
-  }
+    "allow_agent_reasoning": true
+  },
+  "created_at": "2026-06-14T10:30:00Z"
 }
 ```
 
-`constraint://...` URI 格式是示意格式。完整 URI 规则由 SPEC-006 定义。
+> **说明：** `task` 字段为 Investment Task 的只读快照，非引用。能力域不应修改此对象。
 
 ---
 
@@ -737,7 +758,7 @@ Pre-decision Validation 不判断 Playbook Hard Constraint 是否可执行。该
       "finding_id": "finding_001",
       "severity": "flag",
       "finding_type": "missing_opposing_evidence",
-      "target_ref": "card_sentiment_001",
+      "card_ref": "card_sentiment_001",
       "description": "Sentiment Card 缺少反方证据。",
       "recommended_handling": "lower_confidence"
     }
@@ -760,11 +781,13 @@ overall_status：
 
 ```text
 passed
-passed_with_notes
 passed_with_flags
 blocked
-failed
+error
+skipped
 ```
+
+> **说明：** `passed_with_notes` 已在模型层面合并进 `passed_with_flags`（note 为弱化版 flag）。`error` 替代 `failed`，与 `domain_status` 枚举保持一致。`skipped` 覆盖验证因配置或执行路径被完全跳过的情形（如 Pre-decision Validation 阶段无可评审卡片时）。
 
 Post-card Validation 不直接修改 Analysis Card。Conflict Detection 在运行前必须读取 Post-card Validation Report：
 
