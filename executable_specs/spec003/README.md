@@ -1,22 +1,29 @@
 # SPEC-003 Executable Specification
 
-> 📋 **计划中** — 尚未实现。
+✅ **已实现** — Evidence Packet, Analysis Domain Job, Validation Report, Conflict Report, Decision Candidate Pydantic v2 契约 + 边界测试 + JSON Schema。
 
-## Planned Scope
+## Scope
 
-- Evidence Packet schema: Pydantic v2 契约 + JSON Schema 生成。
-- `generation_type` 枚举：computed / structured / interpreted。
-- `determinism_level` 枚举：computed / structured / interpreted / low / unknown。
-- `can_support_hard_constraint` 级联规则。
-- Confidence 赋值规则（继承 SPEC-005 §4.4）。
-- Validation Report schema。
-- Conflict Report schema。
-- Decision Candidate schema。
-- Event Log schema。
+- `EvidencePacket`: 16-field Pydantic v2 model — the most consumed data object in the pipeline.
+- `AnalysisDomainJob`: Orchestrator → Domain dispatch work order (task_ref + context_ref + evidence_refs + constraints + run_config).
+- `PostCardValidationReport`: Post-card quality check results with block/flag/note severity.
+- `ConflictReport`: Cross-domain conflict record with has_blocking_conflict flag.
+- `DecisionCandidate`: Final decision proposal with output_control support.
+- Enums: `GenerationType`, `DeterminismLevel`, `Domain`, `DataQuality`, `DomainStatus`, `Stance`, `ValidationSeverity`, `ConflictSeverity`.
+- `DomainStatusReason`: reason_code enum (insufficient_data, skipped_by_config, execution_failure, data_source_unavailable) without splitting the canonical domain_status.
+- All domain_status and stance values aligned to Registry.
+- Interpreted Evidence → can_support_hard_constraint=false enforced.
+- Computed Evidence confidence defaults to 1.0.
 
-## Target Normative Order
+## Run
 
-实现后，规范优先级为：
+```powershell
+cd executable_specs/spec003
+python -m pytest
+python scripts/export_schema.py
+```
+
+## Normative Order
 
 1. Functions in `src/crosslens_spec003/`.
 2. Contracts in `src/crosslens_spec003/models.py`.

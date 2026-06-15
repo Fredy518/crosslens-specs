@@ -512,20 +512,18 @@ Analysis Card 是能力域返回给编排器的标准化分析结果。
 ```text
 completed
 partial
-insufficient_data
-failed
-skipped
+error
+unavailable
 ```
 
 | domain_status | 含义 | 下游处理 |
 |---|---|---|
 | completed | 能力域正常完成分析 | 可进入 Conflict Detection、Playbook Evaluation |
 | partial | 能力域部分完成，但存在数据缺口或低置信度 | 可进入下游，但必须降低权重或标记警告 |
-| insufficient_data | 数据不足，无法形成有效分析 | 不计入最小可用卡片阈值 |
-| failed | 能力域执行失败 | 不进入 Conflict Detection，进入 Decision Trace 错误说明 |
-| skipped | 编排器根据任务、Playbook 或用户设置主动跳过 | 不计入最小可用卡片阈值，但应在 Trace 中说明跳过原因 |
+| error | 能力域执行失败 | 不进入 Conflict Detection，进入 Decision Trace 错误说明 |
+| unavailable | 数据不可用，无法形成有效分析；或编排器主动跳过 | 不计入最小可用卡片阈值，应在 Trace 中说明原因 |
 
-`skipped` 与 `insufficient_data` 的区别是：`skipped` 表示系统主动选择不运行该能力域；`insufficient_data` 表示系统尝试分析但因数据不足无法完成。
+`unavailable` 涵盖两种语义：(1) 系统尝试分析但因数据不足无法完成；(2) 编排器根据任务、Playbook 或用户设置主动跳过该能力域。两种情形均通过 `reason_code` 字段区分（`insufficient_data` / `skipped_by_config`），不在 `domain_status` 层面分裂。
 
 ### 10.2 confidence 字段
 
@@ -1752,7 +1750,7 @@ analysis_incomplete
 
 若单个非关键能力域失败，可继续执行，但必须：
 
-1. 标记该能力域 `domain_status = failed`；
+1. 标记该能力域 `domain_status = error`；
 2. 进入 Decision Trace；
 3. 降低最终置信度；
 4. 不让该能力域参与 Conflict Detection。

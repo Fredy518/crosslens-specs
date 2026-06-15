@@ -17,7 +17,7 @@
 |------|--------|------|------|------------|--------|
 | SPEC-001 | SPEC-001 产品定义与边界 v0.4.md | v0.4 | Draft | 产品边界、核心概念、七层架构命名 | — |
 | SPEC-002 | SPEC-002 目标用户与核心场景 v0.1.md | v0.1 | Draft | 用户画像、场景矩阵、task_type 枚举 (5 values) | — |
-| SPEC-003 | SPEC-003 Agentic投研工作流架构 v0.3.4.md | v0.3.4 | Review | 核心对象链 (13 objects)、domain 枚举 (5 values)、七层职责分层、Evidence Packet schema、Validation Report schema、Conflict Report schema、Decision Candidate schema、Event Log schema | — |
+| SPEC-003 | SPEC-003 Agentic投研工作流架构 v0.3.4.md | v0.3.4 | Review | 核心对象链 (13 objects)、domain 枚举 (5 values)、七层职责分层、Evidence Packet schema、Validation Report schema、Conflict Report schema、Decision Candidate schema、Event Log schema | ✅ `executable_specs/spec003/` |
 | SPEC-004 | SPEC-004 五类分析能力域与 Analysis Card Schema v0.2.5.md | v0.2.5 | Review | Analysis Card schema、domain_status 枚举、stance 枚举、constraint_exports 契约、五域能力定义 | ✅ `executable_specs/spec004/` |
 | SPEC-005 | SPEC-005 Capability Package 与 Metric Registry 规范 v0.2.md | v0.2 | Review | Metric/Fact/Label Registry schema、Capability Package schema、lineage 追踪、URI 格式规范、confidence 取值规则、resolve_input_ref 算法、Derived Metric 规则表格式 | ✅ `executable_specs/spec005/` |
 | SPEC-006 | SPEC-006 Investment Playbook 规范 v0.3.0.md | v0.3.0 | Approved | Playbook schema、Constraint Evaluation Result schema、OverallResult 枚举 (8 values)、decision_logic 执行语义、confidence_cap 合并、Snapshot hash | ✅ `executable_specs/spec006/` |
@@ -71,7 +71,11 @@ SPEC-001 (产品定义)
 | ConstraintEvaluationResult | SPEC-006 `models.py` | Pydantic v2 + JSON Schema |
 | ConfidenceCapResult | SPEC-006 `models.py` | Pydantic v2 + JSON Schema |
 | Analysis Card | SPEC-004 + `executable_specs/spec004/models.py` | Pydantic v2 + JSON Schema |
-| Evidence Packet | SPEC-003 §6.5 | Markdown schema（下一步 → Pydantic v2） |
+| Evidence Packet | SPEC-003 §6.5 + `executable_specs/spec003/models.py` | Pydantic v2 + JSON Schema |
+| Analysis Domain Job | SPEC-003 §8 + `executable_specs/spec003/models.py` | Pydantic v2 + JSON Schema |
+| Post-card Validation Report | SPEC-003 §13 + `executable_specs/spec003/models.py` | Pydantic v2 + JSON Schema |
+| Conflict Report | SPEC-003 §14 + `executable_specs/spec003/models.py` | Pydantic v2 + JSON Schema |
+| Decision Candidate | SPEC-003 §18 + `executable_specs/spec003/models.py` | Pydantic v2 + JSON Schema |
 | Metric Registry Entry | SPEC-005 §5.2 + `executable_specs/spec005/models.py` | Pydantic v2 + JSON Schema |
 | Constraint Export | SPEC-004 + `executable_specs/spec004/models.py` | Pydantic v2 + JSON Schema |
 | Data Freshness | SPEC-004 + `executable_specs/spec004/models.py` | Pydantic v2 + JSON Schema |
@@ -88,6 +92,7 @@ SPEC-001 (产品定义)
 
 | 包 | 位置 | 覆盖规范 | 状态 |
 |----|------|----------|------|
+| `crosslens_spec003` | `executable_specs/spec003/` | SPEC-003: EvidencePacket, AnalysisDomainJob, PostCardValidationReport, ConflictReport, DecisionCandidate | ✅ 已验证 (22 tests) |
 | `crosslens_spec006` | `executable_specs/spec006/` | SPEC-006: aggregate_multi_rule, compute_overall_result, resolve_recommended_actions, merge_confidence_cap | ✅ 已验证 (17 tests) |
 | `crosslens_spec005` | `executable_specs/spec005/` | SPEC-005: MetricRegistryEntry, FactRegistryEntry, LabelRegistryEntry, DerivedMetricRuleTable | ✅ 已验证 (14 tests) |
 | `crosslens_spec004` | `executable_specs/spec004/` | SPEC-004: AnalysisCard, ConstraintExport, DataFreshness, post-card validation rules | ✅ 已验证 (18 tests) |

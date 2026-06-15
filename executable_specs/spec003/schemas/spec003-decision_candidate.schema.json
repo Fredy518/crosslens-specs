@@ -1,0 +1,107 @@
+{
+  "additionalProperties": false,
+  "description": "Final decision proposal from the system (§18).",
+  "properties": {
+    "decision_candidate_id": {
+      "minLength": 1,
+      "title": "Decision Candidate Id",
+      "type": "string"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "suggested_action": {
+      "minLength": 1,
+      "title": "Suggested Action",
+      "type": "string"
+    },
+    "allowed_actions": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed Actions",
+      "type": "array"
+    },
+    "confidence": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "confidence_cap": {
+      "default": 1.0,
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Confidence Cap",
+      "type": "number"
+    },
+    "key_supporting_reasons": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Key Supporting Reasons",
+      "type": "array"
+    },
+    "key_opposing_reasons": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Key Opposing Reasons",
+      "type": "array"
+    },
+    "action_selection_reason": {
+      "default": "",
+      "title": "Action Selection Reason",
+      "type": "string"
+    },
+    "requires_human_review": {
+      "default": false,
+      "title": "Requires Human Review",
+      "type": "boolean"
+    },
+    "output_control": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Output Control"
+    },
+    "created_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Created At"
+    }
+  },
+  "required": [
+    "decision_candidate_id",
+    "task_id",
+    "run_id",
+    "suggested_action",
+    "confidence"
+  ],
+  "title": "DecisionCandidate",
+  "type": "object"
+}

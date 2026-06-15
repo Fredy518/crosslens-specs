@@ -1,0 +1,178 @@
+{
+  "$defs": {
+    "DataQuality": {
+      "enum": [
+        "high",
+        "medium",
+        "low",
+        "unavailable",
+        "unknown"
+      ],
+      "title": "DataQuality",
+      "type": "string"
+    },
+    "DeterminismLevel": {
+      "enum": [
+        "computed",
+        "structured",
+        "interpreted",
+        "low",
+        "unknown"
+      ],
+      "title": "DeterminismLevel",
+      "type": "string"
+    },
+    "Domain": {
+      "enum": [
+        "macro_meso",
+        "fundamentals",
+        "company_event",
+        "sentiment",
+        "technical_market"
+      ],
+      "title": "Domain",
+      "type": "string"
+    },
+    "GenerationType": {
+      "enum": [
+        "computed",
+        "structured",
+        "interpreted"
+      ],
+      "title": "GenerationType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Structured evidence object — the most consumed data object in the pipeline.",
+  "properties": {
+    "evidence_id": {
+      "minLength": 1,
+      "title": "Evidence Id",
+      "type": "string"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
+    },
+    "domain": {
+      "$ref": "#/$defs/Domain"
+    },
+    "source_type": {
+      "default": "",
+      "title": "Source Type",
+      "type": "string"
+    },
+    "source_name": {
+      "default": "",
+      "title": "Source Name",
+      "type": "string"
+    },
+    "as_of": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "As Of"
+    },
+    "evidence_type": {
+      "default": "",
+      "title": "Evidence Type",
+      "type": "string"
+    },
+    "generation_type": {
+      "$ref": "#/$defs/GenerationType"
+    },
+    "determinism_level": {
+      "$ref": "#/$defs/DeterminismLevel"
+    },
+    "can_support_hard_constraint": {
+      "default": false,
+      "title": "Can Support Hard Constraint",
+      "type": "boolean"
+    },
+    "metrics": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      },
+      "default": {},
+      "title": "Metrics",
+      "type": "object"
+    },
+    "facts": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Facts",
+      "type": "array"
+    },
+    "labels": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {},
+      "title": "Labels",
+      "type": "object"
+    },
+    "signal": {
+      "default": "",
+      "title": "Signal",
+      "type": "string"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confidence"
+    },
+    "data_quality": {
+      "$ref": "#/$defs/DataQuality",
+      "default": "unknown"
+    },
+    "time_horizon": {
+      "default": "",
+      "title": "Time Horizon",
+      "type": "string"
+    },
+    "limitations": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "evidence_id",
+    "task_id",
+    "domain",
+    "generation_type",
+    "determinism_level"
+  ],
+  "title": "EvidencePacket",
+  "type": "object"
+}

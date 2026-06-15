@@ -1,0 +1,142 @@
+{
+  "$defs": {
+    "ConflictEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "conflict_id": {
+          "minLength": 1,
+          "title": "Conflict Id",
+          "type": "string"
+        },
+        "conflict_type": {
+          "minLength": 1,
+          "title": "Conflict Type",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/ConflictSeverity"
+        },
+        "involved_domains": {
+          "items": {
+            "$ref": "#/$defs/Domain"
+          },
+          "maxItems": 5,
+          "minItems": 2,
+          "title": "Involved Domains",
+          "type": "array"
+        },
+        "involved_card_refs": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Involved Card Refs",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "decision_impact": {
+          "default": "",
+          "title": "Decision Impact",
+          "type": "string"
+        },
+        "resolution": {
+          "default": "",
+          "title": "Resolution",
+          "type": "string"
+        }
+      },
+      "required": [
+        "conflict_id",
+        "conflict_type",
+        "severity",
+        "involved_domains"
+      ],
+      "title": "ConflictEntry",
+      "type": "object"
+    },
+    "ConflictSeverity": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "title": "ConflictSeverity",
+      "type": "string"
+    },
+    "Domain": {
+      "enum": [
+        "macro_meso",
+        "fundamentals",
+        "company_event",
+        "sentiment",
+        "technical_market"
+      ],
+      "title": "Domain",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Cross-domain conflict record (§14).",
+  "properties": {
+    "conflict_report_id": {
+      "minLength": 1,
+      "title": "Conflict Report Id",
+      "type": "string"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "conflicts": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ConflictEntry"
+      },
+      "title": "Conflicts",
+      "type": "array"
+    },
+    "has_blocking_conflict": {
+      "default": false,
+      "title": "Has Blocking Conflict",
+      "type": "boolean"
+    },
+    "deweighted_card_refs": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Deweighted Card Refs",
+      "type": "array"
+    },
+    "deweight_reason": {
+      "default": "",
+      "title": "Deweight Reason",
+      "type": "string"
+    }
+  },
+  "required": [
+    "conflict_report_id",
+    "task_id",
+    "run_id"
+  ],
+  "title": "ConflictReport",
+  "type": "object"
+}

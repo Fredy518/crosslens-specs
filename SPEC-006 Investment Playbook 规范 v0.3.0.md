@@ -406,9 +406,9 @@ Optional Domains 是辅助判断能力域。
 
 SPEC-006 继承 SPEC-003 的最小可用 Analysis Card 阈值。下文中的 `domain_status` 指 Analysis Card 的 `domain_status` 字段（在 SPEC-004 §5 中定义，枚举见 SPEC-004 §5.1），非 SPEC-006 自创概念——此字段由能力域在生成 Analysis Card 时填写，Playbook Evaluation 在步骤 3 消费：
 
-1. 至少 3/5 个能力域返回 `domain_status ∈ {completed, partial}` 的 Analysis Card。`failed`、`skipped` 和 `insufficient_data` 均不计入此阈值——仅完成或部分完成分析的能力域为有效参与；
+1. 至少 3/5 个能力域返回 `domain_status ∈ {completed, partial}` 的 Analysis Card。`error` 和 `unavailable` 均不计入此阈值——仅完成或部分完成分析的能力域为有效参与；
 2. Fundamentals 必须可用（`domain_status ∈ {completed, partial}`，与第 1 条标准一致）；
-3. 至少一个非 Fundamentals 能力域 `domain_status ∈ {completed, partial}`。该域无需满足特定 evidence 数量或 confidence 阈值——只要能力域完成或部分完成分析即为有效贡献（背景信息同样可辅助人类判断）。`failed` 或 `skipped` 不计入有效贡献——此约束阻止实现者将能力域执行失败误认为有效参与；
+3. 至少一个非 Fundamentals 能力域 `domain_status ∈ {completed, partial}`。该域无需满足特定 evidence 数量或 confidence 阈值——只要能力域完成或部分完成分析即为有效贡献（背景信息同样可辅助人类判断）。`error` 或 `unavailable` 不计入有效贡献——此约束阻止实现者将能力域执行失败误认为有效参与；
 4. 不存在 Block 级 Validation Finding；
 5. Playbook 关键 Hard Constraint 可以判断。MVP 中所有 `constraint_type = hard` 的 Constraint 均视为关键；“可以判断”指每条 Hard Constraint 在 input resolution、freshness 和规则执行后，最终 `status ∈ {pass, fail, not_applicable}`。任一 Hard Constraint 最终为 `partial`、`insufficient_data`、`stale_data` 或 `error`，均不满足本条。
 
@@ -416,7 +416,7 @@ SPEC-006 继承 SPEC-003 的最小可用 Analysis Card 阈值。下文中的 `do
 
 > **§8.4 与 `partial` Analysis Card（v0.1.9）：** `domain_status = partial` 的域计入第 3 条"有效贡献"计数。该域导出的 `constraint_exports` 中部分 metric 可能不可用——若 Playbook Constraint 引用了缺失的 metric，对应 Constraint 按 `insufficient_data` 处理，不影响域级别的 `domain_status` 判定。`partial` 域剩余可用 metric 仍可被 Constraint 消费。
 
-> **§8.4 与 Optional Domains `on_missing` 的优先级（v0.1.4）：** §8.4 是 Playbook 级别的最小可用阈值，优先级高于单个 Optional Domain 的 `on_missing` 设定。若四个 Optional Domains 全部返回 `insufficient_data`，即使每个域单独设置了 `on_missing = continue_with_warning`，Playbook 级别仍因违反第 3 条而停止生成完整 Decision Candidate（`analysis_incomplete`）。单个域的 `on_missing` 仅在个别域缺失时生效。
+> **§8.4 与 Optional Domains `on_missing` 的优先级（v0.1.4）：** §8.4 是 Playbook 级别的最小可用阈值，优先级高于单个 Optional Domain 的 `on_missing` 设定。若四个 Optional Domains 全部返回 `unavailable`，即使每个域单独设置了 `on_missing = continue_with_warning`，Playbook 级别仍因违反第 3 条而停止生成完整 Decision Candidate（`analysis_incomplete`）。单个域的 `on_missing` 仅在个别域缺失时生效。
 
 > **`analysis_incomplete` 与 `requires_human_review` 交叉保护（v0.2.6，v0.2.8 修正）：** 若步骤 3 因域级门控失败而早退，系统仍须保留此前已识别的人工复核条件（如 Applicability 或 Validation 触发项）。若步骤 7 因 Hard Constraint 不可判断而停止生成完整 Decision Candidate，则步骤 4 已识别的 `ambiguous_label_ref` 等人工复核标记同样必须保留。`analysis_incomplete` 不得清除已经成立的 `requires_human_review`。
 
@@ -1291,7 +1291,7 @@ Conflict Handling 的 `prefer_wait` 和 `prefer_add_to_watchlist` 与 §16 Prefe
 
 > **`require_review_on` 值来源（v0.1.8，v0.2.8 步骤同步）：** 列表中混用两类来源：(1) Conflict Handling 冲突类型 key（如 `macro_regime_vs_playbook`），由 Conflict Handling 模块在步骤 9 产生；(2) 系统状态描述（如 `hard_constraint_insufficient_data`、`guardrail_block`），由 Constraint Evaluation / Guardrail 模块产生。规则引擎应在对应步骤完成后检查该步骤产出的条件是否匹配列表，匹配即触发。完整事件标识符体系由 SPEC-009 Governance 统一定义，MVP 由实现层保证名称一致性。
 
-> **宏观冲突与域缺失边界（v0.2.8）：** §36 中 `macro_regime_vs_playbook` 的 Conflict Handling 规则无 `condition`，语义为“编排器已基于可用宏观数据产出该冲突类型时，无条件执行 `require_human_review`”。宏观域 `domain_status ∈ {insufficient_data, failed, skipped}` 时，不得虚构 `macro_regime_vs_playbook` 冲突；默认按 Optional Domain 的 `on_missing = continue_with_warning` 处理，只写入 Decision Trace NOTE，不因单个宏观域缺失触发人工复核。若所有 Optional Domains 均不可用，仍按 §8.4 的 Playbook 级阈值进入 `analysis_incomplete`。特定 Playbook 如确需“宏观缺失即复核”，必须将该域的 `on_missing` 显式设为 `requires_human_review`。
+> **宏观冲突与域缺失边界（v0.2.8）：** §36 中 `macro_regime_vs_playbook` 的 Conflict Handling 规则无 `condition`，语义为”编排器已基于可用宏观数据产出该冲突类型时，无条件执行 `require_human_review`”。宏观域 `domain_status ∈ {unavailable, error}` 时，不得虚构 `macro_regime_vs_playbook` 冲突；默认按 Optional Domain 的 `on_missing = continue_with_warning` 处理，只写入 Decision Trace NOTE，不因单个宏观域缺失触发人工复核。若所有 Optional Domains 均不可用，仍按 §8.4 的 Playbook 级阈值进入 `analysis_incomplete`。特定 Playbook 如确需”宏观缺失即复核”，必须将该域的 `on_missing` 显式设为 `requires_human_review`。
 
 > **`high_conflict` 判定标准（v0.1.9）：** `high_conflict` 的判定暂定为：`default_severity = high` 的 Conflict Handling 规则被实际触发（其 `actions` 被执行）时，视为 `high_conflict`。完整判定逻辑由 SPEC-009 统一定义，MVP 暂以此规则为准。
 

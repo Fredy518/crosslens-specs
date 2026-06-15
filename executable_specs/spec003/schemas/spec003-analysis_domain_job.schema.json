@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "Domain": {
+      "enum": [
+        "macro_meso",
+        "fundamentals",
+        "company_event",
+        "sentiment",
+        "technical_market"
+      ],
+      "title": "Domain",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Orchestrator → Domain dispatch work order.",
+  "properties": {
+    "job_id": {
+      "minLength": 1,
+      "title": "Job Id",
+      "type": "string"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "domain": {
+      "$ref": "#/$defs/Domain"
+    },
+    "task": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Task",
+      "type": "object"
+    },
+    "context_bundle_ref": {
+      "default": "",
+      "title": "Context Bundle Ref",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "constraints": {
+      "default": [],
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Constraints",
+      "type": "array"
+    },
+    "run_config": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Run Config",
+      "type": "object"
+    },
+    "created_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Created At"
+    }
+  },
+  "required": [
+    "job_id",
+    "task_id",
+    "run_id",
+    "domain"
+  ],
+  "title": "AnalysisDomainJob",
+  "type": "object"
+}
