@@ -304,23 +304,49 @@ class DecisionCandidate(StrictModel):
     decision_candidate_id: str = Field(min_length=1)
     task_id: str = Field(min_length=1)
     run_id: str = Field(min_length=1)
+    resolved_decision_bounds_id: str = ""
+    playbook_evaluation_report_id: str | None = None
+    guardrail_report_id: str | None = None
+    validation_report_refs: list[str] = []
+    conflict_report_refs: list[str] = []
     suggested_action: str = Field(min_length=1)
     allowed_actions: list[str] = []
     confidence: float = Field(ge=0.0, le=1.0)
     confidence_cap: float = Field(ge=0.0, le=1.0, default=1.0)
     key_supporting_reasons: list[str] = []
     key_opposing_reasons: list[str] = []
+    next_steps: list[str] = []
     action_selection_reason: str = ""
     requires_human_review: bool = False
     output_control: str | None = None
     created_at: datetime | None = None
 
     @model_validator(mode="after")
+    def _allowed_actions_not_empty(self) -> "DecisionCandidate":
+        """P0: empty allowed_actions means no bounds — cannot generate candidate."""
+        if not self.allowed_actions:
+            raise ValueError(
+                "DecisionCandidate requires non-empty allowed_actions. "
+                "Empty bounds should route to analysis_incomplete notice, not a candidate."
+            )
+        return self
+
+    @model_validator(mode="after")
     def _suggested_action_in_allowed(self) -> "DecisionCandidate":
-        if self.allowed_actions and self.suggested_action not in self.allowed_actions:
+        if self.suggested_action not in self.allowed_actions:
             raise ValueError(
                 f"suggested_action={self.suggested_action} "
                 f"must be in allowed_actions={self.allowed_actions}"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _confidence_le_cap(self) -> "DecisionCandidate":
+        """P0: confidence must not exceed confidence_cap (§17.4)."""
+        if self.confidence > self.confidence_cap:
+            raise ValueError(
+                f"confidence={self.confidence} must not exceed "
+                f"confidence_cap={self.confidence_cap}"
             )
         return self
 

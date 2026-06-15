@@ -58,7 +58,7 @@ SPEC-001 (产品定义)
 | `OverallResult` | SPEC-006 + `decision_logic.py` | `passed`, `passed_with_caution`, `partially_passed`, `not_passed_for_new_buy`, `not_passed_for_add_position`, `not_suitable_for_playbook`, `need_more_data`, `requires_human_review` |
 | `ConstraintStatus` | SPEC-006 + `decision_logic.py` | `pass`, `fail`, `partial`, `insufficient_data`, `stale_data`, `not_applicable`, `error` |
 | `allowed_actions` | SPEC-006 + `decision_logic.py` | `buy`, `hold`, `wait`, `avoid`, `reduce`, `add_to_watchlist`, `hold_if_already_owned`, `need_more_data`, `add_position` |
-| `domain_status_reason` | SPEC-003 §10.1 + `models.py` | `insufficient_data`, `skipped_by_config`, `execution_failure`, `data_source_unavailable` |
+| `domain_status_reason` | SPEC-003 §10.1 + SPEC-004 `models.py` | `insufficient_data`, `skipped_by_config`, `execution_failure`, `data_source_unavailable` |
 | `validation_overall_status` | SPEC-003 §13.4 + `models.py` | `passed`, `passed_with_flags`, `blocked`, `error`, `skipped` |
 | `validation_severity` | SPEC-003 §13.4 + `models.py` | `block`, `flag`, `note` |
 
@@ -100,10 +100,10 @@ SPEC-001 (产品定义)
 
 | 包 | 位置 | 覆盖规范 | 状态 |
 |----|------|----------|------|
-| `crosslens_spec003` | `executable_specs/spec003/` | SPEC-003: InvestmentTask, AssetInfo, ContextBundle, EvidencePacket, AnalysisDomainJob, PostCardValidationReport, ConflictReport, DecisionCandidate, URI resolver | ✅ 已验证 (74 tests) |
+| `crosslens_spec003` | `executable_specs/spec003/` | SPEC-003: InvestmentTask, AssetInfo, ContextBundle, EvidencePacket, AnalysisDomainJob, PostCardValidationReport, ConflictReport, DecisionCandidate, URI resolver | ✅ 已验证 (77 tests) |
 | `crosslens_spec006` | `executable_specs/spec006/` | SPEC-006: aggregate_multi_rule, compute_overall_result, resolve_recommended_actions, merge_confidence_cap | ✅ 已验证 (29 tests) |
 | `crosslens_spec005` | `executable_specs/spec005/` | SPEC-005: MetricRegistryEntry, FactRegistryEntry, LabelRegistryEntry, DerivedMetricRuleTable | ✅ 已验证 (14 tests) |
-| `crosslens_spec004` | `executable_specs/spec004/` | SPEC-004: AnalysisCard, ConstraintExport, DataFreshness, post-card validation rules | ✅ 已验证 (18 tests) |
+| `crosslens_spec004` | `executable_specs/spec004/` | SPEC-004: AnalysisCard, ConstraintExport, DataFreshness, post-card validation rules | ✅ 已验证 (21 tests) |
 | `crosslens_spec009` | `executable_specs/spec009/` | SPEC-009: GuardrailReport, EvaluationReport, ResolvedDecisionBounds merge, apply_guardrails, run_evaluator, compute_final_confidence_cap, resolve_decision_bounds, check_evidence_contamination | ✅ 已验证 (56 tests) |
 
 ---

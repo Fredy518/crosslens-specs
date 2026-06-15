@@ -305,11 +305,13 @@ class TestDecisionCandidate:
             decision_candidate_id="dc_001",
             task_id="task_001",
             run_id="run_001",
+            resolved_decision_bounds_id="rdb_001",
             suggested_action="hold",
             allowed_actions=["hold", "wait", "add_to_watchlist"],
             confidence=0.58,
             key_supporting_reasons=["fundamentals positive"],
             key_opposing_reasons=["valuation stretched"],
+            next_steps=["等待 Q2 财报确认收入趋势"],
         )
         assert dc.suggested_action == "hold"
 
@@ -324,10 +326,35 @@ class TestDecisionCandidate:
                 confidence=0.5,
             )
 
+    def test_empty_allowed_actions_rejected(self):
+        """P0: Decision candidate cannot be generated without allowed_actions."""
+        with pytest.raises(ValueError, match="allowed_actions"):
+            DecisionCandidate(
+                decision_candidate_id="dc_003",
+                task_id="task_001",
+                run_id="run_001",
+                suggested_action="hold",
+                allowed_actions=[],
+                confidence=0.5,
+            )
+
+    def test_confidence_exceeds_cap_rejected(self):
+        """P0: confidence must not exceed confidence_cap (§17.4)."""
+        with pytest.raises(ValueError, match="confidence.*exceed"):
+            DecisionCandidate(
+                decision_candidate_id="dc_004",
+                task_id="task_001",
+                run_id="run_001",
+                suggested_action="hold",
+                allowed_actions=["hold", "wait"],
+                confidence=0.9,
+                confidence_cap=0.5,
+            )
+
     def test_block_output_not_in_allowed(self):
         with pytest.raises(ValueError, match="block_output"):
             DecisionCandidate(
-                decision_candidate_id="dc_003",
+                decision_candidate_id="dc_005",
                 task_id="task_001",
                 run_id="run_001",
                 suggested_action="hold",
@@ -336,18 +363,38 @@ class TestDecisionCandidate:
             )
 
     def test_output_control_block_output_no_suggested_action(self):
-        """When block_output is active, no suggested action should be present."""
-        # model_validator says: if output_control=block_output AND suggested_action → error
-        with pytest.raises(ValueError, match="output_control.*block_output"):
+        """When block_output is active with non-empty suggested_action → error."""
+        with pytest.raises(ValueError, match="output_control.*block_output|must be in allowed"):
             DecisionCandidate(
-                decision_candidate_id="dc_004",
+                decision_candidate_id="dc_006",
                 task_id="task_001",
                 run_id="run_001",
                 suggested_action="hold",
-                allowed_actions=[],
+                allowed_actions=["hold", "wait"],
                 confidence=0.0,
                 output_control="block_output",
             )
+
+    def test_with_trace_refs(self):
+        """P1: candidate can carry full trace references (§18)."""
+        dc = DecisionCandidate(
+            decision_candidate_id="dc_007",
+            task_id="task_001",
+            run_id="run_001",
+            resolved_decision_bounds_id="rdb_001",
+            playbook_evaluation_report_id="pbe_001",
+            guardrail_report_id="gr_001",
+            validation_report_refs=["val_post_card_001", "val_pre_decision_001"],
+            conflict_report_refs=["conflict_001"],
+            suggested_action="wait",
+            allowed_actions=["wait", "add_to_watchlist"],
+            confidence=0.58,
+            key_supporting_reasons=["基本面数据稳健"],
+            key_opposing_reasons=["估值偏高"],
+            next_steps=["等待 Q2 财报", "跟踪管理层指引"],
+        )
+        assert len(dc.next_steps) == 2
+        assert len(dc.validation_report_refs) == 2
 
 
 # ═══════════════════════════════════════════════════════════════════

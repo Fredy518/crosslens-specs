@@ -12,6 +12,7 @@ from crosslens_spec004.models import (
     DeterminismLevel,
     Domain,
     DomainStatus,
+    DomainStatusReason,
     EvidenceCoverage,
     EvidenceRef,
     ExportType,
@@ -292,3 +293,47 @@ def test_low_quality_requires_warnings():
                 warnings=[],
             )
         )
+
+
+# ── Domain Status Reason ────────────────────────────────────────
+
+def test_error_requires_domain_status_reason():
+    """domain_status=error requires domain_status_reason."""
+    with pytest.raises(ValueError, match="domain_status_reason"):
+        AnalysisCard.model_validate(
+            _valid_card(
+                domain_status=DomainStatus.ERROR,
+                stance=Stance.NOT_APPLICABLE,
+                confidence=0.0,
+                constraint_exports=[],
+                data_freshness=None,
+                supporting_evidence=[],
+                opposing_evidence=[],
+                domain_status_reason=None,
+            )
+        )
+
+
+def test_unavailable_requires_domain_status_reason():
+    """domain_status=unavailable requires domain_status_reason."""
+    with pytest.raises(ValueError, match="domain_status_reason"):
+        AnalysisCard.model_validate(
+            _valid_card(
+                domain_status=DomainStatus.UNAVAILABLE,
+                stance=Stance.UNAVAILABLE,
+                confidence=0.0,
+                constraint_exports=[],
+                data_freshness=None,
+                supporting_evidence=[],
+                opposing_evidence=[],
+                domain_status_reason=None,
+            )
+        )
+
+
+def test_completed_with_domain_status_reason_ok():
+    """domain_status=completed does not require reason."""
+    card = AnalysisCard.model_validate(
+        _valid_card(domain_status_reason=None)
+    )
+    assert card.domain_status_reason is None

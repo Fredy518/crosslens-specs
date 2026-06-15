@@ -13,6 +13,16 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+# ── Domain Status Reason (explain domain_status without splitting it) ──
+
+class DomainStatusReason(str, Enum):
+    """Reason codes for domain_status ∈ {error, unavailable}."""
+    INSUFFICIENT_DATA = "insufficient_data"
+    SKIPPED_BY_CONFIG = "skipped_by_config"
+    EXECUTION_FAILURE = "execution_failure"
+    DATA_SOURCE_UNAVAILABLE = "data_source_unavailable"
+
+
 # ── Domain Status ──────────────────────────────────────────────
 
 class DomainStatus(str, Enum):
@@ -162,6 +172,7 @@ class AnalysisCard(StrictModel):
     run_id: str = Field(min_length=1)
     domain: Domain
     domain_status: DomainStatus
+    domain_status_reason: DomainStatusReason | None = None
     summary: str = ""
     stance: Stance | None = None
     confidence: float = Field(ge=0.0, le=1.0, default=0.0)
@@ -305,4 +316,15 @@ class AnalysisCard(StrictModel):
             raise ValueError(
                 "schema_version must start with 'SPEC-004@'"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _domain_status_reason_required(self) -> "AnalysisCard":
+        """§10.1: domain_status ∈ {error, unavailable} requires reason_code."""
+        if self.domain_status in {DomainStatus.ERROR, DomainStatus.UNAVAILABLE}:
+            if self.domain_status_reason is None:
+                raise ValueError(
+                    f"domain_status={self.domain_status} requires "
+                    f"domain_status_reason to be set"
+                )
         return self
