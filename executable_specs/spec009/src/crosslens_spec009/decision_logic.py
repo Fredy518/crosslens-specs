@@ -402,7 +402,7 @@ def aggregate_human_review_signals(
         requires_review = True
 
     # Source 6: Fundamentals unavailable
-    if fundamentals_domain_status in {"insufficient_data", "error"}:
+    if fundamentals_domain_status in {"unavailable", "error"}:
         triggers.append(HumanReviewTrigger(
             source="orchestration",
             source_ref="task_config",
@@ -651,7 +651,7 @@ def _make_guardrail_report(
     blocked_candidate_actions: list[str],
     output_control: str | None,
     requires_disclosure: bool = False,
-    confidence_cap_adjustments: list[ConfidenceCapAdjustjustment] | None = None,
+    confidence_cap_adjustments: list[ConfidenceCapAdjustment] | None = None,
     requires_human_review: bool = False,
 ) -> GuardrailReport:
     return GuardrailReport(
@@ -672,7 +672,7 @@ def _make_guardrail_report(
 def _has_insufficient_required_domain(domain_status: dict[str, str]) -> bool:
     """Check if any required domain has insufficient data."""
     return any(
-        status in {"partial", "unavailable", "insufficient_data"}
+        status in {"partial", "unavailable"}
         for status in domain_status.values()
     )
 

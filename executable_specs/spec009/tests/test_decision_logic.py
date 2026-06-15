@@ -333,7 +333,7 @@ class TestHumanReviewAggregation:
 
     def test_fundamentals_unavailable(self):
         requires, triggers = aggregate_human_review_signals(
-            fundamentals_domain_status="insufficient_data",
+            fundamentals_domain_status="unavailable",
         )
         assert requires is True
         assert triggers[0].source == "orchestration"
@@ -351,6 +351,13 @@ class TestHumanReviewAggregation:
             fundamentals_domain_status="error",
         )
         assert requires is True
+
+    def test_fundamentals_insufficient_data_is_not_a_domain_status(self):
+        """'insufficient_data' 不在 Registry domain_status 枚举中，不应触发 human review。"""
+        requires, triggers = aggregate_human_review_signals(
+            fundamentals_domain_status="insufficient_data",
+        )
+        assert requires is False
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -569,7 +576,7 @@ class TestResolveDecisionBounds:
             playbook_bounds=["hold", "wait"],
             guardrail_report=gr,
             evaluation_report=ev,
-            fundamentals_domain_status="insufficient_data",
+            fundamentals_domain_status="unavailable",
         )
         assert result.requires_human_review is True
         assert any(t.trigger_type.value == "fundamentals_unavailable" for t in result.human_review_triggers)
