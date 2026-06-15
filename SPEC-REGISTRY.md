@@ -79,9 +79,9 @@ SPEC-001 (产品定义)
 | 包 | 位置 | 覆盖规范 | 状态 |
 |----|------|----------|------|
 | `crosslens_spec006` | `executable_specs/spec006/` | SPEC-006: aggregate_multi_rule, compute_overall_result, resolve_recommended_actions, merge_confidence_cap | ✅ 已验证 (17 tests) |
-| `crosslens_spec005` | `executable_specs/spec005/` (待创建) | SPEC-005: resolve_input_ref, Metric Registry validation | 📋 计划中 |
-| `crosslens_spec004` | — (待创建) | SPEC-004: Analysis Card schema validation | 📋 计划中 |
-| `crosslens_spec009` | — (待创建) | SPEC-009: GuardrailReport, EvaluationReport, ResolvedDecisionBounds merge | 📋 计划中 |
+| `crosslens_spec005` | `executable_specs/spec005/` | SPEC-005: resolve_input_ref, Metric Registry validation | 📋 scaffold 已创建 / implementation pending |
+| `crosslens_spec004` | `executable_specs/spec004/` | SPEC-004: Analysis Card schema validation | 📋 scaffold 已创建 / implementation pending |
+| `crosslens_spec009` | `executable_specs/spec009/` | SPEC-009: GuardrailReport, EvaluationReport, ResolvedDecisionBounds merge | 📋 scaffold 已创建 / implementation pending |
 
 ---
 
@@ -102,4 +102,4 @@ SPEC-001 (产品定义)
 1. [ ] 更新本 Registry 中对应 SPEC 的 version
 2. [ ] 检查 `normative_for` 中声明的枚举/schema 是否被修改 → 如是，遍历 `consumed_by` 做兼容检查
 3. [ ] 若该 SPEC 被 `approved` 状态的 SPEC 依赖，评估是否需要 downgrade 下游状态
-4. [ ] 更新 README.md 中的版本号
+4. [ ] 若 README.md 包含派生信息（版本号、状态、链接等），同步更新；如 README 已声明以 Registry 为唯一事实源，则仅确认 Registry → README 的派生链路一致即可
