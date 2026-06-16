@@ -6,8 +6,8 @@
 .DS_Store
 Thumbs.db
 
-# Agent prompts (one-shot execution instructions — value is in output, not the prompt)
-plan/
+# Agent prompts (plan/ 下的一次性 agent prompt 不入库)
+plan/*prompt*.md
 
 # Python executable specifications
 __pycache__/
