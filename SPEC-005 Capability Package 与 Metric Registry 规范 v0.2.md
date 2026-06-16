@@ -207,6 +207,16 @@ function validate_export(export: ConstraintExport, ref_type: string) -> Validati
     if export.allowed_constraint_types == null or export.allowed_constraint_types.isEmpty():
         errors.append("allowed_constraint_types 缺失或为空")
     
+    // registration_status 治理（SPEC-004 §9.2 / §6.4）
+    if export.registration_status == null:
+        export.registration_status = "registered"  // 向后兼容默认值
+    
+    if export.registration_status in ("unregistered_mvp_local", "proposed"):
+        if export.can_support_hard_constraint == true:
+            errors.append("未注册 export 不得声明 can_support_hard_constraint=true")
+        if "hard" in export.allowed_constraint_types:
+            errors.append("未注册 export 的 allowed_constraint_types 不得包含 hard")
+    
     return ValidationResult(
         failed=(errors.length > 0),
         reason=errors.join("; ")
@@ -1252,6 +1262,7 @@ function build_constraint_exports(
                         determinism_level=reg_metric.determinism_level,
                         can_support_hard_constraint=false,
                         allowed_constraint_types=["soft"],
+                        registration_status="registered",
                         lineage_constraint_failure=lineage_check.reason
                     ))
                     continue
@@ -1265,7 +1276,8 @@ function build_constraint_exports(
                 can_support_hard_constraint=reg_metric.can_support_hard_constraint,
                 allowed_constraint_types=(
                     ["hard", "soft"] if reg_metric.can_support_hard_constraint else ["soft"]
-                )
+                ),
+                registration_status="registered"
             ))
     
     return exports
@@ -1309,6 +1321,51 @@ function validate_export_against_registry(
         errors=errors
     )
 ```
+
+### 6.4 Export Registration 治理规则
+
+> v0.2.1 新增。`registration_status` 字段定义在 **SPEC-004 §9.1**（`ConstraintExport` schema / `crosslens_spec004.models`）。本节规定 Playbook Evaluation 如何使用该字段。
+
+#### 6.4.1 registration_status 枚举
+
+| 值 | 含义 | Hard Constraint 资格 |
+|---|---|:---:|
+| `registered` | export_ref 已在 Metric Registry 登记（**默认值**） | 按 Registry 定义 |
+| `unregistered_mvp_local` | 域内计算、有价值但尚未进 Registry 的 MVP 扩展 | **禁止** |
+| `proposed` | 已提交 SPEC-005 变更请求，待合并 | **禁止** |
+
+#### 6.4.2 强制不变量
+
+```text
+IF registration_status IN ("unregistered_mvp_local", "proposed"):
+    MUST can_support_hard_constraint = false
+    MUST allowed_constraint_types = ["soft"]
+    MUST NOT be referenced by Playbook Hard Constraint
+
+IF registration_status = "registered" AND lineage_constraint_failure IS NOT NULL:
+    MUST can_support_hard_constraint = false
+    MAY be referenced by Playbook Soft Constraint only
+```
+
+#### 6.4.3 Playbook Evaluation 规则
+
+```text
+function resolve_hard_constraint(export: ConstraintExport) -> ConstraintResult:
+    if export.registration_status != "registered":
+        return REJECT("hard_constraint_requires_registered_export")
+    if export.can_support_hard_constraint != true:
+        return REJECT("export_not_hard_capable")
+    if export.lineage_constraint_failure != null:
+        return REJECT("lineage_constraint_failure")
+    // ... 继续 freshness / evidence_ref 检查
+```
+
+#### 6.4.4 与域实现规格的关系
+
+- 域实现规格（如 SPEC-013、SPEC-014）定义**哪些** export 在什么阶段产出；
+- SPEC-004 定义 export 的 **schema 字段**（含 `registration_status`）；
+- SPEC-005 Registry 定义**哪些** export_ref 为 `registered`；
+- 未注册指标可写入 `domain_payload`，或作为 `unregistered_mvp_local` 进入 `constraint_exports`（仅 soft），但不得进入 Hard Constraint 路径。
 
 ---
 
