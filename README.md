@@ -15,7 +15,7 @@ Architecture Constitution: **Deterministic first, Agentic when necessary, Tracea
 | SPEC-001 | [产品定义与边界](./SPEC-001%20产品定义与边界%20v0.4.md) | 产品是什么/不是什么，七层架构边界 |
 | SPEC-002 | [目标用户与核心场景](./SPEC-002%20目标用户与核心场景%20v0.1.md) | 用户画像、场景、路由决策树 |
 | SPEC-003 | [Agentic投研工作流架构](./SPEC-003%20Agentic投研工作流架构%20v0.3.4.md) | 七层架构、核心对象链、标准 Workflow |
-| SPEC-004 | [五类分析能力域与Analysis Card Schema](./SPEC-004%20五类分析能力域与%20Analysis%20Card%20Schema%20v0.2.5.md) | 5个能力域定义、Analysis Card Schema |
+| SPEC-004 | [五类分析能力域与Analysis Card Schema](./SPEC-004%20五类分析能力域与%20Analysis%20Card%20Schema%20v0.2.6.md) | 5个能力域定义、Analysis Card Schema |
 | SPEC-005 | [Capability Package与Metric Registry](./SPEC-005%20Capability%20Package%20与%20Metric%20Registry%20规范%20v0.2.md) | 工具/模型打包、指标注册与解析、Evidence confidence规则 |
 | SPEC-006 | [Investment Playbook 规范](./SPEC-006%20Investment%20Playbook%20规范%20v0.3.0.md) | 投资决策手册、约束执行语义 |
 | SPEC-007 | [Orchestration与执行路径](./SPEC-007%20Orchestration%20与执行路径%20v0.6.md) | 运行状态机、编排图、路由决策 |

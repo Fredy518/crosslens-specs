@@ -4,10 +4,11 @@
 **状态：** Draft
 **项目名称：** crosslens
 **文档类型：** 实现
-**依赖文档：** SPEC-003 v0.3.4；SPEC-004 v0.2.5
+**依赖文档：** SPEC-003 v0.3.4；SPEC-004 v0.2.6；SPEC-005 v0.2
+**实现参考：** SPEC-013 v0.2.0（Adapter 映射、Evidence 边界、Pipeline 模式；非规范性上游）
 **上游契约：**
 - SPEC-003 §8 (Analysis Domain Job 输入)
-- SPEC-004 §4 (Analysis Card 通用 Schema)
+- SPEC-004 §4 (Analysis Card 通用 Schema，含 ConstraintExport.registration_status)
 - SPEC-004 §35-§40 (Technical/Market 域定义、输入、payload、constraint_exports、冲突、降级)
 - SPEC-005 §5 (Metric Registry)
 **目标阶段：** 域实现规格 / MVP 实现前置
@@ -23,29 +24,36 @@
 
 ### 1.1 上游契约策略
 
-本 SPEC 新增了 SPEC-004 §36 未列出的 Evidence 类型（`divergence_metrics`、`wyckoff_metrics`）和 SPEC-004 §38 未列出的 constraint_exports。处理策略：
+本 SPEC 新增了 SPEC-004 §36 未列出的 Evidence 类型（`divergence_metrics`、`wyckoff_metrics`）以及 SPEC-004 §38 / SPEC-005 Registry 未收录的 export_ref。处理策略采用 **Registry 治理 + 分阶段交付**（实现冻结范围见 §16）。
 
-**MVP 阶段（当前）：** 采用**域内计算、受限导出**策略。
-- `divergence_metrics` 和 `wyckoff_metrics` 作为域内计算的 Evidence，**不写入共享 Evidence Pool**
-- Layer 1 的 12 个 Computed metrics 可正常导出 Hard Constraint（已在 SPEC-004 §38 范围内或有明确映射）
-- Layer 2 的 divergence metrics 仅当 `divergence_confirmations >= 2` 时，`divergence_strength` 可设 `can_support_hard = true`；其余 divergence exports 一律 `can_support_hard = false`
-- Layer 3 的 wyckoff metrics 一律 `can_support_hard_constraint = false`
+#### 1.1.1 Evidence 类型
 
-**后续阶段：** 向 SPEC-004/005 提交变更请求，正式注册 `divergence_metrics`、`wyckoff_metrics` Evidence 类型和新增 export_ref。注册完成后切换为完全导出模式。
+- `#1–#6`：对应 SPEC-004 §36 已注册类型
+- `#7–#8`：域内计算，**不写入共享 Evidence Pool**（对齐 SPEC-013 §3 P0 边界；Orchestrator 集成后再切换消费模式）
 
-**待注册清单（MVP 可导出但 Playbook 不可引用）：**
+#### 1.1.2 constraint_exports 治理规则
 
-以下 5 个 Layer 1 metrics 不在 SPEC-004 §38 / SPEC-005 Metric Registry 中，MVP 阶段可导出到 `constraint_exports`，但 Playbook 不应引用这些未注册的 export_ref：
+`registration_status` 字段定义在 **SPEC-004 §9.1**（`crosslens_spec004.models.ConstraintExport`），Playbook 消费规则见 **SPEC-005 §6.4**。SPEC-014 的分阶段导出策略：
 
-| export_ref | 说明 | 注册状态 |
-|---|---|---|
-| `metric://atr_pct_14d` | ATR 百分比 | 待注册 |
-| `metric://macd_histogram` | MACD 柱值 | 待注册 |
-| `metric://adx_14d` | ADX 14日 | 待注册 |
-| `metric://bb_position` | 布林带位置 | 待注册 |
-| `metric://amihud_illiquidity` | Amihud 非流动性 | 待注册 |
+| registration_status | 含义 | can_support_hard_constraint | allowed_constraint_types |
+|---|---|---|:---:|
+| `registered` | 已在 SPEC-005 Registry 登记 | 按 metric 定义 | `["hard", "soft"]` |
+| `unregistered_mvp_local` | MVP 本地扩展，未注册 | **MUST be false** | `["soft"]` |
+| `proposed` | 已提交 SPEC-005 变更请求，待合并 | false | `["soft"]` |
 
-> 这些 metric 的 `can_support_hard_constraint = true`，但由于未在 Registry 中注册，Playbook Evaluation 阶段应跳过它们（或标记为 `unregistered_metric`）。
+**Playbook Evaluation MUST：** 拒绝任何 `registration_status != "registered"` 的 export 被 Hard Constraint 引用。
+
+**分阶段导出策略：**
+
+| 阶段 | constraint_exports 范围 | Hard Constraint |
+|------|--------------------------|-----------------|
+| **P0**（实现冻结） | 仅 §11.1 的 7 个已注册 Layer 1 metrics | 仅 `registered` 项 |
+| **P1** | 追加 §11.2 背离 metrics/facts（soft-only） | 背离一律不可 hard |
+| **P2** | 追加 §11.3 Wyckoff facts（soft-only） | Wyckoff 一律不可 hard |
+
+**未注册 Layer 1 指标**（`atr_pct_14d`、`macd_histogram`、`adx_14d`、`bb_position`、`amihud_illiquidity`）在 P0–P2 **只写入 `domain_payload`**，**不进入 `constraint_exports`**，直至 SPEC-005 正式注册。
+
+**后续阶段：** 向 SPEC-004/005 提交变更请求，正式注册新增 Evidence 类型和 export_ref。注册完成后将 `registration_status` 升级为 `registered`，方可参与 Hard Constraint。
 
 ---
 
@@ -273,7 +281,7 @@ metrics:
 evidence_type: "divergence_metrics"
 generation_type: computed
 determinism_level: computed
-can_support_hard_constraint: false   # 默认 false；仅当 divergence_confirmations >= 2 时，divergence_strength export 可升级为 true
+can_support_hard_constraint: false   # MVP P1+ 亦保持 false；背离仅作 Soft Constraint（§1.1.2、§11.2）
 数据来源: stock_daily + Layer 1 指标
 
 metrics:
@@ -1171,9 +1179,8 @@ for ev_type, ev_abbrev in _DOMAIN_EVIDENCE_TYPES:
             if ev_type != "wyckoff_metrics"
             else EpDeterminismLevel.STRUCTURED,
         can_support_hard_constraint=(
-            ev_type not in ("wyckoff_metrics",)  # Layer 3 不支持 hard
-            and (ev_type != "divergence_metrics"  # Layer 2 仅多指标确认时支持
-                 or divergence_confirmations >= 2)
+            ev_type not in ("wyckoff_metrics", "divergence_metrics")
+            # Layer 1 evidence 组本身可支撑 hard；实际 export 受 §11 registration_status 约束
         ),
         confidence=1.0 if layer_ok(ev_type) else 0.3,
         data_quality=EpDataQuality.HIGH if layer_ok(ev_type) else EpDataQuality.LOW,
@@ -1472,11 +1479,13 @@ def _compute_data_freshness(
         newest_evidence_as_of=last_trade_date.isoformat(),
         freshness_level="daily",
         staleness_risk=staleness_risk,
-        valid_until=(last_trade_date + timedelta(days=5)).isoformat(),  # 默认 5 日有效
+        valid_until=add_trading_days(last_trade_date, 3).isoformat(),  # 3 个交易日有效（与 staleness 口径一致）
     )
 ```
 
-> **日线 vs 财报 freshness：** 财报数据有 PIT（披露延迟），freshness 基于披露日。日线行情实时可得，freshness = 最后交易日距 as_of 的交易日数。`oldest_evidence_as_of` 和 `newest_evidence_as_of` 在 Technical 域中均为最后交易日（所有指标基于同一日的 OHLCV 计算）。
+> **日线 vs 财报 freshness：** 财报数据有 PIT（披露延迟），freshness 基于披露日。日线行情实时可得，freshness = 最后交易日距 as_of 的**交易日**数。`oldest_evidence_as_of` 和 `newest_evidence_as_of` 在 Technical 域中均为最后交易日（所有指标基于同一日的 OHLCV 计算）。
+>
+> **口径约定：** `staleness_risk` 和 `valid_until` 均基于**交易日**语义（`count_trading_days` / `add_trading_days`），不使用自然日 `timedelta`，避免实现混用。
 
 #### 9.5.6 evidence_coverage 计算
 
@@ -1564,14 +1573,17 @@ def _derive_invalidating_conditions(
 | 字段 | 必填 | 来源 |
 |------|:----:|------|
 | `card_id` | ✅ | `card_technical_{task_id}` |
-| `schema_version` | ✅ | `"SPEC-004@0.2.5"` |
+| `schema_version` | ✅ | `"SPEC-004@0.2.6"` |
 | `task_id` / `run_id` / `domain` | ✅ | 从 job 继承 |
 | `domain_status` | ✅ | Step 1 数据量判定 |
 | `domain_status_reason` | 条件 | partial/unavailable 时必填 |
 | `summary` | ✅ | §9.5.4 模板 |
 | `stance` | ✅ | Step 6 计算 |
 | `confidence` / `confidence_reason` | ✅ | Step 7 计算 |
-| `time_horizon` | ✅ | 默认 `"short_to_medium_term"` |
+| `time_horizon` | ✅ | 默认 `"short_to_medium_term"`（人类可读摘要） |
+| `time_horizon_bucket` | ✅ | 默认 `"short_term"`（机器字段，对齐 SPEC-004 冲突检测） |
+| `time_horizon_days_min` | ✅ | 默认 `5` |
+| `time_horizon_days_max` | ✅ | 默认 `60` |
 | `data_quality` | ✅ | 从 data_depth 映射 |
 | `data_freshness` | 条件 | §9.5.5（constraint_exports 非空时必填） |
 | `evidence_coverage` | ✅ | §9.5.6 |
@@ -1636,7 +1648,9 @@ def _derive_invalidating_conditions(
 }
 ```
 
-> **key_levels MVP 行为：** `support` 和 `resistance` 在 MVP 阶段始终为空数组。若 Layer 3 检测到 Trading Range，`trading_range_high` / `trading_range_low` 可作为软参考（在 `wyckoff` 子对象中），但不写入 `key_levels`。
+> **key_levels MVP 行为：** `support` 和 `resistance` 在 MVP 阶段**必须**为空数组 `[]`。若 Layer 3 检测到 Trading Range，`trading_range_high` / `trading_range_low` 可作为软参考（在 `wyckoff` 子对象中），**禁止**写入 `key_levels`。
+>
+> **契约测试约束：** `key_levels.support` 和 `key_levels.resistance` **MUST** be `[]`，除非 `support_resistance_metrics` 已正式实现并注册。任何非空输出 MUST fail contract test（`tests/test_technical_card.py::test_key_levels_must_be_empty`）。
 
 ### 10.2 枚举约束（对齐 SPEC-004 §37.1）
 
@@ -1691,49 +1705,92 @@ none
 
 ## 11. constraint_exports
 
-### 11.1 Layer 1 导出的 Computed Metrics
+### 11.0 Export 治理总则
 
-以下指标可支撑 Hard Constraint（`can_support_hard_constraint = true`）：
+所有 `constraint_exports` 项 MUST 携带 `registration_status`（SPEC-004 §9.1，默认 `registered`；治理规则 SPEC-005 §6.4）。**P0 实现冻结**仅交付 §11.1；§11.2/§11.3 分别对应 P1/P2。
 
-| export_ref | 说明 | SPEC-004 §38 对齐 |
-|---|---|:---:|
-| `metric://rsi_14d` | RSI 14日 | ✅ |
-| `metric://price_above_50d_ma` | 价格高于50日均线 | ✅ |
-| `metric://price_above_200d_ma` | 价格高于200日均线 | ✅ |
-| `metric://volume_vs_20d_average` | 量比 | ✅ |
-| `metric://atr_14d` | ATR 14日 | ✅ |
-| `metric://atr_pct_14d` | ATR 百分比 | 新增 |
-| `metric://drawdown_from_52w_high` | 距52周高点回撤 | ✅ |
-| `metric://average_dollar_volume_20d` | 20日均成交额 | ✅ |
-| `metric://macd_histogram` | MACD 柱值 | 新增 |
-| `metric://adx_14d` | ADX 14日 | 新增 |
-| `metric://bb_position` | 布林带位置 | 新增 |
-| `metric://amihud_illiquidity` | Amihud 非流动性 | 新增 |
+**ConstraintExport 最小结构示例（已注册 metric）：**
 
-> **注：** `metric://bid_ask_spread_proxy`（SPEC-004 §38 列出）不在 MVP 范围内，不导出。Playbook 不可引用该约束。
+```json
+{
+  "export_type": "metric",
+  "export_ref": "metric://rsi_14d",
+  "evidence_ref": "ev_tm_mom_{run_id}",
+  "value_path": "rsi_14d",
+  "determinism_level": "computed",
+  "can_support_hard_constraint": true,
+  "allowed_constraint_types": ["hard", "soft"],
+  "registration_status": "registered"
+}
+```
 
-### 11.2 Layer 2 导出的 Computed Metrics
+**未注册 soft-only 示例（P1 背离）：**
 
-| export_ref | 说明 | can_support_hard |
-|---|---|:---:|
-| `metric://divergence_confirmations` | 确认背离的指标数量 | true（仅当值 ≥ 2 时） |
-| `metric://divergence_strength` | 最强背离的强度 | true（仅当 `divergence_confirmations >= 2` 时）；否则 false |
-| `fact://has_regular_bullish_divergence` | 是否存在底背离 | false |
-| `fact://has_regular_bearish_divergence` | 是否存在顶背离 | false |
+```json
+{
+  "export_type": "metric",
+  "export_ref": "metric://divergence_strength",
+  "evidence_ref": "ev_tm_div_{run_id}",
+  "value_path": "divergence_strength",
+  "determinism_level": "computed",
+  "can_support_hard_constraint": false,
+  "allowed_constraint_types": ["soft"],
+  "registration_status": "unregistered_mvp_local"
+}
+```
 
-> **动态 can_support_hard：** `divergence_strength` 的 `can_support_hard_constraint` 在 export 时根据 `divergence_confirmations` 动态设置。单指标背离时 `false`，多指标确认时 `true`。
+### 11.1 Layer 1 导出的 Computed Metrics（P0 — 仅已注册）
 
-### 11.3 Layer 3 导出
+以下 **7** 个 metrics 已在 SPEC-004 §38 / SPEC-005 Registry 登记，P0 **唯一**可导出 Hard Constraint 的 metrics（`bid_ask_spread_proxy` 虽已注册但 MVP 不交付，见 §16.2）：
+
+| export_ref | 说明 | registration_status | can_support_hard |
+|---|---|:---:|:---:|
+| `metric://rsi_14d` | RSI 14日 | `registered` | true |
+| `metric://price_above_50d_ma` | 价格高于50日均线 | `registered` | true |
+| `metric://price_above_200d_ma` | 价格高于200日均线 | `registered` | true |
+| `metric://volume_vs_20d_average` | 量比 | `registered` | true |
+| `metric://atr_14d` | ATR 14日 | `registered` | true |
+| `metric://drawdown_from_52w_high` | 距52周高点回撤 | `registered` | true |
+| `metric://average_dollar_volume_20d` | 20日均成交额 | `registered` | true |
+
+> **注：** `metric://bid_ask_spread_proxy`（SPEC-004 §38 已注册）不在 MVP 范围内，不导出。
+
+### 11.4 domain_payload-only 指标（未注册，不进 constraint_exports）
+
+以下 Layer 1 指标在 Evidence / domain_payload 中计算，但 **MUST NOT** 进入 `constraint_exports`，直至 SPEC-005 注册：
+
+| 字段（domain_payload） | 对应 export_ref（待注册） | 说明 |
+|---|---|---|
+| `atr_pct_14d` | `metric://atr_pct_14d` | ATR 百分比 |
+| `macd_histogram` | `metric://macd_histogram` | MACD 柱值 |
+| `adx_14d` | `metric://adx_14d` | ADX 14日 |
+| `bb_position` | `metric://bb_position` | 布林带位置 |
+| `amihud_illiquidity` | `metric://amihud_illiquidity` | Amihud 非流动性 |
+
+### 11.2 Layer 2 导出的 Metrics / Facts（P1 — soft-only）
+
+背离检测依赖极值点参数（§7.2、§14.3），阈值未经 A 股回测校准。MVP 阶段**一律不支持 Hard Constraint**：
+
+| export_ref | 说明 | registration_status | can_support_hard | allowed_constraint_types |
+|---|---|:---:|:---:|:---:|
+| `metric://divergence_confirmations` | 确认背离的指标数量 | `unregistered_mvp_local` | false | `["soft"]` |
+| `metric://divergence_strength` | 最强背离的强度 | `unregistered_mvp_local` | false | `["soft"]` |
+| `fact://has_regular_bullish_divergence` | 是否存在底背离 | `unregistered_mvp_local` | false | `["soft"]` |
+| `fact://has_regular_bearish_divergence` | 是否存在顶背离 | `unregistered_mvp_local` | false | `["soft"]` |
+
+> **设计理由：** 多指标确认可提高 confidence，但不应自动获得 hard 权限。未来若回测验证有效，通过 SPEC-005 注册为 conditional hard export。
+
+### 11.3 Layer 3 导出（P2 — soft-only）
 
 威科夫分析的所有输出 `can_support_hard_constraint = false`，仅作为 Soft Constraint：
 
-| export_ref | 说明 |
-|---|---|
-| `fact://wyckoff_accumulation_phase_cd` | 吸筹 Phase C/D |
-| `fact://wyckoff_distribution_phase_cd` | 派发 Phase C/D |
-| `fact://wyckoff_spring_detected` | Spring 事件检测到 |
-| `fact://wyckoff_utad_detected` | UTAD 事件检测到 |
-| `fact://vsa_effort_result_divergence` | VSA 努力与结果背离 |
+| export_ref | 说明 | registration_status | can_support_hard | allowed_constraint_types |
+|---|---|:---:|:---:|:---:|
+| `fact://wyckoff_accumulation_phase_cd` | 吸筹 Phase C/D | `unregistered_mvp_local` | false | `["soft"]` |
+| `fact://wyckoff_distribution_phase_cd` | 派发 Phase C/D | `unregistered_mvp_local` | false | `["soft"]` |
+| `fact://wyckoff_spring_detected` | Spring 事件检测到 | `unregistered_mvp_local` | false | `["soft"]` |
+| `fact://wyckoff_utad_detected` | UTAD 事件检测到 | `unregistered_mvp_local` | false | `["soft"]` |
+| `fact://vsa_effort_result_divergence` | VSA 努力与结果背离 | `unregistered_mvp_local` | false | `["soft"]` |
 
 > **设计理由：** 威科夫分析包含大量启发式判断，相同输入在不同参数下可能产生不同结论。不适合作为 Hard Constraint。
 
@@ -1834,15 +1891,15 @@ src/crosslens_technical_market/
 
 ### 13.2 测试分层
 
-| 层级 | 测试文件 | 覆盖内容 |
-|------|---------|---------|
-| Layer 1 指标 | `tests/test_technical_indicators.py` | TA-Lib 调用 + 派生指标 + 复权 |
-| Layer 1 分类器 | `tests/test_technical_classifiers.py` | 7 个分类器 |
-| Layer 2 背离 | `tests/test_divergence.py` | 4 种背离类型 + 强度评分 + 单调配对 |
-| Layer 3 威科夫 | `tests/test_wyckoff.py` | VSA 分类 + Spring/UTAD + 阶段判定 + 涨跌停降级 |
-| Pipeline | `tests/test_technical_pipeline.py` | 端到端管线 + Card 组装 |
-| Card 契约 | `tests/test_technical_card.py` | AnalysisCard schema 契约测试（对齐 SPEC-004 §4） |
-| 集成 | `tests/integration/test_technical_real.py` | 真实数据源（AlphaDB + TinyData） |
+| 层级 | 阶段 | 测试文件 | 覆盖内容 |
+|------|:----:|---------|---------|
+| Layer 1 指标 | P0 | `tests/test_technical_indicators.py` | TA-Lib 调用 + 派生指标 + 复权 |
+| Layer 1 分类器 | P0 | `tests/test_technical_classifiers.py` | 5 个 Layer 1 分类器 |
+| Pipeline P0 | P0 | `tests/test_technical_pipeline.py` | Layer 1 端到端 + Card 组装 |
+| Card 契约 | P0 | `tests/test_technical_card.py` | AnalysisCard schema + key_levels 空数组约束 |
+| 集成 | P0 | `tests/integration/test_technical_real.py` | 真实数据源 Layer 1 路径 |
+| Layer 2 背离 | P1 | `tests/test_divergence.py` | 4 种背离类型 + 强度评分 + 单调配对 |
+| Layer 3 威科夫 | P2 | `tests/test_wyckoff.py` | VSA 分类 + Spring/UTAD + 阶段判定 + 涨跌停降级 |
 
 ### 13.3 Layer 1 测试用例
 
@@ -1930,6 +1987,17 @@ test_distribution_phase_b
 test_markup_phase
 test_markdown_phase
 test_unknown_phase
+```
+
+### 13.6 Card 契约测试用例（P0）
+
+```text
+test_analysis_card_schema_valid          # crosslens_spec004.models.AnalysisCard model_validate
+test_key_levels_must_be_empty            # key_levels.support/resistance MUST be []
+test_constraint_exports_registered_only   # P0: 仅 7 个 registration_status=registered hard exports
+test_data_freshness_required_when_exports # constraint_exports 非空时 data_freshness 必填
+test_time_horizon_bucket_populated       # time_horizon_bucket + days_min/max 必填
+test_opposing_evidence_for_directional_stance  # §41 ¶7
 ```
 
 ---
@@ -2046,34 +2114,51 @@ A 股的 T+1 制度和涨跌停板限制对技术分析有独特影响：
 
 ## 16. MVP 范围
 
-### 16.1 交付
+> **分阶段交付：** P0 = 实现冻结范围（必须先完成并通过契约测试）；P1/P2 = 后续增量。算法章节（§7–§8）保留完整设计，但实现可按阶段裁剪。
 
-- ✅ 8 种 Evidence 指标组（6 种 SPEC-004 已注册 + 2 种新增）
-- ✅ 7 个分类器（5 个 Layer 1 + divergence + wyckoff）
-- ✅ 背离检测算法（RSI + MACD + OBV，4 种类型）
-- ✅ 威科夫 VSA 8 种信号分类
-- ✅ Spring/UTAD 事件检测
-- ✅ 威科夫阶段判定（Phase A-E）
-- ✅ 完整的 domain_payload（含 `threshold_calibration: "uncalibrated"`）
-- ✅ 12 个可导出的 Hard Constraint metrics + 5 个 Soft Constraint facts（动态 can_support_hard）
-- ✅ 8 项域级验证（含 mixed+opposing 检查、流动性风险检查）
-- ✅ Analysis Card 完整组装（evidence/tailwinds/headwinds/summary/key_findings）
-- ✅ AlphaDB + TinyData 数据源集成测试
-- ✅ AnalysisCard schema 契约测试
-- ✅ 单元测试 + 集成测试
+### 16.1 P0 — 实现冻结（必须先交付）
 
-### 16.2 不交付
+- ✅ Layer 1 基础指标（TA-Lib + 派生指标 + 前复权，§5）
+- ✅ 5 个 Layer 1 分类器（Trend / Momentum / Volume / Volatility / Liquidity）
+- ✅ `price_trend_metrics` 计算（支撑 Trend Classifier）
+- ✅ Analysis Card 完整组装（§9.5：EvidenceRef、data_freshness、evidence_coverage、time_horizon_bucket）
+- ✅ `constraint_exports` **仅** §11.1 的 7 个已注册 metrics（`registration_status = "registered"`）
+- ✅ `domain_payload` Layer 1 字段 + `key_levels.support/resistance = []` 契约约束
+- ✅ 8 项域级验证（§12）
+- ✅ AlphaDB + TinyData 集成测试（Layer 1 数据路径）
+- ✅ AnalysisCard schema 契约测试（`tests/test_technical_card.py`）
+- ✅ 单元测试：Layer 1 指标 + 分类器 + pipeline P0 路径
+
+### 16.2 P1 — 背离检测（P0 完成后）
+
+- ✅ Layer 2 背离检测（RSI + MACD + OBV，4 种类型，§7）
+- ✅ Divergence Classifier（§6.7）
+- ✅ `domain_payload.divergence` 子对象
+- ✅ §11.2 soft-only constraint_exports（`registration_status = "unregistered_mvp_local"`）
+- ✅ 单元测试：`tests/test_divergence.py`
+
+### 16.3 P2 — 威科夫 / VSA / 校准（P1 完成后）
+
+- ✅ Layer 3 威科夫分析（Trading Range、VSA 8 信号、Spring/UTAD、Phase A–E，§8）
+- ✅ Wyckoff Phase Classifier（§6.8）
+- ✅ `domain_payload.wyckoff` 子对象
+- ✅ §11.3 soft-only Wyckoff facts
+- ✅ 涨跌停 VSA 降级（§8.3）
+- ✅ 阈值回测校准（§14.1，替换 `threshold_calibration: "uncalibrated"`）
+- ✅ SPEC-005 变更请求：注册新增 export_ref，评估 conditional hard export
+- ✅ 单元测试：`tests/test_wyckoff.py`
+
+### 16.4 不交付（全阶段）
 
 - ❌ 支撑/阻力位自动计算（`key_levels.support/resistance` 始终为空数组）
 - ❌ K 线形态识别（TA-Lib 有 61 种 CDL* 函数，但 MVP 不集成）
 - ❌ 分钟线 / Tick 数据分析
 - ❌ 多时间框架分析（日线 + 周线联动）
 - ❌ 实时行情推送
-- ❌ 涨跌停板对 VSA 的完整修正（仅做 confidence 降级）
-- ❌ 阈值回测校准
-- ❌ `metric://bid_ask_spread_proxy`（SPEC-004 §38 列出，但 MVP 不导出）
+- ❌ 涨跌停板对 VSA 的完整修正（P2 仅做 confidence 降级，见 §8.3）
+- ❌ `metric://bid_ask_spread_proxy`（SPEC-004 §38 已注册，但全阶段不导出）
 - ❌ LLM 生成的 summary（使用模板占位，与 Fundamentals 域一致）
 
 ---
 
-*End of SPEC-014 v0.1.1*
+*End of SPEC-014 v0.1.2*
