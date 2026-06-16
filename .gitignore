@@ -6,8 +6,9 @@
 .DS_Store
 Thumbs.db
 
-# Agent prompts (plan/ 下的一次性 agent prompt 不入库)
-plan/*prompt*.md
+# Agent prompts 统一存放于 E:\CodePrograms\CrossLens\plan\（不进 git）
+# 本仓库内不应出现 plan/ 目录，以下规则作为防护
+plan/
 
 # Python executable specifications
 __pycache__/
