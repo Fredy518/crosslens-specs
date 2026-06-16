@@ -1627,12 +1627,22 @@ MVP 阶段允许 mock 数据源（JSON/parquet fixture files），但必须：
 
 ## 11A. Data Source Adapter Architecture
 
+> **架构说明**：Adapter 接口和实现属于独立的 `crosslens_adapters` 基础设施包，不专属于 Fundamentals 域。所有能力域（Fundamentals、Technical、Macro/Meso、Sentiment、Company Event）共享同一套 Adapter。
+
 ### 11A.1 设计原则
 
 Fundamentals 域不直接依赖 AlphaDB 或 tinydata 的实现细节。所有数据获取通过统一的 Adapter 接口完成。
 
 ```text
-Fundamentals Domain Runtime
+crosslens_adapters/              # 独立基础设施包
+  base.py                        # CrossLensDataAdapter Protocol
+  registry.py                    # AdapterRegistry
+  alphadb.py                     # AlphaDB 实现
+  tinydata_adapter.py            # TinyData 实现
+  mock.py                        # MockAdapter
+
+crosslens_fundamentals/          # 域逻辑
+  pipeline.py                    # from crosslens_adapters import CrossLensDataAdapter
     ↓ 调用
 DataAdapter Interface (abstract Protocol)
     ├── AlphaDBAdapter    — 离线主力（历史 + 批量）
@@ -1644,21 +1654,35 @@ AlphaDB PostgreSQL / tinydata TS-OPI HTTP
 ### 11A.2 项目依赖关系
 
 ```text
-crosslens/
-  crosslens_spec013/
-    adapters/
+crosslens-core/
+  src/
+    crosslens_adapters/          # 独立包
       __init__.py
-      base.py            # DataAdapter Protocol + dataclass 定义
-      alphadb.py         # AlphaDBAdapter（离线主力）
-      tinydata.py        # TinyDataAdapter（实时补充）
-      mock.py            # MockAdapter（测试用 fixture）
+      base.py                    # CrossLensDataAdapter Protocol + StandardContract
+      registry.py                # AdapterRegistry
+      alphadb.py
+      tinydata_adapter.py
+      mock.py
+
+    crosslens_fundamentals/      # 域逻辑
+      __init__.py
+      metrics/
+      classifiers/
+      pipeline.py                # from crosslens_adapters import CrossLensDataAdapter
+      card.py
+      validation.py
+      stance.py
+      confidence.py
+      templates.py
 ```
 
-CrossLens 通过标准 Python import 引用独立维护的依赖包：
-- `alphahome` 包（`E:\CodePrograms\alphaHome`）— AlphaDB PostgreSQL 连接
-- `tinydata` 包（`E:\CodePrograms\tinydata`）— 天软 TS-OPI HTTP 连接
+CrossLens 通过标准 Python import 引用 `crosslens_adapters` 包：
+- `from crosslens_adapters import CrossLensDataAdapter, create_default_registry`
+- `from crosslens_adapters.alphadb import AlphaDBAdapter`
 
-两个依赖包均独立维护，CrossLens 不修改它们的代码。
+`crosslens_adapters` 包独立维护，可被所有能力域共享。底层连接：
+- AlphaDB：SQLAlchemy + `~/.alphahome/config.json`（无需 alphahome Python 包）
+- tinydata：天软 TS-OPI HTTP（`E:\CodePrograms\tinydata`）
 
 ### 11A.3 Adapter Protocol 定义（伪代码）
 
@@ -1702,8 +1726,8 @@ class MarketData:
 
 
 @runtime_checkable
-class FundamentalsDataAdapter(Protocol):
-    """Fundamentals 域统一数据源适配器接口。
+class CrossLensDataAdapter(Protocol):
+    """CrossLens 统一数据源适配器接口（跨域共享）。
 
     所有实现类必须完成底层 schema → StandardContract 映射。
     返回的 DataFrame 列名为 StandardContract 规范名（见 §3.2 各 Evidence 类型定义）。
