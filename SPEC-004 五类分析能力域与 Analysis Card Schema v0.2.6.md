@@ -1,6 +1,6 @@
 # SPEC-004：五类分析能力域与 Analysis Card Schema
 
-**版本：** v0.2.5
+**版本：** v0.2.6
 **状态：** Review
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4
@@ -10,6 +10,15 @@
 ---
 
 ## 0. 版本说明
+
+v0.2.6 在 v0.2.5 基础上为 `ConstraintExport` 新增治理字段，与 SPEC-005 Metric Registry 治理规则对齐。状态保持 Review。
+
+主要补齐：
+
+1. §9.1 新增 `registration_status`（`registered` / `unregistered_mvp_local` / `proposed`），默认 `registered`，零 breaking change；
+2. §9.1 新增 `lineage_constraint_failure`（可选），修复 SPEC-005 §6.2 伪代码引用但模型缺失的存量 bug；
+3. §9.2 新增 `registration_status` 与 Hard Constraint 资格的联动规则；
+4. executable spec `crosslens_spec004.models.ConstraintExport` 同步更新，Pydantic 校验未注册 export 不得声明 hard 资格。
 
 v0.2.5 在 v0.2.4 基础上将 Company Event derived fact 的生产责任正式归入能力域输出契约，并版本化 Analysis Card 输入契约。状态保持 Review。
 
@@ -620,7 +629,39 @@ MVP 阶段 Analysis Card 不使用 `strong_positive` 或 `strong_negative`，避
   "value_path": "revenue_growth_ttm",
   "determinism_level": "computed",
   "can_support_hard_constraint": true,
-  "allowed_constraint_types": ["hard", "soft"]
+  "allowed_constraint_types": ["hard", "soft"],
+  "registration_status": "registered"
+}
+```
+
+未注册 MVP 本地 export 示例（soft-only）：
+
+```json
+{
+  "export_type": "metric",
+  "export_ref": "metric://divergence_strength",
+  "evidence_ref": "ev_tm_div_001",
+  "value_path": "divergence_strength",
+  "determinism_level": "computed",
+  "can_support_hard_constraint": false,
+  "allowed_constraint_types": ["soft"],
+  "registration_status": "unregistered_mvp_local"
+}
+```
+
+Lineage 降级示例（已注册 metric，但 lineage 不满足 → soft-only）：
+
+```json
+{
+  "export_type": "metric",
+  "export_ref": "metric://post_event_1d_return",
+  "evidence_ref": "ev_event_001",
+  "value_path": "post_event_1d_return",
+  "determinism_level": "computed",
+  "can_support_hard_constraint": false,
+  "allowed_constraint_types": ["soft"],
+  "registration_status": "registered",
+  "lineage_constraint_failure": "source_event_not_confirmed"
 }
 ```
 
@@ -663,6 +704,8 @@ Label 示例：
 | `determinism_level` | `computed` / `structured` / `interpreted` |
 | `can_support_hard_constraint` | 是否可支撑 Hard Constraint |
 | `allowed_constraint_types` | 该 export 可用于哪种约束类型（`hard` / `soft` / 两者） |
+| `registration_status` | 治理状态：`registered`（已在 SPEC-005 Registry 登记，默认）/ `unregistered_mvp_local`（域内扩展、未注册）/ `proposed`（已提交 Registry 变更请求）。详见 SPEC-005 §6.4 |
+| `lineage_constraint_failure` | 可选。已注册 metric 因 lineage 约束不满足而降级为 soft-only 时的原因码 |
 
 ### 9.2 规则
 
@@ -673,6 +716,12 @@ Label 示例：
 5. 所有 export 必须保留 evidence_ref；
 6. 若 evidence_ref 无法追溯，该 export 项应被 Post-card Validation 移除，并在对应 Analysis Card 的 `warnings` 中记录。
 7. `export_type = fact` 时必须显式提供 boolean `fact_value`；fact 不得通过“export 是否存在”隐式表达真假。
+8. **`registration_status` 治理规则（与 SPEC-005 §6.4 对齐）：**
+   - `registration_status = "registered"`（默认）：按 metric 定义决定 `can_support_hard_constraint` 和 `allowed_constraint_types`；
+   - `registration_status ∈ {"unregistered_mvp_local", "proposed"}`：**MUST** `can_support_hard_constraint = false`，**MUST** `allowed_constraint_types = ["soft"]`；
+   - Playbook Evaluation **MUST** 拒绝任何 `registration_status != "registered"` 的 export 被 Hard Constraint 引用；
+   - Pydantic 模型（`crosslens_spec004.models.ConstraintExport`）在构造时强制校验上述不变量。
+9. `lineage_constraint_failure` 非空时，表示已注册 metric 因 lineage 不满足而主动降级；此时 `can_support_hard_constraint` 应为 `false`，`registration_status` 仍为 `registered`。
 
 ### 9.3 value_path 寻址规则
 

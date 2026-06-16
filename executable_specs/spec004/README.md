@@ -5,7 +5,7 @@
 ## Scope
 
 - `AnalysisCard`: Pydantic v2 模型，含 8 项 post-card validation rules（SPEC-004 §41）。
-- `ConstraintExport`: 多态结构（metric / fact / label），含类型特定校验。
+- `ConstraintExport`: 多态结构（metric / fact / label），含 `registration_status` 治理字段、`lineage_constraint_failure`、类型特定校验。
 - `DataFreshness`: 条件必填规则（hard-capable export 存在时）。
 - `domain_status` ↔ `stance` 硬约束映射（SPEC-004 §8.3）。
 - `confidence` dual cap（data_quality + domain_status）。
@@ -31,5 +31,5 @@ python scripts/export_schema.py
 
 ## Source
 
-- [SPEC-004 五类分析能力域与 Analysis Card Schema](../../SPEC-004%20五类分析能力域与%20Analysis%20Card%20Schema%20v0.2.5.md)
+- [SPEC-004 五类分析能力域与 Analysis Card Schema](../../SPEC-004%20五类分析能力域与%20Analysis%20Card%20Schema%20v0.2.6.md)
 - [SPEC-REGISTRY](../../SPEC-REGISTRY.md)

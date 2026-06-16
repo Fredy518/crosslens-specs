@@ -65,6 +65,24 @@
           ],
           "default": null,
           "title": "Label Value"
+        },
+        "registration_status": {
+          "$ref": "#/$defs/RegistrationStatus",
+          "default": "registered",
+          "description": "Governance status: controls Hard Constraint eligibility"
+        },
+        "lineage_constraint_failure": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "If lineage check failed for a registered metric, reason for soft-only downgrade",
+          "title": "Lineage Constraint Failure"
         }
       },
       "required": [
@@ -195,6 +213,17 @@
       "title": "DomainStatus",
       "type": "string"
     },
+    "DomainStatusReason": {
+      "description": "Reason codes for domain_status ∈ {error, unavailable}.",
+      "enum": [
+        "insufficient_data",
+        "skipped_by_config",
+        "execution_failure",
+        "data_source_unavailable"
+      ],
+      "title": "DomainStatusReason",
+      "type": "string"
+    },
     "EvidenceCoverage": {
       "additionalProperties": false,
       "properties": {
@@ -281,6 +310,16 @@
       "title": "FreshnessLevel",
       "type": "string"
     },
+    "RegistrationStatus": {
+      "description": "Governance status for constraint_exports (SPEC-004 §9.1 / SPEC-005 §6.4).",
+      "enum": [
+        "registered",
+        "unregistered_mvp_local",
+        "proposed"
+      ],
+      "title": "RegistrationStatus",
+      "type": "string"
+    },
     "StalenessRisk": {
       "enum": [
         "low",
@@ -344,6 +383,17 @@
     },
     "domain_status": {
       "$ref": "#/$defs/DomainStatus"
+    },
+    "domain_status_reason": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DomainStatusReason"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "summary": {
       "default": "",

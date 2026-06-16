@@ -97,6 +97,13 @@ class DeterminismLevel(str, Enum):
     INTERPRETED = "interpreted"
 
 
+class RegistrationStatus(str, Enum):
+    """Governance status for constraint_exports (SPEC-004 §9.1 / SPEC-005 §6.4)."""
+    REGISTERED = "registered"
+    UNREGISTERED_MVP_LOCAL = "unregistered_mvp_local"
+    PROPOSEED = "proposed"
+
+
 class ConstraintExport(StrictModel):
     export_type: ExportType
     export_ref: str = Field(min_length=1)
@@ -107,6 +114,14 @@ class ConstraintExport(StrictModel):
     allowed_constraint_types: list[str]  # "hard" / "soft" / both
     fact_value: bool | None = None       # required for fact
     label_value: str | None = None       # required for label
+    registration_status: RegistrationStatus = Field(
+        default=RegistrationStatus.REGISTERED,
+        description="Governance status: controls Hard Constraint eligibility",
+    )
+    lineage_constraint_failure: str | None = Field(
+        default=None,
+        description="If lineage check failed for a registered metric, reason for soft-only downgrade",
+    )
 
     @model_validator(mode="after")
     def _validate_export(self) -> "ConstraintExport":
@@ -122,6 +137,20 @@ class ConstraintExport(StrictModel):
             raise ValueError(
                 "can_support_hard_constraint requires 'hard' in allowed_constraint_types"
             )
+        if self.registration_status in (
+            RegistrationStatus.UNREGISTERED_MVP_LOCAL,
+            RegistrationStatus.PROPOSEED,
+        ):
+            if self.can_support_hard_constraint:
+                raise ValueError(
+                    f"registration_status={self.registration_status.value} "
+                    "requires can_support_hard_constraint=false"
+                )
+            if "hard" in self.allowed_constraint_types:
+                raise ValueError(
+                    f"registration_status={self.registration_status.value} "
+                    "requires allowed_constraint_types without 'hard'"
+                )
         return self
 
 

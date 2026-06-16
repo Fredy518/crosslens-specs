@@ -17,6 +17,16 @@
       ],
       "title": "ExportType",
       "type": "string"
+    },
+    "RegistrationStatus": {
+      "description": "Governance status for constraint_exports (SPEC-004 §9.1 / SPEC-005 §6.4).",
+      "enum": [
+        "registered",
+        "unregistered_mvp_local",
+        "proposed"
+      ],
+      "title": "RegistrationStatus",
+      "type": "string"
     }
   },
   "additionalProperties": false,
@@ -83,6 +93,24 @@
       ],
       "default": null,
       "title": "Label Value"
+    },
+    "registration_status": {
+      "$ref": "#/$defs/RegistrationStatus",
+      "default": "registered",
+      "description": "Governance status: controls Hard Constraint eligibility"
+    },
+    "lineage_constraint_failure": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "If lineage check failed for a registered metric, reason for soft-only downgrade",
+      "title": "Lineage Constraint Failure"
     }
   },
   "required": [

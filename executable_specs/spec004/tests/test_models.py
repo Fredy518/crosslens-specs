@@ -17,6 +17,7 @@ from crosslens_spec004.models import (
     EvidenceRef,
     ExportType,
     FreshnessLevel,
+    RegistrationStatus,
     StalenessRisk,
     Stance,
     TimeHorizonBucket,
@@ -264,6 +265,61 @@ def test_hard_capable_requires_hard_in_allowed_types():
             can_support_hard_constraint=True,
             allowed_constraint_types=["soft"],
         )
+
+
+def test_registration_status_defaults_to_registered():
+    export = ConstraintExport(
+        export_type=ExportType.METRIC,
+        export_ref="metric://revenue_growth_ttm",
+        evidence_ref="ev_001",
+        value_path="revenue_growth_ttm",
+        determinism_level=DeterminismLevel.COMPUTED,
+        can_support_hard_constraint=True,
+        allowed_constraint_types=["hard", "soft"],
+    )
+    assert export.registration_status.value == "registered"
+
+
+def test_unregistered_mvp_local_forbids_hard():
+    with pytest.raises(ValueError, match="registration_status=unregistered_mvp_local"):
+        ConstraintExport(
+            export_type=ExportType.METRIC,
+            export_ref="metric://divergence_strength",
+            evidence_ref="ev_001",
+            value_path="divergence_strength",
+            determinism_level=DeterminismLevel.COMPUTED,
+            can_support_hard_constraint=True,
+            allowed_constraint_types=["hard", "soft"],
+            registration_status=RegistrationStatus.UNREGISTERED_MVP_LOCAL,
+        )
+
+
+def test_unregistered_mvp_local_soft_only_ok():
+    export = ConstraintExport(
+        export_type=ExportType.METRIC,
+        export_ref="metric://divergence_strength",
+        evidence_ref="ev_001",
+        value_path="divergence_strength",
+        determinism_level=DeterminismLevel.COMPUTED,
+        can_support_hard_constraint=False,
+        allowed_constraint_types=["soft"],
+        registration_status=RegistrationStatus.UNREGISTERED_MVP_LOCAL,
+    )
+    assert export.registration_status == RegistrationStatus.UNREGISTERED_MVP_LOCAL
+
+
+def test_lineage_constraint_failure_optional():
+    export = ConstraintExport(
+        export_type=ExportType.METRIC,
+        export_ref="metric://post_event_1d_return",
+        evidence_ref="ev_001",
+        value_path="post_event_1d_return",
+        determinism_level=DeterminismLevel.COMPUTED,
+        can_support_hard_constraint=False,
+        allowed_constraint_types=["soft"],
+        lineage_constraint_failure="source_event_not_confirmed",
+    )
+    assert export.lineage_constraint_failure == "source_event_not_confirmed"
 
 
 # ── Schema Version ─────────────────────────────────────────────
