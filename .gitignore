@@ -6,9 +6,8 @@
 .DS_Store
 Thumbs.db
 
-# Temporary / draft notes
-drafts/
-_inbox/
+# Agent prompts (one-shot execution instructions — value is in output, not the prompt)
+plan/
 
 # Python executable specifications
 __pycache__/
