@@ -28,7 +28,7 @@
 | SPEC-011 | SPEC-011 Case Library 与历史案例记忆 v0.1.md | v0.1 | Draft | 设计 | Case schema、索引六维、匿名化规则、隐私边界、相似度算法（defined but MVP-deferred） | — |
 | SPEC-012 | SPEC-012 数据治理与用户私有数据 v0.1.md | v0.1 | Draft | 需求 | 数据三分类、访问控制决策树、生命周期、删除/导出 | — |
 | SPEC-013 | SPEC-013 Fundamentals 域实现规格 v0.2.0.md | v0.2.0 | Review | 实现 | — | — |
-| SPEC-014 | SPEC-014 Technical Market 域实现规格 v0.1.2.md | v0.1.2 | Draft | 实现 | — | — |
+| SPEC-014 | SPEC-014 Technical Market 域实现规格 v0.2.1.md | v0.2.1 | Draft | 实现 | 三层架构（指标/背离/威科夫）+ Part II 高阶扩展（市场状态/相对强度/风险度量/支撑阻力/多时间框架）、regime 门控、分位自校准 | — |
 
 ---
 

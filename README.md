@@ -156,7 +156,7 @@ cd executable_specs/spec009 && python -m pytest
 | 编号 | 定位 | 状态 |
 |------|------|------|
 | SPEC-013 | UI/API 交互契约 | 待规划 |
-| SPEC-014 | 部署运维规范 | 待规划 |
+| SPEC-014 | [Technical/Market 域实现规格](./SPEC-014%20Technical%20Market%20域实现规格%20v0.2.1.md) | v0.2.1 Draft |
 
 ---
 

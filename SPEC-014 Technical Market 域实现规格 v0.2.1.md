@@ -1,6 +1,6 @@
 # SPEC-014：Technical/Market 域实现规格
 
-**版本：** v0.1.2
+**版本：** v0.2.1
 **状态：** Draft
 **项目名称：** crosslens
 **文档类型：** 实现
@@ -12,6 +12,49 @@
 - SPEC-004 §35-§40 (Technical/Market 域定义、输入、payload、constraint_exports、冲突、降级)
 - SPEC-005 §5 (Metric Registry)
 **目标阶段：** 域实现规格 / MVP 实现前置
+
+---
+
+## 版本修订说明
+
+### v0.2.1（审核修订 — Part I P0 阻塞项 + 全文一致性修补）
+
+在 v0.2.0 基础上关闭 SPEC-014 审核 P0/P1 项，**Part I（§1–§16）可进入 Review**；Part II（§17–§28）设计不变。
+
+| 项 | 章节 | 修订 |
+|:---:|---|---|
+| P0 | §9.3 | 重写 stance 映射：`mixed` 在 Layer 1 方向冲突或背离-趋势矛盾时可产出；`neutral` 用于弱信号且无冲突 |
+| P0 | §4.1.7 / §6.7 / §11.2 | `divergence_metrics` 增加 `divergence_strength` 字段，对齐 export `value_path`；增加 `obv_divergence_strength` 字段（对齐 §6.7 `obv_strength` 变量，修复定义缺失 Bug） |
+| P0 | §7.4 | zone_bonus 规则拆分为 RSI/MACD/OBV 三分支，明确 MACD/OBV 无 zone bonus |
+| P0 | §11.1 | 补全 7 个 registered export 的 evidence_ref + value_path 映射表（仿 SPEC-013 §4） |
+| P1 | §9.5.0 | Part II Evidence 类型纳入 `_DOMAIN_EVIDENCE_TYPES` / `_OPTIONAL_EVIDENCE`；补充 EvidencePacket vs ConstraintExport 两层 `can_support_hard_constraint` 区分注释 |
+| P1 | §24.1 / §24.2 | 修正交叉引用；`trend_direction` → `labels["trend"]` |
+| P1 | §1.1.2 | 治理规则表补充 P3/P4 分阶段导出说明 |
+| P1 | §10.1 | `threshold_calibration` 升级为子对象 `{part_i, part_ii}`；P0–P2 `part_ii=null`，P3+ `part_ii="self_calibrated_percentile"` |
+| P1 | §10.3 | `threshold_calibration` 标注为 Breaking CR（SPEC-004 §37.2 升级为对象） |
+| P1 | §16.3 / §17.3 / §18 | 澄清 Part I / Part II 校准策略分工；消除 `threshold_calibration` 字段值的矛盾表述 |
+| P1 | §10.2 / §10.3 | 新增 domain_payload 扩展字段与 upstream CR 清单 |
+| P1 | §12.2 / §13.6 | 同步 mixed/neutral 语义与契约测试 |
+| P1 | §3 | Feature A/B/C/D/F 架构图补全阶段标注（P3/P3★/P3/P4/P4） |
+| P1 | §25.3 | 注册候选表补充 `rs_raw`（建议保持 soft，附理由）；B 候选排序前置 |
+
+### v0.2.0（高阶功能扩展）
+
+在 v0.1.2 的三层架构（Layer 1 指标 / Layer 2 背离 / Layer 3 威科夫）之上，新增 **Part II：高阶功能扩展（§17–§28）**，定义 5 项高阶能力，分阶段（P3–P4）交付：
+
+| 代号 | 能力 | 维度补充 | 章节 | determinism | 数据 |
+|:---:|---|---|:---:|---|---|
+| **A** | 市场状态/机制识别 | 状态/元层（调制全局信号） | §19 | computed + structured | 现成（日线） |
+| **B** | 相对强度与市场敏感度 | 横截面/相对 | §20 | computed | **需扩展 Adapter 指数数据（§26）** |
+| **C** | 风险度量套件 | 风险/量化 | §21 | computed | 现成（日线） |
+| **D** | 支撑阻力与成交量分布 | 价格点位（**解锁 `key_levels`**） | §22 | computed + structured | 现成（日线 + 量） |
+| **F** | 多时间框架共振 | 时间 | §23 | computed | 现成（重采样） |
+
+并新增 **§18 分位数自校准工具**（关闭 §14.1"阈值未校准"开放问题的横切方案）。
+
+**设计立场：** A/C/D/F 与威科夫（Layer 3）、背离（Layer 2）"单序列、启发式、面向反转"的定位互补——它们分别补上**市场机制、风险、价格点位、时间**四个缺失维度；B 补上**横截面/相对**维度。
+
+**治理一致性：** 所有新增 export 一律遵循 §11.0 / SPEC-004 §9.1 / SPEC-005 §6.4 的 `registration_status` 治理：首期以 `unregistered_mvp_local`（soft-only）交付，并向 SPEC-005 提交注册请求。其中 **C（风险度量）与 B（Beta / 相对回撤）经注册后是 Hard Constraint 的首选候选**（客观、确定性、对齐 SPEC-004 §35 #9 风险职责）。v0.1.2 的 §1–§16（P0–P2）内容不变。
 
 ---
 
@@ -50,6 +93,8 @@
 | **P0**（实现冻结） | 仅 §11.1 的 7 个已注册 Layer 1 metrics | 仅 `registered` 项 |
 | **P1** | 追加 §11.2 背离 metrics/facts（soft-only） | 背离一律不可 hard |
 | **P2** | 追加 §11.3 Wyckoff facts（soft-only） | Wyckoff 一律不可 hard |
+| **P3** | 追加 §25.1 Part II A/B/C exports（soft-only，`unregistered_mvp_local`） | 不可 hard；经 SPEC-005 注册后升级 |
+| **P4** | 追加 §25.2 Part II D/F exports（soft-only，`unregistered_mvp_local`） | 不可 hard；经 SPEC-005 注册后升级 |
 
 **未注册 Layer 1 指标**（`atr_pct_14d`、`macd_histogram`、`adx_14d`、`bb_position`、`amihud_illiquidity`）在 P0–P2 **只写入 `domain_payload`**，**不进入 `constraint_exports`**，直至 SPEC-005 正式注册。
 
@@ -113,24 +158,48 @@ Layer 1: 基础指标层（TA-Lib 直接覆盖）
 - Layer 2 和 Layer 3 是 SPEC-014 的核心价值——TA-Lib 不覆盖的高层分析逻辑
 - 三层之间的数据流是单向的：Layer 1 → Layer 2 → Layer 3
 
+**高阶功能扩展（v0.2.0，Part II）对三层架构的补充：**
+
+```text
+Layer 0: 市场状态/机制层（元层，调制下游所有信号）   ← Feature A（§19，P3）
+  └── Hurst 指数 + Kaufman 效率比率 + 波动率状态（分位自校准）
+
+横切维度（不属于单一 Layer，与 Layer 1–3 并行）：
+  ├── 相对强度层：RS 线 / RS Rating / Beta / Alpha          ← Feature B（§20，P3★）
+  ├── 风险度量层：回撤 / 下行波动 / VaR / 风险调整收益       ← Feature C（§21，P3）
+  ├── 价格点位层：成交量分布 POC/VA + 摆动枢轴聚类           ← Feature D（§22，P4）
+  └── 时间维度层：日线→周线/月线多周期对齐                   ← Feature F（§23，P4）
+```
+
+- **Layer 0（市场状态）是元层**：先判定"当前是什么市场"，再据此调制 Layer 1–3 与 stance/confidence（§24.2 regime 门控）。
+- **横切维度与 Layer 1–3 并行**，不改变 Layer 1→2→3 的单向数据流；它们各自从 Layer 1 输出与原始 OHLCV 取数。
+- 详见 **Part II（§17–§28）**。
+
 ---
 
 ## 4. Evidence Packet 类型定义
 
-Technical/Market 域计算 8 种 Evidence 指标组。其中 #1-#6 对应 SPEC-004 §36 已定义的 Evidence Packet 类型，#7-#8 为本 SPEC 新增的域内计算类型（参见 §1.1 上游契约策略）。
+Technical/Market 域计算 13 种 Evidence 指标组。其中 #1-#6 对应 SPEC-004 §36 已定义的 Evidence Packet 类型；#7-#8 为 v0.1.2 新增的域内计算类型；#9-#13 为 v0.2.0（Part II）新增的高阶功能 Evidence 类型（参见 §1.1 上游契约策略 + §17）。
 
-| # | evidence_type | SPEC-004 注册 | TA-Lib 覆盖 | 自写逻辑 | 说明 |
-|---|---|:---:|:---:|:---:|---|
-| 1 | `moving_average_metrics` | ✅ | ✅ | — | 均线系统 |
-| 2 | `momentum_metrics` | ✅ | ✅ | — | 动量指标 |
-| 3 | `volatility_metrics` | ✅ | ✅ | — | 波动率指标 |
-| 4 | `volume_metrics` | ✅ | ✅ | — | 成交量指标 |
-| 5 | `liquidity_metrics` | ✅ | 部分 | 部分 | 流动性（需换手率数据） |
-| 6 | `price_trend_metrics` | ✅ | ✅ | — | 趋势综合判断 |
-| 7 | `divergence_metrics` | ❌ 新增 | ❌ | ✅ | 背离形态检测 |
-| 8 | `wyckoff_metrics` | ❌ 新增 | ❌ | ✅ | 威科夫量价分析 |
+| # | evidence_type | SPEC-004 注册 | TA-Lib 覆盖 | 自写逻辑 | 阶段 | 说明 |
+|---|---|:---:|:---:|:---:|:---:|---|
+| 1 | `moving_average_metrics` | ✅ | ✅ | — | P0 | 均线系统 |
+| 2 | `momentum_metrics` | ✅ | ✅ | — | P0 | 动量指标 |
+| 3 | `volatility_metrics` | ✅ | ✅ | — | P0 | 波动率指标 |
+| 4 | `volume_metrics` | ✅ | ✅ | — | P0 | 成交量指标 |
+| 5 | `liquidity_metrics` | ✅ | 部分 | 部分 | P0 | 流动性（需换手率数据） |
+| 6 | `price_trend_metrics` | ✅ | ✅ | — | P0 | 趋势综合判断 |
+| 7 | `divergence_metrics` | ❌ 新增 | ❌ | ✅ | P1 | 背离形态检测 |
+| 8 | `wyckoff_metrics` | ❌ 新增 | ❌ | ✅ | P2 | 威科夫量价分析 |
+| 9 | `regime_metrics` | ❌ 新增 | ❌ | ✅ | P3 | 市场状态/机制识别（Feature A，§19） |
+| 10 | `relative_strength_metrics` | ❌ 新增 | 部分 | ✅ | P3 | 相对强度与 Beta（Feature B，§20） |
+| 11 | `risk_metrics` | ❌ 新增 | 部分 | ✅ | P3 | 风险度量套件（Feature C，§21） |
+| 12 | `support_resistance_metrics` | ✅（§36 #7） | ❌ | ✅ | P4 | 支撑阻力 + 成交量分布（Feature D，§22） |
+| 13 | `multi_timeframe_metrics` | ❌ 新增 | ✅ | ✅ | P4 | 多时间框架共振（Feature F，§23） |
 
-> **注：** `support_resistance_metrics` 和 `market_microstructure_metrics`（SPEC-004 §36 列出）不在 MVP 范围内。`market_microstructure_metrics` 中的 `bid_ask_spread_proxy` 亦不在 MVP 范围内（参见 §16.2）。
+> **注：** `support_resistance_metrics`（SPEC-004 §36 #7 已列出）原不在 MVP 范围内，**v0.2.0 经 Feature D（§22）纳入 P4 实现**，并相应**解除 §10.1 对 `key_levels` 的置空约束**。`market_microstructure_metrics` 仍不在范围内，其 `bid_ask_spread_proxy` 亦不导出（参见 §16.2）。
+>
+> **#9–#13 的 Evidence 与共享池边界：** 与 #7–#8 一致，Part II 的新增 Evidence **不写入共享 Evidence Pool**（对齐 §4.0.1 / SPEC-013 §3 P0 边界），仅域内计算与组装 Card。
 
 ### 4.0.1 Evidence 架构边界
 
@@ -290,7 +359,9 @@ metrics:
   macd_divergence_type: str   # 同上
   macd_divergence_strength: float
   obv_divergence_type: str    # 量价背离
+  obv_divergence_strength: float  # 0.0-1.0；OBV 背离强度（§7.4 仅 base_score + distance_bonus，无 RSI zone bonus）
   divergence_confirmations: int   # RSI + MACD + OBV 中确认背离的数量（0-3）。字段名为复数形式
+  divergence_strength: float     # max(rsi_divergence_strength, macd_divergence_strength, obv_divergence_strength)；= §6.7 strongest_strength；export: metric://divergence_strength
   divergence_lookback_days: int   # 最近一次背离距今天数
 ```
 
@@ -498,7 +569,7 @@ ELSE:
     → "unknown"
 ```
 
-> **阈值说明：** 0.005 = 5 日内变化 0.5%，约等于年化 25%。此阈值未经回测校准（参见 §14 开放问题）。MVP 阶段在 `domain_payload` 中标注 `threshold_calibration: "uncalibrated"`。
+> **阈值说明：** 0.005 = 5 日内变化 0.5%，约等于年化 25%。此阈值未经回测校准（参见 §14 开放问题）。在 `domain_payload.threshold_calibration.part_i` 中标注 `"uncalibrated"`。
 
 ### 6.3 Momentum Classifier
 
@@ -638,6 +709,12 @@ if candidates:
 else:
     strongest_type = "none"
     strongest_strength = 0.0
+
+# Divergence Classifier 完成后 MUST 回写 Evidence metrics（供 §11.2 export）：
+# divergence_metrics.divergence_strength = strongest_strength
+# 注：rsi_strength = divergence_metrics.rsi_divergence_strength
+#     macd_strength = divergence_metrics.macd_divergence_strength
+#     obv_strength  = divergence_metrics.obv_divergence_strength（§4.1.7 存储字段）
 ```
 
 ### 6.8 Wyckoff Phase Classifier（Layer 3）
@@ -726,16 +803,19 @@ divergence_strength = base_score + zone_bonus + distance_bonus + confirmation_bo
 base_score = 0.2  # 所有检测到的背离至少 0.2
 
 zone_bonus:
-  # Regular Bullish: 第一个 RSI 谷在超卖区
-  IF rsi_first_trough < 30: +0.3
-  ELIF rsi_first_trough < 40: +0.15
+  # RSI 背离：根据超买/超卖区位加分（极端区位的背离信号质量更高）
+  IF indicator == "rsi":
+    IF Regular Bullish AND rsi_first_trough < 30: +0.3
+    ELIF Regular Bullish AND rsi_first_trough < 40: +0.15
+    IF Regular Bearish AND rsi_first_peak > 70: +0.3
+    ELIF Regular Bearish AND rsi_first_peak > 60: +0.15
+    ELSE: +0.0
   
-  # Regular Bearish: 第一个 RSI 峰在超买区
-  IF rsi_first_peak > 70: +0.3
-  ELIF rsi_first_peak > 60: +0.15
+  # MACD 背离：无 zone bonus（无超买/超卖区位概念）
+  IF indicator == "macd": +0.0
   
-  # Hidden divergences: 无 zone bonus
-  ELSE: +0.0
+  # OBV 背离：无 zone bonus（成交量指标无超买/超卖区位）
+  IF indicator == "obv": +0.0
 
 distance_bonus:
   # 两个极值点间距 15-40 日最理想
@@ -1074,17 +1154,59 @@ if wyckoff_phase == "distribution" and wyckoff_sub_phase in ("C", "D"):
 # 裁剪到 [-1.0, 1.0]，防止调整因子导致越界
 score = max(-1.0, min(1.0, raw_score))
 
-# 映射到 stance
-IF score > 0.5:      stance = "positive"
-ELIF score > 0.2:    stance = "moderately_positive"
-ELIF score < -0.5:   stance = "negative"
-ELIF score < -0.2:   stance = "moderately_negative"
+# === Phase 2: 方向冲突检测（对齐 SPEC-004 §8.2 mixed = 正反证据都明显）===
+def _classifier_sign(label: str) -> int:
+    s = label_to_score.get(label, 0.0)
+    if s > 0.2:
+        return +1
+    if s < -0.2:
+        return -1
+    return 0
+
+bullish_dims = sum(1 for k in weights if _classifier_sign(labels[k]) > 0)
+bearish_dims = sum(1 for k in weights if _classifier_sign(labels[k]) < 0)
+layer1_conflict = bullish_dims >= 1 and bearish_dims >= 1
+
+divergence_trend_conflict = (
+    labels["trend"] == "uptrend" and divergence_assessment.has_regular_bearish
+) or (
+    labels["trend"] == "downtrend" and divergence_assessment.has_regular_bullish
+)
+
+signal_conflict = layer1_conflict or divergence_trend_conflict
+
+# === Phase 3: stance 映射 ===
+# mixed：Layer 1 多维方向冲突，或趋势与 regular 背离矛盾，且综合 score 未强烈单边（|score| ≤ 0.5）
+# neutral：|score| ≤ 0.2 且无 signal_conflict（信号弱、无显著矛盾）
+# directional：score 超阈值且无 mixed 条件
+IF signal_conflict and abs(score) <= 0.5:
+    stance = "mixed"
+ELIF score > 0.5:
+    stance = "positive"
+ELIF score > 0.2:
+    stance = "moderately_positive"
+ELIF score < -0.5:
+    stance = "negative"
+ELIF score < -0.2:
+    stance = "moderately_negative"
 ELIF abs(score) <= 0.2:
-    # 中性区间：无明显多空 → 直接产出 neutral（SPEC-004 §8 合法值）
-    # neutral 不要求 opposing_evidence（参见 §12.2）
     stance = "neutral"
-ELSE:                stance = "mixed"
+ELSE:
+    # |score| > 0.5 但 signal_conflict 为 false 的残余路径（不应出现；防御性映射）
+    stance = "positive" if score > 0 else "negative"
 ```
+
+**边界值表（v0.2.1）：**
+
+| 条件 | stance | opposing_evidence |
+|------|--------|-------------------|
+| `signal_conflict` 且 `|score| ≤ 0.5` | `mixed` | **必填**（§9.5.1 + §12.2） |
+| `|score| ≤ 0.2` 且无 `signal_conflict` | `neutral` | 不要求 |
+| `score > 0.5` 且无 mixed 条件 | `positive` | 必填 |
+| `0.2 < score ≤ 0.5` 且无 mixed 条件 | `moderately_positive` | 必填 |
+| 对称负面区间 | `negative` / `moderately_negative` | 必填 |
+
+> **与 SPEC-013 的差异说明：** Fundamentals 将中间 score 带映射为 `mixed`；Technical 按 SPEC-004 §8.2 语义，**仅在有显式信号冲突时**产出 `mixed`，弱信号无冲突时用 `neutral`。
 
 ### 9.4 Step 7: Confidence Computation
 
@@ -1150,13 +1272,14 @@ evidence_confidence = mean(layer_confidences)
 
 #### 9.5.0 域内 Evidence 对象管理
 
-Technical 域在域内为 8 个指标组创建 EvidencePacket 对象（对齐 SPEC-013 pipeline 模式），供 Card 组装时引用。
+Technical 域在域内创建 EvidencePacket 对象（对齐 SPEC-013 pipeline 模式），供 Card 组装时引用。Part I 固定 8 组；Part II（P3–P4）按 Feature 启用情况追加（见 `_OPTIONAL_EVIDENCE`）。
 
 **evidence_id 命名规则：** `ev_tm_{type}_{run_id}`，其中 `{type}` 为 evidence_type 的缩写。
 
 ```python
-# 域内 Evidence 创建（Step 2-4 完成后）
+# 域内 Evidence 创建（Step 2-4 + Part II Step 2A–2D 完成后）
 _DOMAIN_EVIDENCE_TYPES = [
+    # Part I（P0–P2）
     ("moving_average_metrics", "ma"),
     ("momentum_metrics",       "mom"),
     ("volatility_metrics",     "vol"),
@@ -1165,6 +1288,12 @@ _DOMAIN_EVIDENCE_TYPES = [
     ("price_trend_metrics",    "trend"),
     ("divergence_metrics",     "div"),
     ("wyckoff_metrics",        "wyck"),
+    # Part II（P3–P4，仅当对应 Feature 计算成功时追加）
+    ("regime_metrics",              "regime"),
+    ("relative_strength_metrics",   "rs"),
+    ("risk_metrics",                "risk"),
+    ("support_resistance_metrics",  "sr"),
+    ("multi_timeframe_metrics",     "mtf"),
 ]
 
 evidence_list = []
@@ -1180,7 +1309,14 @@ for ev_type, ev_abbrev in _DOMAIN_EVIDENCE_TYPES:
             else EpDeterminismLevel.STRUCTURED,
         can_support_hard_constraint=(
             ev_type not in ("wyckoff_metrics", "divergence_metrics")
-            # Layer 1 evidence 组本身可支撑 hard；实际 export 受 §11 registration_status 约束
+            # ── 两层区分 ──
+            # EvidencePacket.can_support_hard_constraint（本字段）：标识该 Evidence 类型
+            #   在原则上是否可支撑 Hard Constraint（取决于 determinism_level 和数据质量）。
+            #   Layer 1 / Part II computed evidence = True；wyckoff/divergence = False。
+            # ConstraintExport.can_support_hard_constraint（§11 / §25）：受 registration_status
+            #   约束，`unregistered_mvp_local` 时 MUST be False（§17.3）。
+            # 两者共同决定：EvidencePacket=True 是 hard 的必要不充分条件；
+            #   实际能否 hard 还需 ConstraintExport.registration_status = "registered"。
         ),
         confidence=1.0 if layer_ok(ev_type) else 0.3,
         data_quality=EpDataQuality.HIGH if layer_ok(ev_type) else EpDataQuality.LOW,
@@ -1198,9 +1334,20 @@ _REQUIRED_EVIDENCE = [
     "liquidity_metrics",
     "price_trend_metrics",
 ]
-# Layer 2/3 为 optional：缺失不降级 domain_status，但记录在 evidence_coverage 中
-_OPTIONAL_EVIDENCE = ["divergence_metrics", "wyckoff_metrics"]
+# Layer 2/3 + Part II 为 optional：缺失不降级 domain_status，但记录在 evidence_coverage 中
+_OPTIONAL_EVIDENCE = [
+    "divergence_metrics",
+    "wyckoff_metrics",
+    # Part II（P3–P4）
+    "regime_metrics",
+    "relative_strength_metrics",
+    "risk_metrics",
+    "support_resistance_metrics",
+    "multi_timeframe_metrics",
+]
 ```
+
+> **Part II Evidence 创建时机：** P0–P2 仅实例化 Part I 的 8 组。P3 起在 Step 2A–2C 成功后追加 regime / rs / risk；P4 在 Step 2D 追加 sr / mtf。未启用的 Feature **不得**创建空壳 EvidencePacket。
 
 #### 9.5.1 supporting_evidence / opposing_evidence 生成规则
 
@@ -1364,7 +1511,7 @@ def _build_opposing(
     return refs
 ```
 
-> **SPEC-004 §41 #7 对齐：** `neutral` 和 `unavailable` 不在 opposing_evidence 强制范围内。仅 `positive/moderately_positive/mixed/negative/moderately_negative` 需要 opposing。Step 6 直接产出 `neutral` 可避免事后降级。
+> **SPEC-004 §41 #7 对齐：** `neutral` 和 `unavailable` 不在 opposing_evidence 强制范围内。`mixed` 及所有 directional stance（`positive` / `moderately_positive` / `negative` / `moderately_negative`）**必须**有 opposing_evidence。Step 6 在 `signal_conflict` 时产出 `mixed`，§9.5.1 应从 Layer 1 负向分类器 + 矛盾背离自动填充 opposing。
 
 #### 9.5.2 technical_tailwinds / technical_headwinds
 
@@ -1635,7 +1782,10 @@ def _derive_invalidating_conditions(
     "note": "MVP 不交付支撑/阻力自动计算。trading_range_high/low 可作为软参考（见 wyckoff 字段）"
   },
   
-  "threshold_calibration": "uncalibrated",
+  "threshold_calibration": {
+    "part_i":  "uncalibrated",
+    "part_ii": null
+  },
   
   "technical_tailwinds": [
     "价格位于 50 日与 200 日均线之上",
@@ -1648,9 +1798,11 @@ def _derive_invalidating_conditions(
 }
 ```
 
-> **key_levels MVP 行为：** `support` 和 `resistance` 在 MVP 阶段**必须**为空数组 `[]`。若 Layer 3 检测到 Trading Range，`trading_range_high` / `trading_range_low` 可作为软参考（在 `wyckoff` 子对象中），**禁止**写入 `key_levels`。
+> **key_levels 行为（P0–P3）：** 在 **Feature D（§22）启用前**，`support` 和 `resistance` **必须**为空数组 `[]`。若 Layer 3 检测到 Trading Range，`trading_range_high` / `trading_range_low` 可作为软参考（在 `wyckoff` 子对象中），**禁止**写入 `key_levels`。
 >
-> **契约测试约束：** `key_levels.support` 和 `key_levels.resistance` **MUST** be `[]`，除非 `support_resistance_metrics` 已正式实现并注册。任何非空输出 MUST fail contract test（`tests/test_technical_card.py::test_key_levels_must_be_empty`）。
+> **key_levels 行为（P4 起，v0.2.0）：** Feature D 实现 `support_resistance_metrics` 后，**解除**置空约束——`key_levels` 改按 §22.6 的结构输出（仅当成功计算时非空，否则仍为 `[]`）。
+>
+> **契约测试约束：** P0–P3 阶段 `key_levels.support/resistance` **MUST** be `[]`。P4 起原约束由 `test_key_levels_empty_unless_sr_enabled` 取代（§27.4）：未启用 D 或数据不足 → `[]`；启用且成功 → 允许非空且 Level 结构合法。
 
 ### 10.2 枚举约束（对齐 SPEC-004 §37.1）
 
@@ -1700,6 +1852,23 @@ change_of_character
 effort_result_divergence
 none
 ```
+
+### 10.3 上游变更请求清单（SPEC-004 CR）
+
+以下扩展字段/结构在实现中使用，但 **SPEC-004 §37.2 尚未定义**。编码前以本 SPEC 为准；合并上游前 MUST 向 SPEC-004 提交变更请求：
+
+| 变更项 | 类型 | 目标章节 | 阶段 | 说明 |
+|---|---|---|:---:|---|
+| `domain_payload.divergence` | 子对象 | SPEC-004 §37.2 | P1 | §10.1 结构 + §10.2 `strongest_type` 枚举 |
+| `domain_payload.wyckoff` | 子对象 | SPEC-004 §37.2 | P2 | §10.1 结构 + §10.2 phase/sub_phase/vsa 枚举 |
+| `domain_payload.threshold_calibration` | 子对象（Breaking） | SPEC-004 §37.2 | P0+ | `{"part_i": "uncalibrated"\|"self_calibrated", "part_ii": null\|"self_calibrated_percentile"}`（P0–P2 `part_ii=null`；P3+ `part_ii="self_calibrated_percentile"`；SPEC-004 §37.2 当前为字符串，需升级为对象） |
+| `domain_payload.key_levels.source` / `.note` | 扩展字段 | SPEC-004 §37.2 | P0–P3 | P0–P3 置空契约的元数据 |
+| `domain_payload.key_levels` P4 结构 | schema 变更 | SPEC-004 §37.2 | P4 | §22.6 对象数组 + poc/value_area（**Breaking**：由 `[number]` 升级为 `[Level]`） |
+| Evidence #7–#8 | evidence_type | SPEC-004 §36 | P1/P2 | `divergence_metrics` / `wyckoff_metrics` |
+| Evidence #9–#13 | evidence_type | SPEC-004 §36 | P3/P4 | Part II 五组 Evidence |
+| Part II export_ref | MetricRegistryEntry | SPEC-005 §5 | P3/P4 | §25.3 注册清单 |
+
+> **P4 key_levels Breaking Change：** SPEC-004 §37.2 当前示例为 `support: [120, 112]`（纯数值数组）。P4 启用 Feature D 后，本 SPEC §22.6 定义的结构 **必须**同步修订 SPEC-004，否则 Post-card Validation / 消费者会按旧 schema 解析失败。
 
 ---
 
@@ -1755,6 +1924,20 @@ none
 
 > **注：** `metric://bid_ask_spread_proxy`（SPEC-004 §38 已注册）不在 MVP 范围内，不导出。
 
+**P0 Export 完整映射（实现冻结，对齐 SPEC-013 §4 Metric Catalog）：**
+
+| export_ref | evidence_type | evidence_id 模式 | value_path | determinism_level | registration_status | can_support_hard | allowed_constraint_types |
+|---|---|---|:---:|:---:|:---:|:---:|:---:|
+| `metric://rsi_14d` | `momentum_metrics` | `ev_tm_mom_{run_id}` | `rsi_14d` | computed | registered | true | `["hard", "soft"]` |
+| `metric://price_above_50d_ma` | `moving_average_metrics` | `ev_tm_ma_{run_id}` | `price_above_50d_ma` | computed | registered | true | `["hard", "soft"]` |
+| `metric://price_above_200d_ma` | `moving_average_metrics` | `ev_tm_ma_{run_id}` | `price_above_200d_ma` | computed | registered | true | `["hard", "soft"]` |
+| `metric://volume_vs_20d_average` | `volume_metrics` | `ev_tm_volum_{run_id}` | `volume_vs_20d_average` | computed | registered | true | `["hard", "soft"]` |
+| `metric://atr_14d` | `volatility_metrics` | `ev_tm_vol_{run_id}` | `atr_14d` | computed | registered | true | `["hard", "soft"]` |
+| `metric://drawdown_from_52w_high` | `price_trend_metrics` | `ev_tm_trend_{run_id}` | `drawdown_from_52w_high` | computed | registered | true | `["hard", "soft"]` |
+| `metric://average_dollar_volume_20d` | `liquidity_metrics` | `ev_tm_liq_{run_id}` | `average_dollar_volume_20d` | computed | registered | true | `["hard", "soft"]` |
+
+> **Card 组装规则：** P0 `constraint_exports` **仅**包含上表 7 项；每项 `export_type = "metric"`，`evidence_ref` 指向对应 EvidencePacket，`value_path` 从该 Packet 的 `metrics` 字典读取。布尔型 metric（`price_above_*`）导出为 JSON boolean。
+
 ### 11.4 domain_payload-only 指标（未注册，不进 constraint_exports）
 
 以下 Layer 1 指标在 Evidence / domain_payload 中计算，但 **MUST NOT** 进入 `constraint_exports`，直至 SPEC-005 注册：
@@ -1774,7 +1957,7 @@ none
 | export_ref | 说明 | registration_status | can_support_hard | allowed_constraint_types |
 |---|---|:---:|:---:|:---:|
 | `metric://divergence_confirmations` | 确认背离的指标数量 | `unregistered_mvp_local` | false | `["soft"]` |
-| `metric://divergence_strength` | 最强背离的强度 | `unregistered_mvp_local` | false | `["soft"]` |
+| `metric://divergence_strength` | 最强背离的强度（§4.1.7 / §6.7 回写字段） | `unregistered_mvp_local` | false | `["soft"]` |
 | `fact://has_regular_bullish_divergence` | 是否存在底背离 | `unregistered_mvp_local` | false | `["soft"]` |
 | `fact://has_regular_bearish_divergence` | 是否存在顶背离 | `unregistered_mvp_local` | false | `["soft"]` |
 
@@ -1819,14 +2002,14 @@ none
 → 执行 §9.5.1 的 fallback 链（momentum → volatility → liquidity → headwinds）
 → 如果 fallback 链仍产出空 opposing：
     → 如果 stance 为 mixed：降级为 "neutral"（SPEC-004 §8 合法值；
-      Step 6 打分路径在 |score| ≤ 0.2 时直接产出 neutral，
-      此路径仅覆盖 Step 6 产出 mixed 但后续 evidence 检查发现无 opposing 的边界情况）
+      正常路径下 Step 6 在 signal_conflict 时产出 mixed，§9.5.1 应已填充 opposing；
+      此路径仅覆盖 Card 组装后 evidence 检查仍发现 mixed 无 opposing 的边界情况）
     → 如果 stance 为 directional（positive/moderately_positive/negative/moderately_negative）：
       降级为 neutral，domain_status_reason = "no_opposing_evidence_for_directional_stance"
       warnings.append("directional_stance_no_opposing: 无足够反方证据支撑方向性判断，降级为 neutral")
 ```
 
-> **注意：** `neutral` 是 SPEC-004 §8 的合法 stance 值，不要求 `opposing_evidence`。Step 6 在 `|score| ≤ 0.2` 时直接产出 `neutral`，可预防大部分此类降级。
+> **注意：** `neutral` 不要求 `opposing_evidence`。Step 6 在 `|score| ≤ 0.2` 且无 `signal_conflict` 时产出 `neutral`。`mixed` 要求正反证据并存（§9.3 Phase 2–3），正常路径下 opposing 应由 §9.5.1 自动填充。
 
 ### 12.3 验证检查 #7 详细说明
 
@@ -1993,11 +2176,15 @@ test_unknown_phase
 
 ```text
 test_analysis_card_schema_valid          # crosslens_spec004.models.AnalysisCard model_validate
-test_key_levels_must_be_empty            # key_levels.support/resistance MUST be []
+test_key_levels_must_be_empty            # key_levels.support/resistance MUST be [] (P0–P3；P4 起改名见 §27.4)
 test_constraint_exports_registered_only   # P0: 仅 7 个 registration_status=registered hard exports
 test_data_freshness_required_when_exports # constraint_exports 非空时 data_freshness 必填
 test_time_horizon_bucket_populated       # time_horizon_bucket + days_min/max 必填
 test_opposing_evidence_for_directional_stance  # §41 ¶7
+test_stance_mixed_on_classifier_conflict      # §9.3 signal_conflict → mixed
+test_stance_neutral_on_weak_no_conflict       # |score|≤0.2 且无 conflict → neutral
+test_stance_mixed_requires_opposing           # mixed 时 opposing 非空（组装后）
+test_divergence_strength_on_evidence_metrics  # §4.1.7 字段存在且 = strongest_strength
 ```
 
 ---
@@ -2006,7 +2193,7 @@ test_opposing_evidence_for_directional_stance  # §41 ¶7
 
 ### 14.1 阈值校准
 
-以下阈值均为经验值，未经 A 股回测验证。MVP 阶段在 `domain_payload` 中标注 `threshold_calibration: "uncalibrated"`。
+以下阈值均为经验值，未经 A 股回测验证。P0–P2 在 `domain_payload.threshold_calibration.part_i` 标注 `"uncalibrated"`（`part_ii = null`）。
 
 | 分类器 | 阈值 | 当前值 | 校准方法 |
 |--------|------|--------|---------|
@@ -2070,13 +2257,16 @@ A 股的 T+1 制度和涨跌停板限制对技术分析有独特影响：
 
 ### 15.2 Adapter 依赖
 
-| 方法 | 数据源 | 说明 |
-|------|--------|------|
-| `adapter.get_market_data()` | AlphaDB `stock_daily` | 日线 OHLCV |
-| `adapter.get_market_data()` | AlphaDB `stock_dailybasic` | 估值 + 换手率 |
-| `adapter.get_market_data()` | AlphaDB `stock_adj_factor` | 复权因子（待补充） |
+| 方法 | 数据源 | 说明 | 阶段 |
+|------|--------|------|:---:|
+| `adapter.get_market_data()` | AlphaDB `stock_daily` | 日线 OHLCV | P0 |
+| `adapter.get_market_data()` | AlphaDB `stock_dailybasic` | 估值 + 换手率 | P0 |
+| `adapter.get_market_data()` | AlphaDB `stock_adj_factor` | 复权因子（待补充） | P0 |
+| `adapter.get_index_data()` | AlphaDB `index_daily` | **基准指数日线（Feature B 前置，§26）** | P3 |
 
-> **注：** Technical/Market 域不需要财务报表数据，仅需要日线行情数据。这使得它可以在没有 AlphaDB 的情况下，通过 TinyData 或其他数据源运行。
+> **注：** Technical/Market 域 P0–P2 仅需日线行情数据，可在没有 AlphaDB 的情况下通过 TinyData 或其他数据源运行。**P3（Feature B 相对强度）新增对基准指数序列的依赖**（`get_index_data`，§26），作为 P3 前置条件；该方法不可用时 B 段降级，不影响 A/C/D/F。
+>
+> **Python 依赖：** Part II 不引入新的第三方依赖——Hurst/VaR/回归用 `numpy`，重采样用 `pandas`，枢轴检测复用 §15.1 已有的 `scipy.signal.find_peaks`。
 
 ### 15.3 StandardContract 映射表
 
@@ -2114,7 +2304,7 @@ A 股的 T+1 制度和涨跌停板限制对技术分析有独特影响：
 
 ## 16. MVP 范围
 
-> **分阶段交付：** P0 = 实现冻结范围（必须先完成并通过契约测试）；P1/P2 = 后续增量。算法章节（§7–§8）保留完整设计，但实现可按阶段裁剪。
+> **分阶段交付：** P0 = 实现冻结范围（必须先完成并通过契约测试）；P1/P2 = Part I 后续增量；**P3–P4 = Part II 高阶功能扩展（§17–§28）**（原 P5 已合并入 P3）。算法章节（§7–§8、§19–§23）保留完整设计，但实现可按阶段裁剪。
 
 ### 16.1 P0 — 实现冻结（必须先交付）
 
@@ -2144,21 +2334,1025 @@ A 股的 T+1 制度和涨跌停板限制对技术分析有独特影响：
 - ✅ `domain_payload.wyckoff` 子对象
 - ✅ §11.3 soft-only Wyckoff facts
 - ✅ 涨跌停 VSA 降级（§8.3）
-- ✅ 阈值回测校准（§14.1，替换 `threshold_calibration: "uncalibrated"`）
+- ✅ Layer 2/3 参数与 §6 分类器阈值的 A 股分布回测验证（§14.1）；`domain_payload.threshold_calibration.part_i` 保持 `"uncalibrated"`（Part I 迁移见 §28.5；P3 起 `part_ii` 字段升级为 `"self_calibrated_percentile"`，§17.3）
 - ✅ SPEC-005 变更请求：注册新增 export_ref，评估 conditional hard export
 - ✅ 单元测试：`tests/test_wyckoff.py`
 
-### 16.4 不交付（全阶段）
+### 16.4 P3 — 市场状态 + 相对强度 + 风险度量（Part II，P2 完成后）
 
-- ❌ 支撑/阻力位自动计算（`key_levels.support/resistance` 始终为空数组）
-- ❌ K 线形态识别（TA-Lib 有 61 种 CDL* 函数，但 MVP 不集成）
+> **前置条件：** 先实现 §26 `get_index_data()` Mock 桩，再并行推进 A/B/C。
+
+- ✅ §18 分位数自校准工具（`calibration.py`）
+- ✅ Feature A 市场状态/机制识别（Hurst + ER + 波动率状态，§19）→ `regime_metrics`
+- ✅ **Feature B 相对强度与 Beta**（RS 线 / RS Rating / Mansfield / Beta / Alpha / 相对回撤，§20）→ `relative_strength_metrics`（Adapter `get_index_data()` P3 前置，§26）
+- ✅ Feature C 风险度量套件（回撤 / VaR-CVaR / 风险调整 / ATR 止损，§21）→ `risk_metrics`
+- ✅ regime 门控 + stance/confidence 调整（§24.2/§24.4）
+- ✅ §25.1 soft-only exports；§25.3 SPEC-005 注册请求（`beta_252d`、`relative_drawdown`、风险度量 hard 候选）
+- ✅ 单元测试：`tests/test_calibration.py`、`tests/test_regime.py`、`tests/test_relative_strength.py`、`tests/test_risk.py`
+
+### 16.5 P4 — 支撑阻力 + 多时间框架（P3 完成后）
+
+- ✅ Feature D 支撑阻力 + 成交量分布（§22）→ `support_resistance_metrics`，**解锁 `key_levels`**（§10.1 / §22.6）
+- ✅ Feature F 多时间框架共振（日/周/月，§23）→ `multi_timeframe_metrics`
+- ✅ §25.2 soft-only exports
+- ✅ 契约测试更新：`test_key_levels_empty_unless_sr_enabled`（替换 §13.6 的 `test_key_levels_must_be_empty`）
+- ✅ 单元测试：`tests/test_levels.py`、`tests/test_mtf.py`
+
+### 16.6 不交付（全阶段）
+
+- ❌ 筹码分布 / 成本分布（Feature E，未纳入本轮）
+- ❌ 资金流向 / 北向资金 / 龙虎榜（Feature G，需更大数据契约扩展，未纳入本轮）
+- ❌ K 线 / 图表形态识别（Feature H，TA-Lib CDL* 等，未纳入本轮）
+- ❌ 横截面 IBD 1–99 RS Rating（需全市场快照，§28.3）
 - ❌ 分钟线 / Tick 数据分析
-- ❌ 多时间框架分析（日线 + 周线联动）
 - ❌ 实时行情推送
 - ❌ 涨跌停板对 VSA 的完整修正（P2 仅做 confidence 降级，见 §8.3）
 - ❌ `metric://bid_ask_spread_proxy`（SPEC-004 §38 已注册，但全阶段不导出）
+- ❌ 参数化波动率预测（GARCH 等，§28.4）
 - ❌ LLM 生成的 summary（使用模板占位，与 Fundamentals 域一致）
+
+> **范围变更说明（v0.2.0）：** "支撑/阻力位自动计算"与"多时间框架分析"在 v0.1.2 曾列为"全阶段不交付"，**v0.2.0 经 Feature D / F 分别纳入 P4**。
 
 ---
 
-*End of SPEC-014 v0.1.2*
+# Part II：高阶功能扩展（v0.2.0 / P3–P4）
+
+> 本部分（§17–§28）定义 5 项高阶能力 A/B/C/D/F。Part I（§1–§16）描述 P0–P2 的三层基础架构；Part II 在其上叠加**市场机制（Layer 0）**与**相对、风险、点位、时间**四个横切维度。所有算法的确定性部分仍应全部可单元测试（对齐 §1 文档目标）。
+
+## 17. 高阶功能扩展总览
+
+### 17.1 互补定位：六维度框架
+
+威科夫（§8）与背离（§7）是**单序列、启发式、面向反转/结构**的软信号。它们覆盖了"价格与成交量的形态"，但留下了五个未覆盖的分析维度。Part II 按维度补全：
+
+| 维度 | 由谁覆盖 | 缺口与 Part II 的补全 |
+|---|---|---|
+| 形态/结构 | 威科夫（L3）、背离（L2） | 已覆盖 |
+| **横截面/相对** | — | **B（§20，P3★）**：相对指数/行业是强还是弱？（个股不孤立交易） |
+| **市场机制** | — | **A（§19，P3）**：当前是趋势市还是震荡市？哪类工具此刻有效？ |
+| **风险/量化** | — | **C（§21，P3）**：回撤、下行波动、尾部风险、该下多大注 |
+| **价格点位** | trading_range（弱） | **D（§22，P4）**：有成交量背书的支撑/阻力（解锁 key_levels） |
+| **时间** | — | **F（§23，P4）**：大周期（周/月线）方向是否与日线一致 |
+
+### 17.2 分阶段交付（P3–P4）
+
+延续 Part I 的实现冻结策略，Part II 按**价值优先**排序——**B 价值最高，与 A/C 同属 P3**：
+
+| 阶段 | 内容 | 数据依赖 | 关键产出 |
+|:---:|---|---|---|
+| **P3** | §18 自校准 + A 市场状态（§19）+ **B 相对强度（§20）** + C 风险度量（§21） | 日线 + **指数基准（§26，P3 前置）** | 横截面/相对、机制、风险——可注册 hard 的核心扩展 |
+| **P4** | D 支撑阻力（§22）+ F 多时间框架（§23） | 现成日线 | 价格点位（解锁 key_levels）+ 时间维度 |
+
+> **排序理由（v0.2.0 修订）：** B 价值最高，应尽早交付。其唯一额外依赖是基准指数序列（`get_index_data()`），作为 **P3 前置条件**提前实现（§26），与 A/C 并行交付。P5 层取消——原 P5 内容已并入 P3。各阶段独立可交付，缺失高阶 Evidence 不降级 `domain_status`（与 Layer 2/3 一致，列入 `_OPTIONAL_EVIDENCE`，§9.5.0）。
+
+### 17.3 治理与 determinism 总则
+
+| 原则 | 规则 |
+|---|---|
+| 初始注册状态 | 所有 Part II 新增 export **首期** `registration_status = "unregistered_mvp_local"`，`can_support_hard_constraint = false`，`allowed_constraint_types = ["soft"]`（受 SPEC-004 §9.1 `ConstraintExport` 校验器强制）。 |
+| 注册升级路径 | 向 SPEC-005 提交 `MetricRegistryEntry` 注册请求（§25.3）；注册完成后升级为 `registered`，方可参与 Hard Constraint。 |
+| Hard 候选 | **B 的 `beta_252d` / `relative_drawdown`** 与 **C 的风险度量**（`max_drawdown_1y`、`hist_var_95_1y` 等）是注册后的 Hard Constraint 首选（客观、确定性、对齐 SPEC-004 §35 #9）。 |
+| determinism 标注 | 连续数值（Hurst、ER、Beta、VaR、POC 价位）为 `computed`；离散标签（regime、risk_state、rs_state）含阈值判断，为 `structured`。 |
+| 阈值校准 | 离散标签**一律基于 §18 分位数自校准**，而非写死全局阈值；P3 启用后 `domain_payload.threshold_calibration` 升级为子对象：`{"part_i": "uncalibrated", "part_ii": "self_calibrated_percentile"}`（§10.3 Breaking CR；P0–P2 仍为 `{"part_i": "uncalibrated", "part_ii": null}`）。 |
+
+### 17.4 共享数据流
+
+```text
+原始 OHLCV + adj_factor (Step 1)
+   │
+   ├─→ Layer 1 指标 (Step 2) ─────────────┐
+   │                                       │
+   ├─→ §18 分位自校准基线（rolling 分布）   │
+   │                                       ▼
+   ├─→ A 市场状态 (Layer 0) ──── 调制 ──→ stance/confidence（§24.2）
+   ├─→ C 风险度量 ←── ATR/log_returns（复用 Layer 1）
+   ├─→ D 支撑阻力 ←── find_peaks（复用 Layer 2 摆动检测）+ 成交量分布
+   ├─→ F 多时间框架 ←── 重采样 OHLCV → 周/月线 → 复用 Layer 1
+   └─→ B 相对强度 ←── 个股 close + 基准指数 close（§26 新数据）
+```
+
+> Part II **复用** Part I 的两块基础设施：(1) Layer 1 的 TA-Lib 指标与 log 收益率；(2) Layer 2 背离检测的 `find_peaks` 摆动点检测（D 的枢轴聚类直接复用）。
+
+---
+
+## 18. 分位数自校准工具（横切，缓解 Part II 的 §14.1 阈值问题）
+
+### 18.1 动机
+
+§14.1 列出 Part I 全部分类器阈值"未经 A 股回测校准"。业界对市场状态/波动率/相对强度类标签的最佳实践是**用每个标的自身的历史分布做分位排名**，而非写死全局阈值（如 `ADX>25`）——后者在不同标的、不同时期会静默漂移。Part II 的所有离散标签 **MUST** 基于本节工具产出。
+
+> **与 §14.1 的关系（v0.2.1 澄清）：** 本节**不关闭** Part I §6 固定阈值问题；Part I 仍通过 `threshold_calibration.part_i = "uncalibrated"` 标注（直至 §28.5 迁移）。本节关闭的是 **Part II 新增标签** 的未校准问题：P3 起将 `threshold_calibration.part_ii` 设为 `"self_calibrated_percentile"`。
+
+### 18.2 工具定义
+
+```python
+def rolling_percentile(
+    series: np.ndarray,      # 历史值序列（升序，含当前值）
+    value: float,            # 待定位的当前值
+    lookback: int = 252,     # 回看窗口（约 1 年交易日）
+    min_samples: int = 60,   # 最小有效样本，不足返回 None
+) -> float | None:
+    """返回 value 在最近 lookback 窗口分布中的分位（0.0–1.0）。"""
+    window = series[-lookback:]
+    valid = window[~np.isnan(window)]
+    if len(valid) < min_samples:
+        return None
+    return float(np.sum(valid <= value) / len(valid))
+
+
+def percentile_to_bucket(
+    pct: float | None,
+    bounds: tuple[float, float, float] = (0.20, 0.80, 0.95),
+    labels: tuple[str, str, str, str] = ("low", "normal", "high", "extreme"),
+) -> str:
+    """分位 → 四档标签。pct=None → labels 外的 'unknown'。"""
+    if pct is None:
+        return "unknown"
+    lo, hi, ext = bounds
+    if pct < lo:    return labels[0]
+    if pct < hi:    return labels[1]
+    if pct < ext:   return labels[2]
+    return labels[3]
+```
+
+### 18.3 应用约定
+
+| 约定 | 规则 |
+|---|---|
+| determinism | `rolling_percentile` 输出为 `computed`（给定窗口确定）；`percentile_to_bucket` 的标签为 `structured`（含 bounds 参数）。 |
+| 样本不足 | `< min_samples` 返回 `None` → 标签 `"unknown"` → 该信号不参与 stance 调制，并记 `warnings.append("self_calibration_insufficient_history")`。 |
+| 窗口口径 | 默认 `lookback=252`（1 年）；regime 用 `lookback=252`，风险百分位用 `lookback=504`（2 年，覆盖更长尾部），各 Feature 在其章节声明。 |
+| 标注 | P3 启用后将 `domain_payload.threshold_calibration.part_ii` 设为 `"self_calibrated_percentile"`；Part I 的 `.part_i` 字段保持 `"uncalibrated"` 直至 §28.5 迁移。 |
+
+> **与 Part I 的关系：** Part I 的 §6 分类器阈值保持原状（不破坏 P0–P2 冻结），但 §14.1 的校准建议路径在 Part II 中以本工具落地。后续可将 Part I 分类器逐步迁移到自校准（列为 §28 开放项）。
+
+---
+
+## 19. Feature A：市场状态 / 机制识别（Layer 0，P3）
+
+### 19.1 概览
+
+市场状态层是**调制所有下游信号的元层**：先判定"当前价格行为属于哪种机制"，再据此调整 stance 权重与 confidence（§24.2）。核心论点——**误判市场机制是代价最高的分析错误**：趋势工具用在均值回归市场会反复亏损，反之亦然。
+
+```text
+输入: close（前复权）, Layer 1 的 hist_vol_20d 序列
+三个正交度量:
+  1. Hurst 指数 H        → 持续性（趋势 vs 均值回归）
+  2. Kaufman 效率比率 ER  → 趋势"干净"程度（0=纯噪音, 1=完美直线）
+  3. 波动率分位（§18）    → 与趋势/震荡正交的第二维度
+合成: regime（trending / mean_reverting / random）× volatility_regime（low..extreme）
+```
+
+### 19.2 Evidence：regime_metrics
+
+```text
+evidence_type: "regime_metrics"
+generation_type: computed
+determinism_level: structured    # 连续度量为 computed，但 regime 标签含阈值
+can_support_hard_constraint: false
+数据来源: stock_daily (close) + Layer 1 hist_vol_20d
+
+metrics:
+  hurst_exponent: float | None      # R/S 法，0.0–1.0；样本不足为 None
+  efficiency_ratio: float           # Kaufman ER，0.0–1.0
+  realized_vol_percentile: float | None  # hist_vol_20d 在 252 日分布中的分位（§18）
+  trend_direction: str              # "up" | "down" | "none"（基于 ma_50d_slope 符号）
+  regime: str                       # "trending" | "mean_reverting" | "random" | "unknown"
+  volatility_regime: str            # "low" | "normal" | "high" | "extreme" | "unknown"
+  regime_confidence: float          # 0.0–1.0，见 §19.6
+  regime_persistence_days: int      # 当前 regime 已持续的交易日数
+```
+
+### 19.3 Hurst 指数（R/S 重标极差法）
+
+```python
+def hurst_rs(series: np.ndarray, min_chunk: int = 8, max_chunks: int = 8) -> float | None:
+    """对数价格序列的 Hurst 指数（rescaled range / R/S 分析）。"""
+    log_price = np.log(series[~np.isnan(series)])
+    n = len(log_price)
+    if n < 64:                      # 数据过短无法稳健估计
+        return None
+    # 取多种子区间长度，对每种长度计算平均 R/S
+    chunk_sizes = np.unique(np.floor(
+        np.logspace(np.log10(min_chunk), np.log10(n // 2), max_chunks)
+    ).astype(int))
+    rs_means, ns = [], []
+    for size in chunk_sizes:
+        rs_vals = []
+        for start in range(0, n - size + 1, size):
+            chunk = log_price[start:start + size]
+            incr = np.diff(chunk)
+            if len(incr) < 2 or np.std(incr) == 0:
+                continue
+            mean_incr = np.mean(incr)
+            cumdev = np.cumsum(incr - mean_incr)
+            R = np.max(cumdev) - np.min(cumdev)
+            S = np.std(incr)
+            rs_vals.append(R / S)
+        if rs_vals:
+            rs_means.append(np.mean(rs_vals)); ns.append(size)
+    if len(ns) < 3:
+        return None
+    # log(R/S) = H * log(n) + c  → 斜率即 H
+    H = np.polyfit(np.log(ns), np.log(rs_means), 1)[0]
+    return float(np.clip(H, 0.0, 1.0))
+```
+
+**判定（自校准优先，回退经典阈值）：**
+
+```text
+IF hurst is None:              persistence = "unknown"
+ELIF hurst > 0.55:             persistence = "trending"        # 持续性强
+ELIF hurst < 0.45:             persistence = "mean_reverting"  # 反持续
+ELSE:                          persistence = "random"          # 随机游走
+```
+
+> **参数：** `lookback = 252` 个交易日（约 1 年）。Hurst 在短窗口下方差大，**MUST** 要求 ≥ 64 个有效样本，否则 `hurst_exponent = None`。
+
+### 19.4 Kaufman 效率比率（趋势干净度）
+
+```python
+def efficiency_ratio(close: np.ndarray, period: int = 20) -> float:
+    direction = abs(close[-1] - close[-period - 1])
+    volatility = np.sum(np.abs(np.diff(close[-period - 1:])))
+    return float(direction / volatility) if volatility > 0 else 0.0
+```
+
+ER 接近 1 = 单边干净趋势；接近 0 = 来回震荡。用于在 `trending` 内区分强弱、并作为 regime_confidence 的输入。
+
+### 19.5 波动率状态（自校准）
+
+```python
+# 复用 Layer 1 的 hist_vol_20d 序列（§4.1.3），按 §18 取分位
+vol_pct = rolling_percentile(hist_vol_20d_series, hist_vol_20d_series[-1], lookback=252)
+volatility_regime = percentile_to_bucket(vol_pct, bounds=(0.25, 0.75, 0.95))
+```
+
+> 波动率是与趋势/震荡**正交**的维度——"平静趋势"与"剧烈趋势"是完全不同的交易环境，因此独立成维而非并入 regime。
+
+### 19.6 regime 合成判定
+
+```python
+def determine_regime(hurst, er, vol_regime, ma_50d_slope) -> RegimeAssessment:
+    # 方向
+    if ma_50d_slope > 0.005:    direction = "up"
+    elif ma_50d_slope < -0.005: direction = "down"
+    else:                       direction = "none"
+
+    # 机制（Hurst 主轴，ER 辅助）
+    if hurst is None:
+        regime = "unknown"
+    elif hurst > 0.55 and er > 0.3:
+        regime = "trending"
+    elif hurst < 0.45:
+        regime = "mean_reverting"
+    else:
+        regime = "random"
+
+    # 置信度：Hurst 偏离 0.5 的幅度 + ER 一致性
+    if hurst is None:
+        confidence = 0.0
+    else:
+        hurst_strength = min(abs(hurst - 0.5) / 0.2, 1.0)   # 0.5→0, 0.7/0.3→1
+        er_align = er if regime == "trending" else (1 - er)
+        confidence = round(0.6 * hurst_strength + 0.4 * er_align, 2)
+
+    return RegimeAssessment(regime, direction, vol_regime, confidence)
+```
+
+### 19.7 数据要求
+
+| 度量 | 最少 | 推荐 | 说明 |
+|---|:---:|:---:|---|
+| Hurst | 64 | 252 | < 64 → `None`，regime 退化为 `unknown` |
+| ER | period+1 | 60 | 复用 close |
+| 波动率分位 | 60 | 252 | 复用 Layer 1 hist_vol_20d；§18 |
+
+### 19.8 constraint_exports（P3，soft-only）
+
+| export_ref | 说明 | registration_status | can_support_hard | allowed |
+|---|---|:---:|:---:|:---:|
+| `metric://hurst_exponent` | Hurst 指数 | `unregistered_mvp_local` | false | `["soft"]` |
+| `metric://efficiency_ratio` | Kaufman ER | `unregistered_mvp_local` | false | `["soft"]` |
+| `label://market_regime` | 市场机制标签 | `unregistered_mvp_local` | false | `["soft"]` |
+| `fact://regime_is_trending` | 是否趋势市 | `unregistered_mvp_local` | false | `["soft"]` |
+
+> **注册请求（§25.4）：** Hurst、ER 为确定性连续值，拟提交 SPEC-005 注册为 `computed` metric。注册后仍建议保持 soft（regime 是上下文，不应单独构成硬性禁入/准入），但可被 Playbook soft 规则与 §24.2 门控引用。
+
+---
+
+## 20. Feature B：相对强度与市场敏感度（横切，P3★）
+
+### 20.1 概览
+
+个股从不孤立交易。"个股涨 10% 但大盘涨 20%"实为**弱势**——这是 Layer 1–3 全部单序列分析永远看不到的维度。本特性对标基准（大盘 / 行业），产出相对强弱与系统性风险（Beta）。
+
+> **对基本面投资者的价值：** 强基本面 + **弱 RS** = 价值陷阱 / 时机未到；强基本面 + **强 RS** = 市场开始认同论点。这是 Technical 域为基本面"印证 / 择时"的核心贡献。
+
+### 20.2 数据契约扩展（P3 前置条件，详见 §26）
+
+B 需要**基准指数日线序列**，当前 Adapter 未提供。**§26 的 `get_index_data()` 实现是 P3 的前置工作**，应在 A/B/C 其他模块并行启动前完成（可优先做 Mock 桩解锁单测，AlphaDB 实现后接入集成测试）。新增方法：
+
+```python
+def get_index_data(index_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+    """基准指数日线。列: trade_date, close（按 trade_date 升序）。"""
+```
+
+**基准解析规则（benchmark resolution）：**
+
+| 优先级 | 基准 | index_code 来源 |
+|:---:|---|---|
+| 1（市场） | 沪深300 | `000300.SH`（默认市场基准） |
+| 2（行业，可选） | 申万一级行业指数 | 由 `get_industry_peers` 所属行业映射（§26.2） |
+| 降级 | 无指数数据 | `relative_strength_metrics` 不产出，记 `warnings.append("benchmark_unavailable")`，B 段 Evidence 标 optional 缺失 |
+
+对齐时按 `trade_date` 内连接（交易日对齐），个股与基准取交集日期。
+
+### 20.3 Evidence：relative_strength_metrics
+
+```text
+evidence_type: "relative_strength_metrics"
+generation_type: computed
+determinism_level: computed       # 全部为确定性回归/比值
+can_support_hard_constraint: false  # MVP 未注册；beta/相对回撤为注册后 hard 候选
+数据来源: stock_daily(close) + get_index_data(benchmark close)
+
+metrics:
+  benchmark_code: str               # 实际使用的基准（如 000300.SH）
+  rs_raw: float                     # 加权 ROC（§20.5）
+  relative_strength_percentile: float | None  # rs_raw 在自身 252 日分布中的分位（§18）
+  rs_line_slope_20d: float          # RS 线（close/index）20 日斜率
+  mansfield_rs: float               # Mansfield 相对表现（§20.4）
+  beta_252d: float | None           # 对基准的 Beta（OLS，§20.6）
+  alpha_252d: float | None          # 年化 Alpha（截距×252）
+  relative_return_60d: float        # 个股 60 日收益 − 基准 60 日收益
+  relative_drawdown: float          # 个股回撤 − 基准回撤（同期）
+  rs_state: str                     # "leader" | "in_line" | "laggard" | "unknown"
+```
+
+### 20.4 RS 线与 Mansfield RS
+
+```python
+rs_ratio = close / index_close                       # 标准 RS 比值（逐日）
+rs_line_slope_20d = (rs_ratio[-1] - rs_ratio[-21]) / rs_ratio[-21]
+# Mansfield 相对表现：RS 比值偏离其 200 日均线的程度（零线穿越识别强弱反转）
+mansfield_rs = (rs_ratio[-1] / sma(rs_ratio, 200)[-1] - 1) * 100
+```
+
+RS 线斜率 > 0 = 跑赢基准；Mansfield 上穿零线 = 由弱转强。
+
+### 20.5 RS Rating（加权 ROC，近端加权）
+
+```python
+def rs_raw(close: np.ndarray) -> float:
+    """IBD 式加权 ROC：近一季度权重最高。需 ≥ 252 日。"""
+    roc = lambda n: (close[-1] / close[-n - 1] - 1)
+    return 0.4 * roc(63) + 0.2 * roc(126) + 0.2 * roc(189) + 0.2 * roc(252)
+```
+
+> **单股 vs 横截面：** IBD 的 1–99 RS Rating 需对**全市场横截面**做分位排名，单股分析时无全市场快照。MVP 采用**自校准**：`relative_strength_percentile = rolling_percentile(rs_raw_history, rs_raw_now, lookback=252)`（§18），衡量"相对自身历史是否处于强势"。真正的横截面 1–99 Rating 需批量/选股上下文，列为 §28 开放项。
+
+### 20.6 Beta / Alpha（OLS 回归）
+
+```python
+def beta_alpha(stock_ret: np.ndarray, bench_ret: np.ndarray) -> tuple[float, float]:
+    """对齐后的日对数收益回归：stock_ret = alpha + beta * bench_ret。"""
+    if len(stock_ret) < 120 or np.var(bench_ret) == 0:
+        return None, None
+    beta = np.cov(stock_ret, bench_ret)[0, 1] / np.var(bench_ret)
+    alpha_daily = np.mean(stock_ret) - beta * np.mean(bench_ret)
+    return float(beta), float(alpha_daily * 252)   # alpha 年化
+```
+
+> **Beta 是 Hard Constraint 首选候选**：客观、确定性，可表达"组合 Beta 上限""高 Beta 标的在高波动 regime 下降权"等风险约束（注册后，§25.4）。
+
+### 20.7 RS 状态判定
+
+```text
+# 综合 rs_line_slope、relative_return_60d、mansfield_rs
+IF benchmark_unavailable:               rs_state = "unknown"
+ELIF relative_return_60d > 0 AND mansfield_rs > 0 AND rs_line_slope_20d > 0:
+    rs_state = "leader"                  # 多维确认跑赢
+ELIF relative_return_60d < 0 AND mansfield_rs < 0:
+    rs_state = "laggard"                 # 跑输
+ELSE:
+    rs_state = "in_line"                 # 与基准同步
+```
+
+### 20.8 数据要求
+
+| 度量 | 最少 | 推荐 | 说明 |
+|---|:---:|:---:|---|
+| rs_raw / RS Rating | 253 | 280 | 需 252 日 ROC |
+| Beta / Alpha | 120 | 252 | OLS 稳健性 |
+| RS 线 / Mansfield | 200 | 250 | Mansfield 需 200 日均线 |
+
+### 20.9 constraint_exports（P3，soft-only；注册后部分可 hard）
+
+| export_ref | 说明 | registration_status | can_support_hard | allowed |
+|---|---|:---:|:---:|:---:|
+| `metric://rs_raw` | 加权 ROC 相对强度 | `unregistered_mvp_local` | false | `["soft"]` |
+| `metric://beta_252d` | 对基准 Beta | `unregistered_mvp_local` | false | `["soft"]` |
+| `metric://relative_drawdown` | 相对回撤 | `unregistered_mvp_local` | false | `["soft"]` |
+| `label://rs_state` | 相对强弱标签 | `unregistered_mvp_local` | false | `["soft"]` |
+
+> **注册请求（§25.4）：** `beta_252d`、`relative_drawdown` 拟注册为 `computed` 且 `can_support_hard_constraint = true`，作为风险/择时类 Hard Constraint。
+
+---
+
+## 21. Feature C：风险度量套件（横切，P3）
+
+### 21.1 概览
+
+SPEC-004 §35.1 #9（风险回撤）是 Technical 域的**授权职责**，但 Part I 仅有一个 `drawdown_from_52w_high`。本特性把它升级为体系化风险层，也是 §39 `liquidity_risk`（high 严重度）冲突类型的直接支撑。
+
+> **设计立场：** 风险指标客观、确定性强（纯 `computed`、仅用日线），是**最适合 Hard Constraint 的一类**（"最大可接受回撤""组合 Beta 上限""最低流动性"）。与方向无关——威科夫/背离给方向，本套件给"该不该下注、下多大、止损在哪"。
+
+### 21.2 Evidence：risk_metrics
+
+```text
+evidence_type: "risk_metrics"
+generation_type: computed
+determinism_level: computed
+can_support_hard_constraint: false   # MVP 未注册；注册后多项升级为 hard（§25.4）
+数据来源: stock_daily (close, high, low) + Layer 1 (atr_14d)
+
+metrics:
+  # 回撤
+  current_drawdown: float           # 距滚动峰值的回撤（≤ 0）
+  max_drawdown_1y: float            # 近 252 日最大回撤（≤ 0）
+  underwater_days: int              # 距上一峰值的交易日数
+  ulcer_index_1y: float             # 回撤深度的 RMS（下行痛苦度）
+  # 下行风险
+  downside_deviation_ann: float     # 负收益年化半标准差
+  hist_var_95_1y: float             # 历史 VaR（日，5% 分位，≤ 0）
+  hist_cvar_95_1y: float            # 历史 CVaR / 期望损失（≤ 0）
+  max_single_day_loss_1y: float     # 近 1 年单日最大跌幅
+  # 风险调整收益
+  annualized_return_1y: float
+  annualized_vol_1y: float
+  sharpe_like_1y: float             # 年化收益 / 年化波动（rf=0）
+  sortino_1y: float                 # 年化收益 / 下行波动
+  calmar_1y: float                  # 年化收益 / |最大回撤|
+  # 可执行风险参考
+  atr_stop_long: float              # close − k×ATR（默认 k=3）
+  atr_stop_pct: float               # (close − atr_stop_long) / close
+  risk_state: str                   # "low" | "moderate" | "elevated" | "high" | "unknown"
+```
+
+### 21.3 回撤分析
+
+```python
+def drawdown_analytics(close: np.ndarray, lookback: int = 252) -> dict:
+    px = close[-lookback:]
+    running_peak = np.maximum.accumulate(px)
+    dd = px / running_peak - 1.0                       # 逐日回撤（≤ 0）
+    current_drawdown = float(dd[-1])
+    max_drawdown_1y = float(np.min(dd))
+    last_peak_idx = int(np.argmax(running_peak == px)) # 最近一次创新高的位置
+    underwater_days = int(len(px) - 1 - np.where(px == running_peak)[0][-1])
+    ulcer_index = float(np.sqrt(np.mean((dd * 100) ** 2)))
+    return {...}
+```
+
+### 21.4 下行风险
+
+```python
+log_ret = np.diff(np.log(close[-253:]))               # 近 1 年日对数收益
+downside = log_ret[log_ret < 0]
+downside_deviation_ann = float(np.std(downside) * np.sqrt(252)) if len(downside) else 0.0
+# 历史法 VaR / CVaR（不假设正态）
+hist_var_95 = float(np.percentile(log_ret, 5))        # 5% 分位（≤ 0）
+hist_cvar_95 = float(np.mean(log_ret[log_ret <= hist_var_95]))
+max_single_day_loss = float(np.min(log_ret))
+```
+
+> **历史法 vs 参数法：** A 股日收益尖峰厚尾、且有涨跌停截断，**MUST** 用历史分位法而非正态参数法（避免低估尾部）。调研亦表明 regime-aware / 历史法对左尾估计更稳健。参数化 GARCH 列为 §28 开放项。
+
+### 21.5 风险调整收益
+
+```python
+ann_ret = float(np.mean(log_ret) * 252)
+ann_vol = float(np.std(log_ret) * np.sqrt(252))
+sharpe_like = ann_ret / ann_vol if ann_vol > 0 else 0.0
+sortino    = ann_ret / downside_deviation_ann if downside_deviation_ann > 0 else 0.0
+calmar     = ann_ret / abs(max_drawdown_1y) if max_drawdown_1y < 0 else 0.0
+```
+
+### 21.6 ATR 止损与仓位参考
+
+```python
+atr_stop_long = float(close[-1] - 3.0 * atr_14d)      # 复用 Layer 1 ATR
+atr_stop_pct  = float((close[-1] - atr_stop_long) / close[-1])
+```
+
+> 仅作**参考点位**（非交易指令），供 Playbook/用户做仓位与止损参考；`k` 默认 3.0，可配置。
+
+### 21.7 risk_state 判定（自校准）
+
+```python
+# 用波动率分位 + 回撤幅度合成（§18），避免写死阈值
+vol_pct = rolling_percentile(ann_vol_series, ann_vol, lookback=504)   # 2 年分布
+dd_severe = (max_drawdown_1y <= -0.30)
+if vol_pct is None:               risk_state = "unknown"
+elif vol_pct >= 0.95 or dd_severe: risk_state = "high"
+elif vol_pct >= 0.80:             risk_state = "elevated"
+elif vol_pct >= 0.40:             risk_state = "moderate"
+else:                             risk_state = "low"
+```
+
+### 21.8 数据要求
+
+| 度量 | 最少 | 推荐 | 说明 |
+|---|:---:|:---:|---|
+| 回撤 / VaR / 风险调整 | 120 | 252 | < 120 → `risk_state="unknown"`，标 partial |
+| risk_state 自校准 | 252 | 504 | 波动率分位需较长历史（2 年） |
+| ATR 止损 | 15 | 30 | 复用 Layer 1 ATR |
+
+### 21.9 constraint_exports（P3，soft-only；注册后多项可 hard）
+
+| export_ref | 说明 | registration_status | can_support_hard | allowed |
+|---|---|:---:|:---:|:---:|
+| `metric://max_drawdown_1y` | 近 1 年最大回撤 | `unregistered_mvp_local` | false | `["soft"]` |
+| `metric://hist_var_95_1y` | 历史 VaR(95%) | `unregistered_mvp_local` | false | `["soft"]` |
+| `metric://downside_deviation_ann` | 年化下行波动 | `unregistered_mvp_local` | false | `["soft"]` |
+| `metric://annualized_vol_1y` | 年化波动率 | `unregistered_mvp_local` | false | `["soft"]` |
+| `label://risk_state` | 风险状态标签 | `unregistered_mvp_local` | false | `["soft"]` |
+
+> **注册请求（§25.4）：** `max_drawdown_1y`、`hist_var_95_1y`、`downside_deviation_ann`、`annualized_vol_1y` 拟注册为 `computed` 且 `can_support_hard_constraint = true`——它们是 Playbook 风险约束（如"近 1 年最大回撤不得超过 X""年化波动率上限"）最自然的载体。
+
+---
+
+## 22. Feature D：支撑阻力与成交量分布（横切，P4）
+
+### 22.1 概览
+
+SPEC-004 §35.1 #7（支撑阻力）、#8（突破/跌破）是授权职责，但 Part I 在 §10.1 把 `key_levels` 强制置空。本特性真正实现 `support_resistance_metrics`（Evidence #12），并据此**解锁 `key_levels`**（契约更新见 §22.6 + §10.1）。
+
+```text
+点位来源（多源叠加，按成交量背书优先）:
+  1. 成交量分布: POC / 价值区 VAH-VAL / 高低成交量节点 HVN-LVN   ← 主源（有成交量背书）
+  2. 摆动枢轴聚类: 复用 Layer 2 find_peaks 的 swing highs/lows  ← 价格结构
+  3. 均线汇聚: SMA50 / SMA200（复用 Layer 1）                   ← 动态点位
+  4. 整数关口: 邻近的心理整数价                                 ← 辅助
+合成: 聚类去重 → 打分 → 拆分为 support[]（价下）/ resistance[]（价上）
+```
+
+### 22.2 Evidence：support_resistance_metrics
+
+```text
+evidence_type: "support_resistance_metrics"     # SPEC-004 §36 #7 已注册类型
+generation_type: computed
+determinism_level: structured     # POC/VA 为 computed；点位聚类/打分含启发式
+can_support_hard_constraint: false
+数据来源: stock_daily (high, low, close, volume) + Layer 1 (SMA)
+
+metrics:
+  poc_price: float                  # Point of Control（成交量最大价位）
+  value_area_high: float            # VAH（70% 成交量上沿）
+  value_area_low: float             # VAL（70% 成交量下沿）
+  price_vs_value_area: str          # "above" | "inside" | "below"
+  nearest_support: float | None     # 价下最近的强支撑
+  nearest_resistance: float | None  # 价上最近的强阻力
+  support_levels: list[Level]       # 见下（已排序、去重、打分）
+  resistance_levels: list[Level]
+  hvn_prices: list[float]           # 高成交量节点（潜在支撑/阻力）
+  lvn_prices: list[float]           # 低成交量节点（价格易快速穿越）
+
+Level = {
+  "price": float,
+  "strength": float,    # 0.0–1.0
+  "source": str,        # "volume_poc" | "volume_node" | "swing_pivot" | "ma" | "round"
+  "touches": int,       # 触及次数（枢轴源）
+}
+```
+
+### 22.3 成交量分布（Volume Profile）
+
+```python
+def volume_profile(high, low, close, volume, lookback=120, n_bins=24, va_pct=0.70):
+    h, l, c, v = high[-lookback:], low[-lookback:], close[-lookback:], volume[-lookback:]
+    lo, hi = float(np.min(l)), float(np.max(h))
+    edges = np.linspace(lo, hi, n_bins + 1)
+    vol_by_bin = np.zeros(n_bins)
+    # 将每根 K 线的成交量按其 [low, high] 跨越的 bin 均摊（更准确）
+    for i in range(lookback):
+        b_lo = np.searchsorted(edges, l[i], side="right") - 1
+        b_hi = np.searchsorted(edges, h[i], side="right") - 1
+        b_lo, b_hi = max(b_lo, 0), min(b_hi, n_bins - 1)
+        span = b_hi - b_lo + 1
+        vol_by_bin[b_lo:b_hi + 1] += v[i] / span
+    centers = (edges[:-1] + edges[1:]) / 2
+    poc_idx = int(np.argmax(vol_by_bin))
+    poc_price = float(centers[poc_idx])
+    # 价值区：从 POC 向两侧扩展，每步并入相邻较大者，直到累计达 va_pct
+    total = vol_by_bin.sum(); included = {poc_idx}; acc = vol_by_bin[poc_idx]
+    lo_i = hi_i = poc_idx
+    while acc < va_pct * total and (lo_i > 0 or hi_i < n_bins - 1):
+        down = vol_by_bin[lo_i - 1] if lo_i > 0 else -1
+        up   = vol_by_bin[hi_i + 1] if hi_i < n_bins - 1 else -1
+        if up >= down: hi_i += 1; included.add(hi_i); acc += up
+        else:          lo_i -= 1; included.add(lo_i); acc += down
+    return dict(poc_price=poc_price,
+                value_area_high=float(edges[hi_i + 1]),
+                value_area_low=float(edges[lo_i]),
+                vol_by_bin=vol_by_bin, centers=centers)
+```
+
+**HVN/LVN：** 对 `vol_by_bin` 做局部极值检测——局部峰为 HVN（潜在支撑/阻力），局部谷为 LVN（价格易快速穿越、不宜设点位）。
+
+### 22.4 摆动枢轴聚类（复用 Layer 2）
+
+```python
+# 直接复用 §7.2 的 find_peaks 摆动检测，得到 swing highs/lows 的价位
+swing_levels = price[swing_high_idx].tolist() + price[swing_low_idx].tolist()
+# 聚类：价差 < max(1.5%, 0.5×ATR%) 的点位合并，touches = 簇内点数
+clusters = cluster_by_proximity(swing_levels, tol=max(0.015, 0.5 * atr_pct_14d / 100))
+```
+
+### 22.5 点位合成与打分
+
+```python
+strength = clip(
+    0.40 * volume_backing      # 成交量背书（POC=1.0, HVN 按相对高度, 其他 0）
+  + 0.30 * touch_score         # 触及次数（枢轴源，touches 越多越强）
+  + 0.20 * recency_score       # 近端触及加权
+  + 0.10 * confluence_score,   # 多源重合（如枢轴 + 均线 + 整数同价位）
+    0.0, 1.0)
+```
+
+合成后按价格排序、去重（邻近簇合并取最高 strength），以当前 close 拆分：`< close` 入 `support_levels`，`> close` 入 `resistance_levels`，各取 strength 最高的前若干个。
+
+### 22.6 key_levels 输出（更新 §10.1 契约）
+
+实现 D 后，§10.1 的"`key_levels.support/resistance` MUST be `[]`"约束**解除**，改为：
+
+```json
+"key_levels": {
+  "support":    [{"price": 12.30, "strength": 0.72, "source": "volume_poc", "touches": 0}],
+  "resistance": [{"price": 14.10, "strength": 0.65, "source": "swing_pivot", "touches": 3}],
+  "source": "support_resistance_metrics",
+  "poc": 13.05, "value_area": [12.50, 13.80]
+}
+```
+
+> **契约迁移：** 仅当 `support_resistance_metrics` 实际计算成功时 `key_levels` 方可非空；D 未启用或数据不足时仍为 `[]`（保持向后兼容）。原契约测试 `test_key_levels_must_be_empty` 改为 `test_key_levels_empty_unless_sr_enabled`（§27）。
+
+### 22.7 数据要求
+
+| 度量 | 最少 | 推荐 | 说明 |
+|---|:---:|:---:|---|
+| 成交量分布 | 60 | 120 | bin 数据稀疏度 |
+| 枢轴聚类 | 60 | 120 | 复用 §7.5 背离数据要求 |
+
+### 22.8 constraint_exports（P4，soft-only）
+
+| export_ref | 说明 | registration_status | can_support_hard | allowed |
+|---|---|:---:|:---:|:---:|
+| `metric://poc_price` | 成交量控制点 | `unregistered_mvp_local` | false | `["soft"]` |
+| `metric://nearest_support` | 最近强支撑 | `unregistered_mvp_local` | false | `["soft"]` |
+| `metric://nearest_resistance` | 最近强阻力 | `unregistered_mvp_local` | false | `["soft"]` |
+| `label://price_vs_value_area` | 价格相对价值区 | `unregistered_mvp_local` | false | `["soft"]` |
+
+> 点位含启发式聚类，`structured`、soft-only。`support_resistance_metrics` 虽为 SPEC-004 §36 已注册的 **Evidence 类型**，但其**具体 export_ref**仍需在 SPEC-005 注册后方可参与更强约束。
+
+---
+
+## 23. Feature F：多时间框架共振（横切，P4）
+
+### 23.1 概览
+
+只看日线极易被噪声与假突破误导。对中线投资者，**周线趋势是主导背景**——"顺着大周期方向做"。本特性把日线重采样为周线/月线，复用 Layer 1 指标计算各周期趋势，并打多周期对齐分。
+
+### 23.2 Evidence：multi_timeframe_metrics
+
+```text
+evidence_type: "multi_timeframe_metrics"
+generation_type: computed
+determinism_level: computed     # 重采样 + TA-Lib，全确定性
+can_support_hard_constraint: false
+数据来源: stock_daily (OHLCV) 重采样
+
+metrics:
+  weekly_trend_state: str           # 复用 §6.2 Trend Classifier（周线输入）
+  monthly_trend_state: str
+  weekly_rsi_14: float
+  weekly_macd_histogram: float
+  weekly_price_above_30w_ma: bool   # 30 周均线 ≈ 日线 150 日（Stage Analysis 经典）
+  mtf_alignment: str                # "aligned_bullish" | "aligned_bearish" | "conflicting" | "mixed"
+  mtf_alignment_score: float        # −1.0（全空一致）… +1.0（全多一致）
+```
+
+### 23.3 重采样
+
+```python
+def resample_ohlcv(daily: pd.DataFrame, rule: str) -> pd.DataFrame:
+    """rule='W-FRI'（周）或 'ME'（月）。使用前复权价（§5.3）。"""
+    df = daily.set_index(pd.to_datetime(daily["trade_date"]))
+    out = pd.DataFrame({
+        "open":   df["open"].resample(rule).first(),
+        "high":   df["high"].resample(rule).max(),
+        "low":    df["low"].resample(rule).min(),
+        "close":  df["close"].resample(rule).last(),
+        "volume": df["volume"].resample(rule).sum(),
+    }).dropna()
+    return out
+```
+
+> **复权一致性：** 重采样前 **MUST** 已应用 §5.3 前复权；否则周/月线在除权周出现断层。
+
+### 23.4 多周期对齐打分
+
+```python
+# 各周期趋势方向映射为分值（复用 §9.3 label_to_score 的 trend 部分）
+dir_score = {"uptrend": +1, "downtrend": -1, "sideways": 0,
+             "trend_reversal": 0, "unknown": 0}
+d = dir_score[daily_trend_state]      # 来自 Part I §6.2
+w = dir_score[weekly_trend_state]
+m = dir_score[monthly_trend_state]
+# 加权：大周期权重更高（月 0.5 / 周 0.3 / 日 0.2）
+mtf_alignment_score = 0.5 * m + 0.3 * w + 0.2 * d
+
+if   m > 0 and w > 0 and d > 0:  mtf_alignment = "aligned_bullish"
+elif m < 0 and w < 0 and d < 0:  mtf_alignment = "aligned_bearish"
+elif sign(m) != sign(d) and m != 0 and d != 0:  mtf_alignment = "conflicting"
+else:                            mtf_alignment = "mixed"
+```
+
+> **用途：** `aligned_*` 提升对应方向 stance 的 confidence（§24.2）；`conflicting`（如日线涨、月线跌）触发 §24.3 一致性告警。
+
+### 23.5 数据要求
+
+| 周期 | 最少日线 | 推荐 | 说明 |
+|---|:---:|:---:|---|
+| 周线指标 | 250（≈50 周） | 350 | 周线 SMA/MACD warmup |
+| 月线趋势 | 500（≈24 月） | 750 | 月线样本稀疏，趋势粗判 |
+
+> 数据不足以构造月线时，`monthly_trend_state = "unknown"`，对齐打分退化为日/周两级。
+
+### 23.6 constraint_exports（P4，soft-only）
+
+| export_ref | 说明 | registration_status | can_support_hard | allowed |
+|---|---|:---:|:---:|:---:|
+| `metric://mtf_alignment_score` | 多周期对齐分 | `unregistered_mvp_local` | false | `["soft"]` |
+| `label://weekly_trend_state` | 周线趋势 | `unregistered_mvp_local` | false | `["soft"]` |
+| `fact://mtf_aligned_bullish` | 多周期共振看多 | `unregistered_mvp_local` | false | `["soft"]` |
+
+---
+
+## 24. 集成更新：Pipeline / Stance / Confidence
+
+### 24.1 Pipeline 扩展（在 §9.1 九步管线基础上）
+
+Part II 的计算插入在 Step 2（Layer 1）之后、Step 5（分类）之前，**不改变** §9.1 既有步骤编号：
+
+```text
+Step 2  Layer 1 基础指标（Part I）
+Step 2A [P3] §18 自校准基线 + Feature A 市场状态（Layer 0）
+Step 2B [P3] Feature C 风险度量
+Step 2C [P3] Feature B 相对强度（需基准数据，§26；P3 前置条件）
+Step 2D [P4] Feature D 支撑阻力 + Feature F 多时间框架
+Step 3  Layer 2 背离（Part I）
+Step 4  Layer 3 威科夫（Part I）
+Step 5  分类（Part I §6 + Part II 各 *_state）
+Step 6  Stance（§9.3 + §24.2 regime 门控 + §24.3 调整因子）
+Step 7  Confidence（§9.4 + §24.4）
+Step 8–9 Card 组装 / 验证（§9.5 + §12 + §24.5 新增检查）
+```
+
+各 Feature 段独立 try/except：任一高阶 Feature 计算失败 → 该段 Evidence 标缺失（`_OPTIONAL_EVIDENCE`），记 `warnings`，**不**使整域失败。
+
+### 24.2 regime 门控（Feature A 调制下游）
+
+market regime 作为**统一调制器**缩放下游信号，而非简单线性相加。在 §9.3 算出 `raw_score`（含背离/威科夫调整）后、裁剪前应用：
+
+```python
+# 1) 机制对"信号类型"的适配（trending 利好趋势信号；mean_reverting 利好反转信号）
+if regime == "trending":
+    # 趋势/动量为主，背离反转信号降权（强趋势中背离常失败）
+    if divergence_assessment.get("has_regular_bearish") and labels.get("trend") == "uptrend":
+        raw_score += 0.05    # 弱化（原 §9.3 为 −0.15，此处部分回补）
+elif regime == "mean_reverting":
+    # 反转信号增权
+    if divergence_assessment.get("has_regular_bullish"):
+        raw_score += 0.10
+    if divergence_assessment.get("has_regular_bearish"):
+        raw_score -= 0.10
+    if labels.get("trend") == "downtrend" and divergence_assessment.get("has_regular_bullish"):
+        raw_score += 0.05    # 对称：下跌趋势中的底背离部分回补
+
+# 2) 机制对 confidence 的调制（random 环境无边际，降信心）
+regime_conf_mult = {
+    "trending": 1.00, "mean_reverting": 1.00,
+    "random": 0.85, "unknown": 0.90,
+}[regime]
+```
+
+> **设计立场（横切原则）：** 这是"regime 门控范式"的落地——让市场状态调制其他信号的权重与置信度，而不是把它们平均成一个黑箱分数（对齐 SPEC-001 §6 "系统应暴露冲突，而不是把冲突平均成黑箱分数"）。门控权重本身未经回测，列为 §28 开放项，并在 `domain_payload.threshold_calibration` 标注。
+
+### 24.3 stance 调整因子增补（扩展 §9.3）
+
+在 §9.3 既有调整后追加（裁剪到 [−1,1] 之前）：
+
+```python
+# 相对强度（Feature B）
+if rs_state == "leader":   raw_score += 0.10
+if rs_state == "laggard":  raw_score -= 0.10
+# 多周期共振（Feature F）
+raw_score += 0.10 * mtf_alignment_score      # −0.1 … +0.1
+# 风险（Feature C）：极端风险压低多头立场（风险厌恶）
+if risk_state == "high":   raw_score -= 0.10
+```
+
+### 24.4 confidence 增补（扩展 §9.4）
+
+```python
+# 在 §9.4 三因子 confidence 基础上：
+confidence *= regime_conf_mult               # §24.2
+
+# 多周期一致/冲突
+if mtf_alignment in ("aligned_bullish", "aligned_bearish"):
+    confidence = min(confidence * 1.10, 1.0)
+elif mtf_alignment == "conflicting":
+    confidence *= 0.90
+
+# 波动率极端 / 高风险压上限（与 §12.3 风格一致）
+if volatility_regime == "extreme" or risk_state == "high":
+    confidence = min(confidence, 0.60)
+# 最终仍受 SPEC-004 §7.3 data_quality / domain_status 上限约束（由模型校验器强制）
+```
+
+### 24.5 域级验证增补（扩展 §12.1，新增 #9–#13）
+
+| # | 检查项 | 级别 | 处理 |
+|:---:|---|:---:|---|
+| 9 | `regime=random` 但 stance 为强方向（\|score\|>0.5） | note | `warnings.append("low_edge_regime: 随机游走环境，方向性判断边际有限")` |
+| 10 | `mtf_alignment=conflicting`（日线与月线方向相反） | note | 记录，不阻断（正常的周期错位） |
+| 11 | `risk_state=high` 但 `stance ∈ {positive, moderately_positive}` | flag | `confidence = min(confidence, 0.55)`，`warnings.append("high_risk_positive_stance")` |
+| 12 | `rs_state=laggard` 但 `stance` 正面 | note | `warnings.append("relative_weakness_vs_benchmark")` |
+| 13 | Feature B 启用但 `benchmark_unavailable` | note | relative_strength_metrics 缺失计入 evidence_coverage |
+
+---
+
+## 25. constraint_exports 增补（Part II 汇总）
+
+> 总则见 §11.0 / §17.3。下列全部 `registration_status = "unregistered_mvp_local"`、`can_support_hard_constraint = false`、`allowed_constraint_types = ["soft"]`（受 SPEC-004 §9.1 校验器强制）。
+
+### 25.1 P3（§18 自校准 + A 市场状态 + B 相对强度 + C 风险）
+
+汇总 §19.8 + §20.9 + §21.9：
+
+- **A**：`metric://hurst_exponent`、`metric://efficiency_ratio`、`label://market_regime`、`fact://regime_is_trending`
+- **B**：`metric://rs_raw`、`metric://beta_252d`、`metric://relative_drawdown`、`label://rs_state`
+- **C**：`metric://max_drawdown_1y`、`metric://hist_var_95_1y`、`metric://downside_deviation_ann`、`metric://annualized_vol_1y`、`label://risk_state`
+
+### 25.2 P4（D 支撑阻力 + F 多时间框架）
+
+汇总 §22.8 + §23.6：`metric://poc_price`、`metric://nearest_support`、`metric://nearest_resistance`、`label://price_vs_value_area`、`metric://mtf_alignment_score`、`label://weekly_trend_state`、`fact://mtf_aligned_bullish`。
+
+### 25.3 SPEC-005 注册请求清单（升级为 registered 的候选）
+
+向 SPEC-005 提交以下 `MetricRegistryEntry`；注册后 `registration_status → registered`，标 ✅ 者拟 `can_support_hard_constraint = true`：
+
+| metric_id | metric_category | 注册后可 hard | 用途（Playbook 约束示例） |
+|---|:---:|:---:|---|
+| `max_drawdown_1y` | computed | ✅ | "近 1 年最大回撤不得超过 35%" |
+| `hist_var_95_1y` | computed | ✅ | "日 VaR(95%) 不得劣于 −8%" |
+| `downside_deviation_ann` | computed | ✅ | 下行波动上限 |
+| `annualized_vol_1y` | computed | ✅ | 年化波动率上限 |
+| `beta_252d` | computed | ✅ | "组合/标的 Beta 上限" |
+| `relative_drawdown` | computed | ✅ | 相对基准回撤上限 |
+| `hurst_exponent` | computed | ❌（建议保持 soft） | regime 上下文，soft 规则引用 |
+| `efficiency_ratio` | computed | ❌（建议保持 soft） | 趋势质量，soft |
+|| `rs_raw` | computed | ❌（建议保持 soft） | 相对强度评分（IBD 风格 ROC 加权）；横截面排名依赖全市场快照（§28.3），不宜单独用作 hard 准入依据 |
+
+> 其余 `structured` 标签（regime、risk_state、rs_state、price_vs_value_area、weekly_trend_state）建议长期保持 soft（含启发式，不宜单独构成硬性准入/禁入）。
+
+---
+
+## 26. 数据契约变更（Feature B，P3 前置条件）
+
+### 26.1 Adapter 新增方法
+
+```python
+def get_index_data(index_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+    """基准指数日线。返回列: trade_date, close（升序）。
+    AlphaDB 落点: rawdata.index_daily（Tushare index_daily）。"""
+```
+
+| StandardContract 列 | AlphaDB 原始列 | 说明 |
+|---|---|---|
+| `trade_date` | `trade_date` | 交易日 YYYYMMDD |
+| `close` | `close` | 指数收盘点位 |
+
+### 26.2 行业基准映射（可选增强）
+
+行业相对强度需"个股 → 申万一级行业指数"映射。`get_industry_peers`（已存在）返回同业 ts_code；行业指数代码可由行业分类映射表解析（如申万一级行业指数 `801xxx.SI`）。MVP 可先只用市场基准（沪深300），行业基准列为增强项。
+
+### 26.3 降级路径
+
+| 缺失 | 行为 |
+|---|---|
+| `index_daily` 不可用 | `relative_strength_metrics` 整段不产出；`warnings.append("benchmark_unavailable")`；不影响 domain_status（B 为 optional） |
+| 个股/基准交易日不齐 | 取交集日期；交集 < 120 日 → Beta/Alpha 置 `None` |
+
+> **MockAdapter / TinyData：** 需补 `get_index_data` 的桩实现（返回合成指数序列），保证 P3 单测不依赖真实数据源（对齐 §5.1 "MockAdapter 测试不依赖 TA-Lib" 风格）。
+
+---
+
+## 27. 测试策略增补
+
+### 27.1 包结构增补（扩展 §13.1）
+
+```text
+src/crosslens_technical_market/
+  regime/            # Feature A
+    __init__.py
+    hurst.py         # R/S 估计
+    efficiency.py    # Kaufman ER
+    classifier.py    # regime 合成
+  relative_strength/ # Feature B
+    __init__.py
+    rs.py            # RS 线 / RS Rating / Mansfield
+    beta.py          # Beta / Alpha
+  risk/              # Feature C
+    __init__.py
+    drawdown.py      # 回撤分析
+    downside.py      # VaR / CVaR / 下行波动
+    ratios.py        # Sharpe/Sortino/Calmar + ATR 止损
+  levels/            # Feature D
+    __init__.py
+    volume_profile.py
+    pivots.py        # 复用 divergence.detector 的 find_peaks
+    builder.py       # 点位合成打分
+  multi_timeframe/   # Feature F
+    __init__.py
+    resample.py
+    confluence.py
+  calibration.py     # §18 分位自校准（横切工具）
+```
+
+### 27.2 测试分层（扩展 §13.2）
+
+| 层级 | 阶段 | 测试文件 | 覆盖 |
+|---|:---:|---|---|
+| 自校准 | P3 | `tests/test_calibration.py` | rolling_percentile + bucket + 样本不足 None |
+| 市场状态 | P3 | `tests/test_regime.py` | Hurst（趋势/均值回归/随机合成序列）+ ER + regime 合成 |
+| 风险度量 | P3 | `tests/test_risk.py` | 回撤 / VaR / CVaR / Sortino / Calmar / ATR 止损 / risk_state |
+| 支撑阻力 | P4 | `tests/test_levels.py` | 成交量分布 POC/VA/HVN/LVN + 枢轴聚类 + key_levels 输出 |
+| 多周期 | P4 | `tests/test_mtf.py` | 重采样正确性 + 对齐打分 + 月线不足降级 |
+| 相对强度 | P3 | `tests/test_relative_strength.py` | RS Rating / Beta / Mansfield / 基准缺失降级 |
+| 集成 | P3+ | `tests/test_technical_pipeline.py`（扩展） | regime 门控 + stance/confidence 调整 |
+
+### 27.3 关键测试用例
+
+```text
+# 自校准
+test_percentile_basic / test_percentile_insufficient_returns_none
+
+# Feature A
+test_hurst_trending_series (合成 H>0.55) / test_hurst_mean_reverting (H<0.45)
+test_efficiency_ratio_clean_trend_high / test_regime_random_lowers_confidence
+
+# Feature C
+test_max_drawdown / test_var_historical_fat_tail / test_sortino / test_calmar
+test_risk_state_high_caps_confidence (集成 §24.4)
+test_atr_stop_long
+
+# Feature D
+test_volume_profile_poc / test_value_area_70pct / test_hvn_lvn
+test_levels_split_support_resistance_by_close
+test_key_levels_empty_unless_sr_enabled   # 替换 §13.6 的 test_key_levels_must_be_empty
+
+# Feature F
+test_resample_weekly_ohlc / test_mtf_aligned_bullish / test_mtf_conflicting_note
+
+# Feature B
+test_rs_rating_weighted_roc / test_beta_ols / test_mansfield_zero_cross
+test_benchmark_unavailable_degrades
+
+# 集成
+test_regime_gating_trending_discounts_bearish_divergence
+test_high_risk_positive_stance_flag (验证 #11)
+```
+
+### 27.4 契约测试更新
+
+> §13.6 的 `test_key_levels_must_be_empty` 在 P4 后**失效**——改为 `test_key_levels_empty_unless_sr_enabled`：未启用 D 或数据不足时 `key_levels.support/resistance == []`；启用且计算成功时允许非空且每个 Level 结构合法。其余 P0 契约测试（registered-only hard exports 等）保持不变——Part II 全部为 soft export，不违反 P0 的"仅 7 个 registered hard exports"约束。
+
+---
+
+## 28. 开放问题增补（扩展 §14）
+
+| # | 开放问题 | 说明 / 建议路径 |
+|:---:|---|---|
+| 28.1 | regime 门控权重未校准 | §24.2/§24.4 的调制系数（0.85/1.10/0.10 等）为经验值，需回测；`threshold_calibration` 标注 |
+| 28.2 | Hurst 估计稳定性 | R/S 法短窗方差大；可评估 DFA（去趋势波动分析）或 wavelet 估计作为替代/交叉验证 |
+| 28.3 | 横截面 RS Rating | 真正的 IBD 1–99 需全市场快照；依赖批量/选股上下文（SPEC-001 §12.2 多股票扫描），MVP 用自校准近似 |
+| 28.4 | 参数化波动率预测 | §21.4 用历史法；后续可评估 GARCH / Markov-switching GARCH 提升左尾与前瞻性（调研支持 regime-aware 占优） |
+| 28.5 | Part I 分类器迁移自校准 | §6 的固定阈值（RSI 70/30、ATR% 等）可逐步迁移到 §18 自校准，统一校准口径 |
+| 28.6 | 行业相对强度 | §26.2 行业指数映射未在 MVP 落地；需申万行业指数代码映射表 |
+
+---
+
+*End of SPEC-014 v0.2.1*
