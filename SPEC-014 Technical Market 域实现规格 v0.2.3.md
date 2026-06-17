@@ -1,10 +1,10 @@
 # SPEC-014：Technical/Market 域实现规格
 
-**版本：** v0.2.1
-**状态：** Draft
+**版本：** v0.2.3
+**状态：** Review（Part I §1–§16）；Part II（§17–§28）Draft
 **项目名称：** crosslens
 **文档类型：** 实现
-**依赖文档：** SPEC-003 v0.3.4；SPEC-004 v0.2.6；SPEC-005 v0.2
+**依赖文档：** SPEC-003 v0.3.4；SPEC-004 v0.2.7；SPEC-005 v0.2
 **实现参考：** SPEC-013 v0.2.0（Adapter 映射、Evidence 边界、Pipeline 模式；非规范性上游）
 **上游契约：**
 - SPEC-003 §8 (Analysis Domain Job 输入)
@@ -16,6 +16,32 @@
 ---
 
 ## 版本修订说明
+
+### v0.2.3（全面审查 P2 闭环 — 格式/风格/参数澄清）
+
+| 项 | 章节 | 修订 |
+|:---:|---|---|
+| P2 | §4.1.2 / §5.2 | STOCH 参数 `(14,3,0)` 澄清为 `STOCH(high, low, close, 14, 3, 3)`（Slow Stochastic） |
+| P2 | §6.4 | Volume Classifier `None` 检查前置（对齐 §6.5 风格） |
+| P2 | §9.3 | `divergence_assessment` 统一为字典 `.get()` 访问 |
+| P2 | §11.4 | 原错位的 domain_payload-only 节移至 §11.3 之后，章节顺序 .0→.1→.2→.3→.4 连续 |
+| P2 | §24.2.1 | 显式声明 Step 6 函数作用域内中间变量共享 |
+| P2 | §25.3 | 修复 `rs_raw` 行双管道 Markdown 格式 |
+
+### v0.2.2（审核复审 — Part II 集成语义 + P1/P2 设计补强）
+
+关闭 SPEC-014 v0.2.1 审查报告 P0 #1/#2 及 P1/P2 建议项；**Part I（§1–§16）进入 Review**（Registry 已同步）；Part II（§17–§28）保持 Draft。上游 CR-014-001 已提交 SPEC-004 v0.2.7（`key_levels` + `threshold_calibration`）。
+
+| 项 | 章节 | 修订 |
+|:---:|---|---|
+| P0 | §9.3 / §24.2 / §24.2.1 | 显式声明 P3+ clip + Phase 3 stance 映射延迟至 §24.2–§24.3 全部调整因子之后；§9.3 增加 forward reference |
+| P0 | §24.2.1 | trending regime 下 `divergence_trend_conflict` 不计入 `signal_conflict`，消除 regime 门控与 `mixed` stance 语义冲突 |
+| P1 | §16 | 正式定义 `P3★` 阶段标记（P3 批次 + Adapter 前置） |
+| P1 | §19.6 | `regime_confidence` 引入 Hurst 样本量衰减因子 `min(1.0, (n−60)/120)` |
+| P1 | §20.5 | 补充自校准 RS Rating 语义警告，防止 Playbook 误读为横截面排名 |
+| P1 | §10.3 | 补充 P4 `key_levels` Breaking Change 对 Post-card Validation / Playbook Consumer 的影响分析 |
+| P2 | 版本修订说明 | 注明 v0.2.0 变更已合并入 v0.2.1（Registry 无独立 v0.2.0 文件） |
+| P2 | §24.3 | 讨论 Part I + Part II 调整因子累加风险与总预算设计约束（含 `adjustment_override` 告警） |
 
 ### v0.2.1（审核修订 — Part I P0 阻塞项 + 全文一致性修补）
 
@@ -39,6 +65,8 @@
 | P1 | §25.3 | 注册候选表补充 `rs_raw`（建议保持 soft，附理由）；B 候选排序前置 |
 
 ### v0.2.0（高阶功能扩展）
+
+> **发布说明：** v0.2.0 变更已合并入 v0.2.1 发布；Git / SPEC-REGISTRY 中无独立 v0.2.0 文件，修订内容见本节及 v0.2.1 变更表。
 
 在 v0.1.2 的三层架构（Layer 1 指标 / Layer 2 背离 / Layer 3 威科夫）之上，新增 **Part II：高阶功能扩展（§17–§28）**，定义 5 项高阶能力，分阶段（P3–P4）交付：
 
@@ -254,8 +282,8 @@ metrics:
   macd_histogram: float       # DIF - DEA
   macd_above_zero: bool
   macd_above_signal: bool
-  stoch_k: float              # TA-Lib STOCH 的 %K (14,3,0)
-  stoch_d: float              # TA-Lib STOCH 的 %D
+  stoch_k: float              # TA-Lib STOCH(high, low, close, 14, 3, 3) 的 slowk（Slow Stochastic %K）
+  stoch_d: float              # TA-Lib STOCH(high, low, close, 14, 3, 3) 的 slowd（Slow Stochastic %D）
   adx_14d: float              # TA-Lib ADX(high, low, close, 14)
   roc_10d: float              # TA-Lib ROC(close, 10)，百分比
   mom_10d: float              # TA-Lib MOM(close, 10)
@@ -437,7 +465,7 @@ rsi_latest = rsi[~np.isnan(rsi)][-1]
 | BBANDS(20) | 20 | 30 | warmup 20 日 |
 | ATR(14) | 15 | 30 | warmup 14 日 |
 | ADX(14) | 28 | 50 | warmup 2×period |
-| STOCH(14,3) | 17 | 30 | warmup 14+3 日 |
+| STOCH(14,3,3) | 17 | 30 | Slow Stochastic：`fastk=14, slowk=3, slowd=3`；warmup 14+3 日 |
 
 **推荐最小数据量：250 个交易日**（覆盖 SMA200 + 背离检测窗口）。
 
@@ -608,14 +636,14 @@ ELSE:
 **判定规则**：
 
 ```text
-IF volume_vs_20d_average > 2.0:
+IF volume_vs_20d_average is None:
+    → "unknown"
+ELIF volume_vs_20d_average > 2.0:
     → "abnormal_spike"
 ELIF volume_vs_20d_average > 1.3:
     → "above_average"
 ELIF volume_vs_20d_average < 0.7:
     → "below_average"
-ELIF volume_vs_20d_average is None:
-    → "unknown"
 ELSE:
     → "normal"
 ```
@@ -1140,19 +1168,16 @@ label_to_score = {
 
 raw_score = sum(weights[k] * label_to_score[labels[k]] for k in weights)
 
-# 背离和威科夫作为调整因子
-if divergence_assessment.has_regular_bullish:
+# 背离和威科夫作为调整因子（divergence_assessment 为 §6.7 字典）
+if divergence_assessment.get("has_regular_bullish"):
     raw_score += 0.15
-if divergence_assessment.has_regular_bearish:
+if divergence_assessment.get("has_regular_bearish"):
     raw_score -= 0.15
 
 if wyckoff_phase == "accumulation" and wyckoff_sub_phase in ("C", "D"):
     raw_score += 0.20
 if wyckoff_phase == "distribution" and wyckoff_sub_phase in ("C", "D"):
     raw_score -= 0.20
-
-# 裁剪到 [-1.0, 1.0]，防止调整因子导致越界
-score = max(-1.0, min(1.0, raw_score))
 
 # === Phase 2: 方向冲突检测（对齐 SPEC-004 §8.2 mixed = 正反证据都明显）===
 def _classifier_sign(label: str) -> int:
@@ -1167,15 +1192,24 @@ bullish_dims = sum(1 for k in weights if _classifier_sign(labels[k]) > 0)
 bearish_dims = sum(1 for k in weights if _classifier_sign(labels[k]) < 0)
 layer1_conflict = bullish_dims >= 1 and bearish_dims >= 1
 
-divergence_trend_conflict = (
-    labels["trend"] == "uptrend" and divergence_assessment.has_regular_bearish
+divergence_trend_conflict_raw = (
+    labels["trend"] == "uptrend" and divergence_assessment.get("has_regular_bearish")
 ) or (
-    labels["trend"] == "downtrend" and divergence_assessment.has_regular_bullish
+    labels["trend"] == "downtrend" and divergence_assessment.get("has_regular_bullish")
 )
 
+# P0–P2：无 regime_metrics，divergence_trend_conflict 即原始检测
+divergence_trend_conflict = divergence_trend_conflict_raw
 signal_conflict = layer1_conflict or divergence_trend_conflict
 
-# === Phase 3: stance 映射 ===
+# === clip + Phase 3 stance 映射 ===
+# P0–P2：在此立即 clip 并映射 stance（下方完整流程）
+# P3+：clip 与 Phase 3 **延迟**至 §24.2 regime 门控 + §24.3 调整因子全部应用完毕后执行
+#      signal_conflict 在 §24.2.1 按 regime 重新合成后再映射 stance
+
+score = max(-1.0, min(1.0, raw_score))   # P3+ 时此行移至 §24.2.1 步骤 4
+
+# === Phase 3: stance 映射（P3+ 在 §24.2.1 步骤 6 执行）===
 # mixed：Layer 1 多维方向冲突，或趋势与 regular 背离矛盾，且综合 score 未强烈单边（|score| ≤ 0.5）
 # neutral：|score| ≤ 0.2 且无 signal_conflict（信号弱、无显著矛盾）
 # directional：score 超阈值且无 mixed 条件
@@ -1207,6 +1241,8 @@ ELSE:
 | 对称负面区间 | `negative` / `moderately_negative` | 必填 |
 
 > **与 SPEC-013 的差异说明：** Fundamentals 将中间 score 带映射为 `mixed`；Technical 按 SPEC-004 §8.2 语义，**仅在有显式信号冲突时**产出 `mixed`，弱信号无冲突时用 `neutral`。
+
+> **P3+ forward reference（§24.2.1）：** Part II 启用后，§9.3 的 `raw_score`（含背离/威科夫调整）在 **clip 之前**依次经 §24.2 regime 门控与 §24.3 Part II 调整因子调制；**clip 与 Phase 3 stance 映射延迟到全部调整因子应用完毕**。`divergence_trend_conflict` 在 trending regime 下不计入 `signal_conflict`（§24.2.1），避免 regime 已削弱背离意义时仍产出 `mixed`。
 
 ### 9.4 Step 7: Confidence Computation
 
@@ -1861,14 +1897,24 @@ none
 |---|---|---|:---:|---|
 | `domain_payload.divergence` | 子对象 | SPEC-004 §37.2 | P1 | §10.1 结构 + §10.2 `strongest_type` 枚举 |
 | `domain_payload.wyckoff` | 子对象 | SPEC-004 §37.2 | P2 | §10.1 结构 + §10.2 phase/sub_phase/vsa 枚举 |
-| `domain_payload.threshold_calibration` | 子对象（Breaking） | SPEC-004 §37.2 | P0+ | `{"part_i": "uncalibrated"\|"self_calibrated", "part_ii": null\|"self_calibrated_percentile"}`（P0–P2 `part_ii=null`；P3+ `part_ii="self_calibrated_percentile"`；SPEC-004 §37.2 当前为字符串，需升级为对象） |
-| `domain_payload.key_levels.source` / `.note` | 扩展字段 | SPEC-004 §37.2 | P0–P3 | P0–P3 置空契约的元数据 |
-| `domain_payload.key_levels` P4 结构 | schema 变更 | SPEC-004 §37.2 | P4 | §22.6 对象数组 + poc/value_area（**Breaking**：由 `[number]` 升级为 `[Level]`） |
+| `domain_payload.threshold_calibration` | 子对象（Breaking） | SPEC-004 §37.2 | P0+ | **已提交 CR-014-001 → SPEC-004 v0.2.7** |
+| `domain_payload.key_levels.source` / `.note` / P4 `[Level]` | schema 变更 | SPEC-004 §37.2–§37.4 | P0–P4 | **已提交 CR-014-001 → SPEC-004 v0.2.7**（P0–P3 空数组 + 元数据；P4 对象数组） |
 | Evidence #7–#8 | evidence_type | SPEC-004 §36 | P1/P2 | `divergence_metrics` / `wyckoff_metrics` |
 | Evidence #9–#13 | evidence_type | SPEC-004 §36 | P3/P4 | Part II 五组 Evidence |
 | Part II export_ref | MetricRegistryEntry | SPEC-005 §5 | P3/P4 | §25.3 注册清单 |
 
-> **P4 key_levels Breaking Change：** SPEC-004 §37.2 当前示例为 `support: [120, 112]`（纯数值数组）。P4 启用 Feature D 后，本 SPEC §22.6 定义的结构 **必须**同步修订 SPEC-004，否则 Post-card Validation / 消费者会按旧 schema 解析失败。
+> **P4 key_levels Breaking Change — 下游影响范围：**
+
+| 下游 | 影响 | 必要动作 |
+|---|---|---|
+| SPEC-004 §37.2 schema | `support`/`resistance` 由 `[number]` 升级为 `[Level]` 对象数组（§22.6） | 提交 CR；更新 JSON Schema、示例与 `schema_version` |
+| Post-card Validation（SPEC-004 §41） | 若 validator 仍按 `number[]` 校验，`Level` 结构 Card 会被 **block** | SPEC-004 增加 Level 字段校验（`price`/`strength`/`source`/`touches`）；P4 前 bump `schema_version` |
+| Playbook Consumer（SPEC-006） | 直接索引 `key_levels.support[0]` 为数值的 soft 规则失效 | 迁移至 `support[0].price`；或改消费 `metric://nearest_support` / `metric://nearest_resistance` export |
+| 契约测试（§13.6 / §27.4） | P0–P3 空数组约束与 P4 非空合法结构并存 | `test_key_levels_empty_unless_sr_enabled` + Level 结构强校验 |
+| Conflict Detection（SPEC-004 §42） | 不直接读取 `key_levels`（读 stance / export / time_horizon） | 无直接影响 |
+| Decision Trace / Observability | 仅记录 payload 快照 | 消费者需识别新结构，无 block 风险 |
+
+> SPEC-004 §45（Post-card Validation MVP 范围）本身不定义 `key_levels` 类型——影响集中在 **§37.2 schema 校验器**与 **Playbook 对 payload 字段的直接引用**。P4 启用前 MUST 完成 SPEC-004 CR 合并，否则 Validation 与消费者按旧 schema 解析失败。
 
 ---
 
@@ -1938,18 +1984,6 @@ none
 
 > **Card 组装规则：** P0 `constraint_exports` **仅**包含上表 7 项；每项 `export_type = "metric"`，`evidence_ref` 指向对应 EvidencePacket，`value_path` 从该 Packet 的 `metrics` 字典读取。布尔型 metric（`price_above_*`）导出为 JSON boolean。
 
-### 11.4 domain_payload-only 指标（未注册，不进 constraint_exports）
-
-以下 Layer 1 指标在 Evidence / domain_payload 中计算，但 **MUST NOT** 进入 `constraint_exports`，直至 SPEC-005 注册：
-
-| 字段（domain_payload） | 对应 export_ref（待注册） | 说明 |
-|---|---|---|
-| `atr_pct_14d` | `metric://atr_pct_14d` | ATR 百分比 |
-| `macd_histogram` | `metric://macd_histogram` | MACD 柱值 |
-| `adx_14d` | `metric://adx_14d` | ADX 14日 |
-| `bb_position` | `metric://bb_position` | 布林带位置 |
-| `amihud_illiquidity` | `metric://amihud_illiquidity` | Amihud 非流动性 |
-
 ### 11.2 Layer 2 导出的 Metrics / Facts（P1 — soft-only）
 
 背离检测依赖极值点参数（§7.2、§14.3），阈值未经 A 股回测校准。MVP 阶段**一律不支持 Hard Constraint**：
@@ -1976,6 +2010,18 @@ none
 | `fact://vsa_effort_result_divergence` | VSA 努力与结果背离 | `unregistered_mvp_local` | false | `["soft"]` |
 
 > **设计理由：** 威科夫分析包含大量启发式判断，相同输入在不同参数下可能产生不同结论。不适合作为 Hard Constraint。
+
+### 11.4 domain_payload-only 指标（未注册，不进 constraint_exports）
+
+以下 Layer 1 指标在 Evidence / domain_payload 中计算，但 **MUST NOT** 进入 `constraint_exports`，直至 SPEC-005 注册：
+
+| 字段（domain_payload） | 对应 export_ref（待注册） | 说明 |
+|---|---|---|
+| `atr_pct_14d` | `metric://atr_pct_14d` | ATR 百分比 |
+| `macd_histogram` | `metric://macd_histogram` | MACD 柱值 |
+| `adx_14d` | `metric://adx_14d` | ADX 14日 |
+| `bb_position` | `metric://bb_position` | 布林带位置 |
+| `amihud_illiquidity` | `metric://amihud_illiquidity` | Amihud 非流动性 |
 
 ---
 
@@ -2306,6 +2352,8 @@ A 股的 T+1 制度和涨跌停板限制对技术分析有独特影响：
 
 > **分阶段交付：** P0 = 实现冻结范围（必须先完成并通过契约测试）；P1/P2 = Part I 后续增量；**P3–P4 = Part II 高阶功能扩展（§17–§28）**（原 P5 已合并入 P3）。算法章节（§7–§8、§19–§23）保留完整设计，但实现可按阶段裁剪。
 
+**阶段标记约定：** P0–P4 为交付批次。`P3★` 表示 **P3 批次内交付、但需 Adapter 前置工作**（§26 `get_index_data()` 基准指数数据）；可与 Feature A/C 并行推进，**不得**在前置条件完成前启动。
+
 ### 16.1 P0 — 实现冻结（必须先交付）
 
 - ✅ Layer 1 基础指标（TA-Lib + 派生指标 + 前复权，§5）
@@ -2593,7 +2641,8 @@ volatility_regime = percentile_to_bucket(vol_pct, bounds=(0.25, 0.75, 0.95))
 ### 19.6 regime 合成判定
 
 ```python
-def determine_regime(hurst, er, vol_regime, ma_50d_slope) -> RegimeAssessment:
+def determine_regime(hurst, er, vol_regime, ma_50d_slope, n: int) -> RegimeAssessment:
+    # n = Hurst 输入序列的有效样本量（§19.3 lookback 内非 NaN 交易日数）
     # 方向
     if ma_50d_slope > 0.005:    direction = "up"
     elif ma_50d_slope < -0.005: direction = "down"
@@ -2609,16 +2658,19 @@ def determine_regime(hurst, er, vol_regime, ma_50d_slope) -> RegimeAssessment:
     else:
         regime = "random"
 
-    # 置信度：Hurst 偏离 0.5 的幅度 + ER 一致性
+    # 置信度：Hurst 偏离 0.5 的幅度 + ER 一致性 + 样本量衰减
     if hurst is None:
         confidence = 0.0
     else:
         hurst_strength = min(abs(hurst - 0.5) / 0.2, 1.0)   # 0.5→0, 0.7/0.3→1
         er_align = er if regime == "trending" else (1 - er)
-        confidence = round(0.6 * hurst_strength + 0.4 * er_align, 2)
+        sample_decay = min(1.0, max(0.0, (n - 60) / 120))   # 64→~0.03, 180→1.0
+        confidence = round((0.6 * hurst_strength + 0.4 * er_align) * sample_decay, 2)
 
     return RegimeAssessment(regime, direction, vol_regime, confidence)
 ```
+
+> **样本量衰减：** Hurst R/S 法在 64 样本时方差极大，与 252 样本下相同 H 值可靠性不同。`sample_decay` 使 `regime_confidence` 在短窗口下自动压低，避免 Playbook 对低样本 regime 标签过度信任。
 
 ### 19.7 数据要求
 
@@ -2711,6 +2763,8 @@ def rs_raw(close: np.ndarray) -> float:
 ```
 
 > **单股 vs 横截面：** IBD 的 1–99 RS Rating 需对**全市场横截面**做分位排名，单股分析时无全市场快照。MVP 采用**自校准**：`relative_strength_percentile = rolling_percentile(rs_raw_history, rs_raw_now, lookback=252)`（§18），衡量"相对自身历史是否处于强势"。真正的横截面 1–99 Rating 需批量/选股上下文，列为 §28 开放项。
+
+> **⚠ 语义警告（Playbook 消费者）：** 上述自校准分位衡量的是"相对**自身历史**是否走强"，**不是** IBD 式"相对**全市场**排名"。持续弱势股在"没那么弱"时仍可能获得高分位——表示**边际改善**，不等于**市场领先**。Playbook 规则 **不得**将 `relative_strength_percentile > 0.8` 直接等同于 leader；应结合 §20.7 `rs_state` 与 `relative_return_60d` / `mansfield_rs`。横截面 Rating 见 §28.3。
 
 ### 20.6 Beta / Alpha（OLS 回归）
 
@@ -3124,7 +3178,9 @@ Step 8–9 Card 组装 / 验证（§9.5 + §12 + §24.5 新增检查）
 
 ### 24.2 regime 门控（Feature A 调制下游）
 
-market regime 作为**统一调制器**缩放下游信号，而非简单线性相加。在 §9.3 算出 `raw_score`（含背离/威科夫调整）后、裁剪前应用：
+> **P3+ 管线插入点（关闭审查 P0 #1）：** Part II 启用后，§9.3 算出 `raw_score`（含 Layer 1 加权 + 背离/威科夫调整）后，**先**应用本节 regime 门控与 §24.3 Part II 调整因子，**再**执行 clip 与 Phase 3 stance 映射。§9.3 代码块中的 clip + stance 判定在 P3+ **延迟**至 §24.2.1 全部步骤完成后执行；P0–P2 无 regime，按 §9.3 原流程立即 clip 并映射。
+
+market regime 作为**统一调制器**缩放下游信号，而非简单线性相加。在 §9.3 算出 `raw_score` 后、**P3+ clip 之前**应用：
 
 ```python
 # 1) 机制对"信号类型"的适配（trending 利好趋势信号；mean_reverting 利好反转信号）
@@ -3150,6 +3206,41 @@ regime_conf_mult = {
 
 > **设计立场（横切原则）：** 这是"regime 门控范式"的落地——让市场状态调制其他信号的权重与置信度，而不是把它们平均成一个黑箱分数（对齐 SPEC-001 §6 "系统应暴露冲突，而不是把冲突平均成黑箱分数"）。门控权重本身未经回测，列为 §28 开放项，并在 `domain_payload.threshold_calibration` 标注。
 
+#### 24.2.1 P3+ clip / stance 延迟执行与 signal_conflict 合成
+
+> **Step 6 作用域说明：** 本节与 §9.3、§24.2、§24.3 同属 **Step 6（Stance Determination）** 的同一实现单元（如 `_determine_stance(...)`）。§9.3 Phase 2 计算的 `layer1_conflict`、`divergence_trend_conflict_raw` 等为**函数内局部变量**，不跨 Step 7+ 持久化；§24.2.1 在同一函数内、clip 之前消费并重算 `signal_conflict`。
+
+**P3+ 完整 Step 6 顺序：**
+
+```text
+1. §9.3  raw_score（Layer 1 + 背离/威科夫；不 clip）
+2. §24.2 regime 门控调整 raw_score；记录 regime_conf_mult
+3. §24.3 Part II 调整因子（RS / MTF / 风险）
+4. score = clamp(raw_score, −1.0, 1.0)
+5. signal_conflict 合成（含 regime 感知，见下）
+6. Phase 3 stance 映射（§9.3 边界值表）
+```
+
+**regime 对 signal_conflict 的调制（关闭审查 P0 #2）：**
+
+trending regime 下 regular 背离与趋势的标签矛盾已被 §24.2 门控削弱（"强趋势中背离常失败"）。若 `divergence_trend_conflict` 仍计入 `signal_conflict`，在 `|score| ≤ 0.5` 时会产出 `mixed`，与 regime 意图矛盾——regime 想说"趋势中的背离别太当真"，但 `mixed` 反而放大了冲突。
+
+```python
+# 复用 §9.3 Phase 2 的 layer1_conflict 与 divergence_trend_conflict_raw
+# divergence_trend_conflict_raw 已在 §9.3 计算
+
+if regime == "trending":
+    # trending 下背离-趋势对不算显式冲突（regime 已降权背离意义）
+    divergence_trend_conflict = False
+else:
+    divergence_trend_conflict = divergence_trend_conflict_raw
+
+signal_conflict = layer1_conflict or divergence_trend_conflict
+# 接 §9.3 Phase 3 stance 映射（使用步骤 4 的 score）
+```
+
+> P0–P2 无 `regime_metrics`，`divergence_trend_conflict` 与 `signal_conflict` 按 §9.3 原逻辑，不受本节影响。`layer1_conflict` 不受 regime 调制——多维分类器方向冲突在任何 regime 下均为显式矛盾。
+
 ### 24.3 stance 调整因子增补（扩展 §9.3）
 
 在 §9.3 既有调整后追加（裁剪到 [−1,1] 之前）：
@@ -3163,6 +3254,29 @@ raw_score += 0.10 * mtf_alignment_score      # −0.1 … +0.1
 # 风险（Feature C）：极端风险压低多头立场（风险厌恶）
 if risk_state == "high":   raw_score -= 0.10
 ```
+
+#### 调整因子总预算与累加风险（审查 P2 #8）
+
+Part I（§9.3）与 Part II（§24.2–§24.3）在 **clip 之前**对同一 `raw_score` 线性叠加。各段单项上界如下：
+
+| 来源 | 触发条件 | 单项范围 | 理论最大 |
+|---|---|---|:---:|
+| §9.3 背离 | regular bullish / bearish | ±0.15 | ±0.15 |
+| §9.3 威科夫 | accumulation/distribution C/D | ±0.20 | ±0.20 |
+| §24.2 regime 门控 | trending / mean_reverting 适配 | ±0.10 | ±0.10 |
+| §24.3 RS | `leader` / `laggard` | ±0.10 | ±0.10 |
+| §24.3 MTF | `mtf_alignment_score` | ±0.10 | ±0.10 |
+| §24.3 风险 | `risk_state=high` | −0.10 | −0.10 |
+
+**累加风险：** 上表独立触发时，clip 前理论叠加最大约 **±0.65**，可能使 Layer 1 加权方向（`layer1_only_score = Σ weights × label_to_score`）被后续调整因子**完全覆盖甚至翻转**。这与"Layer 1 定方向、Layer 2/3 微调"的设计直觉存在张力，但当前 MVP **有意保留**该灵活性——regime / RS / 风险等横切维度在特定场景下应能压过单一 Layer 1 读数。
+
+**设计约束（MVP）：**
+
+1. **clip 保底：** `score = clamp(raw_score, −1.0, 1.0)` 保证 stance 映射输入合法；不因累加越界。
+2. **翻转告警：** 实现时 **SHOULD** 在 clip 前检测调整因子是否单独翻转方向——若 `sign(raw_score) ≠ sign(layer1_only_score)` 且 `|layer1_only_score| > 0.2`，则 `warnings.append("adjustment_override: Part II 调整因子翻转 Layer 1 方向")`。该告警不阻断 Card 产出，但进入 Decision Trace 供 Playbook / 人工复核消费。
+3. **无硬顶预算：** MVP **不**对 Part II 调整因子设全局 `±cap`（如 ±0.25）——各系数未经回测，硬顶可能引入新的边界伪影。总预算与各系数校准列为 **§28.1 开放项**；回测后可在 `threshold_calibration.part_ii` 旁增配 `adjustment_budget` 元数据。
+
+> **应用顺序依赖：** §24.2 regime 门控先于 §24.3 Part II 因子执行（§24.2.1 步骤 2→3）。同一事件（如 trending + bearish divergence）在 regime 与 §9.3 背离调整中均有响应——regime 部分回补后，§24.3 不再重复处理该路径。
 
 ### 24.4 confidence 增补（扩展 §9.4）
 
@@ -3224,7 +3338,7 @@ if volatility_regime == "extreme" or risk_state == "high":
 | `relative_drawdown` | computed | ✅ | 相对基准回撤上限 |
 | `hurst_exponent` | computed | ❌（建议保持 soft） | regime 上下文，soft 规则引用 |
 | `efficiency_ratio` | computed | ❌（建议保持 soft） | 趋势质量，soft |
-|| `rs_raw` | computed | ❌（建议保持 soft） | 相对强度评分（IBD 风格 ROC 加权）；横截面排名依赖全市场快照（§28.3），不宜单独用作 hard 准入依据 |
+| `rs_raw` | computed | ❌（建议保持 soft） | 相对强度评分（IBD 风格 ROC 加权）；横截面排名依赖全市场快照（§28.3），不宜单独用作 hard 准入依据 |
 
 > 其余 `structured` 标签（regime、risk_state、rs_state、price_vs_value_area、weekly_trend_state）建议长期保持 soft（含启发式，不宜单独构成硬性准入/禁入）。
 
@@ -3355,4 +3469,4 @@ test_high_risk_positive_stance_flag (验证 #11)
 
 ---
 
-*End of SPEC-014 v0.2.1*
+*End of SPEC-014 v0.2.3*
