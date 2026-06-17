@@ -31,5 +31,5 @@ python scripts/export_schema.py
 
 ## Source
 
-- [SPEC-004 五类分析能力域与 Analysis Card Schema](../../SPEC-004%20五类分析能力域与%20Analysis%20Card%20Schema%20v0.2.6.md)
+- [SPEC-004 五类分析能力域与 Analysis Card Schema](../../SPEC-004%20五类分析能力域与%20Analysis%20Card%20Schema%20v0.2.7.md)
 - [SPEC-REGISTRY](../../SPEC-REGISTRY.md)

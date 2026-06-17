@@ -357,3 +357,34 @@ class AnalysisCard(StrictModel):
                     f"domain_status_reason to be set"
                 )
         return self
+
+    @model_validator(mode="after")
+    def _technical_market_payload_v027(self) -> "AnalysisCard":
+        """§41 #15–#16: Technical/Market key_levels + threshold_calibration (v0.2.7)."""
+        if self.domain is not Domain.TECHNICAL_MARKET:
+            return self
+
+        payload = self.domain_payload
+        key_levels = payload.get("key_levels")
+        if key_levels is not None:
+            if not isinstance(key_levels, dict):
+                raise ValueError("domain_payload.key_levels must be an object")
+            for side in ("support", "resistance"):
+                levels = key_levels.get(side, [])
+                if not isinstance(levels, list):
+                    raise ValueError(f"key_levels.{side} must be an array")
+                for item in levels:
+                    if isinstance(item, (int, float)):
+                        raise ValueError("legacy_key_levels_format: number[] is forbidden")
+                    if not isinstance(item, dict):
+                        raise ValueError(f"key_levels.{side} items must be KeyLevel objects")
+                    for field in ("price", "strength", "source", "touches"):
+                        if field not in item:
+                            raise ValueError(f"KeyLevel missing required field: {field}")
+
+        threshold_calibration = payload.get("threshold_calibration")
+        if threshold_calibration is not None and not isinstance(threshold_calibration, dict):
+            raise ValueError(
+                "domain_payload.threshold_calibration must be an object {part_i, part_ii}"
+            )
+        return self

@@ -1,6 +1,6 @@
 # SPEC-004：五类分析能力域与 Analysis Card Schema
 
-**版本：** v0.2.6
+**版本：** v0.2.7
 **状态：** Review
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4
@@ -10,6 +10,17 @@
 ---
 
 ## 0. 版本说明
+
+v0.2.7 合并 SPEC-014 v0.2.2 §10.3 上游变更请求（CR-014-001），为 Technical/Market `domain_payload` 补齐 Part I 实现所需字段，并定义 P4 `key_levels` 的 `[Level]` 对象 schema。状态保持 Review。
+
+主要补齐（来源：SPEC-014 §10.3 / §22.6）：
+
+1. **§37.2** 新增 `KeyLevel` 对象定义与 `key_levels` 根结构；P0–P3 `support`/`resistance` MUST 为 `[]`；P4 起为 `KeyLevel[]`（**Breaking**：v0.2.6 的 `number[]` 示例废弃）；
+2. **§37.3** 完整 payload 示例更新：含 `key_levels.source`/`note`、`threshold_calibration` 子对象；
+3. **§37.4** `schema_version` 兼容与 Playbook 迁移说明；
+4. **§41** 新增 Post-card Validation 规则 #15–#16（`key_levels` 结构与 `threshold_calibration` 对象格式）。
+
+> **CR 追踪：** CR-014-001（`key_levels` + `threshold_calibration`）。`divergence` / `wyckoff` 子对象与 Evidence #7–#13 仍待 SPEC-014 Part I P1/P2 与 Part II 分别提交后续 CR。
 
 v0.2.6 在 v0.2.5 基础上为 `ConstraintExport` 新增治理字段，与 SPEC-005 Metric Registry 治理规则对齐。状态保持 Review。
 
@@ -1918,7 +1929,71 @@ poor
 unknown
 ```
 
-### 37.2 完整 payload
+### 37.2 key_levels 与 KeyLevel 对象
+
+> v0.2.7 新增（CR-014-001，对齐 SPEC-014 §10.1 / §22.6）。
+
+#### KeyLevel 对象（P4+）
+
+当 `support_resistance_metrics` 成功计算（SPEC-014 Feature D，P4）时，`support` / `resistance` 数组元素 MUST 为下列对象，**不得**再使用 v0.2.6 及更早版本的纯数值 `number[]`：
+
+```json
+{
+  "price": 12.30,
+  "strength": 0.72,
+  "source": "volume_poc",
+  "touches": 0
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `price` | number | ✅ | 价位（> 0） |
+| `strength` | number | ✅ | 综合强度 0.0–1.0（SPEC-014 §22.5） |
+| `source` | string | ✅ | 来源：`volume_poc` / `swing_pivot` / `hvn` / `lvn` / `integer_level` / `ma_confluence` 等 |
+| `touches` | integer | ✅ | 触及次数（≥ 0；POC 等非枢轴源可为 0） |
+
+#### key_levels 根对象
+
+```json
+{
+  "support": [],
+  "resistance": [],
+  "source": "none",
+  "note": "MVP 不交付支撑/阻力自动计算（SPEC-014 P0–P3）",
+  "poc": null,
+  "value_area": null
+}
+```
+
+| 字段 | 类型 | 阶段 | 说明 |
+|---|---|:---:|---|
+| `support` | `KeyLevel[]` | P0+ | P0–P3 **MUST** 为 `[]`；P4 启用 Feature D 后可为非空 |
+| `resistance` | `KeyLevel[]` | P0+ | 同上 |
+| `source` | string | P0+ | `"none"` 或 `"support_resistance_metrics"` |
+| `note` | string | P0+ | `source="none"` 时 MUST 说明置空原因 |
+| `poc` | number \| null | P4 | 成交量控制点；未计算时为 `null` |
+| `value_area` | `[number, number]` \| null | P4 | 价值区 `[low, high]`；未计算时为 `null` |
+
+> **Breaking Change（相对 v0.2.6）：** §37.2 旧示例 `support: [120, 112]`（纯数值数组）**已废弃**。Post-card Validation 见 §41 #15。
+
+#### threshold_calibration 子对象
+
+> v0.2.7 新增（CR-014-001）。v0.2.6 及更早若使用字符串 `"uncalibrated"`，Post-card Validation = `block`（§41 #16）。
+
+```json
+{
+  "part_i": "uncalibrated",
+  "part_ii": null
+}
+```
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `part_i` | `"uncalibrated"` \| `"self_calibrated"` | Part I（Layer 1–3）阈值校准状态（SPEC-014 §10.1） |
+| `part_ii` | `null` \| `"self_calibrated_percentile"` | Part II 高阶功能；P0–P2 为 `null`，P3+ 为 `"self_calibrated_percentile"` |
+
+### 37.3 完整 payload（P0–P3 示例）
 
 ```json
 {
@@ -1928,8 +2003,16 @@ unknown
   "volatility_state": "normal",
   "liquidity_state": "sufficient",
   "key_levels": {
-    "support": [120, 112],
-    "resistance": [138, 145]
+    "support": [],
+    "resistance": [],
+    "source": "none",
+    "note": "MVP 不交付支撑/阻力自动计算。trading_range 软参考见 wyckoff 子对象（SPEC-014 §10.1）",
+    "poc": null,
+    "value_area": null
+  },
+  "threshold_calibration": {
+    "part_i": "uncalibrated",
+    "part_ii": null
   },
   "technical_tailwinds": [
     "价格位于 50 日与 200 日均线之上",
@@ -1941,6 +2024,36 @@ unknown
   ]
 }
 ```
+
+### 37.4 P4 key_levels 扩展示例（Feature D 启用后）
+
+```json
+{
+  "key_levels": {
+    "support": [
+      {"price": 12.30, "strength": 0.72, "source": "volume_poc", "touches": 0}
+    ],
+    "resistance": [
+      {"price": 14.10, "strength": 0.65, "source": "swing_pivot", "touches": 3}
+    ],
+    "source": "support_resistance_metrics",
+    "note": "",
+    "poc": 13.05,
+    "value_area": [12.50, 13.80]
+  }
+}
+```
+
+### 37.5 schema_version 兼容与 Playbook 迁移
+
+| 消费者 | v0.2.6 行为 | v0.2.7 要求 |
+|---|---|---|
+| Post-card Validation（§41 #15–#16） | 允许 `number[]` key_levels；无 `threshold_calibration` 对象 | `KeyLevel[]` 或空数组；`threshold_calibration` 必须为对象 |
+| Playbook soft 规则 | 可能引用 `key_levels.support[0]` 为数值 | MUST 改为 `support[0].price`，或消费 `metric://nearest_support`（SPEC-014 §25.2，P4 注册后） |
+| Conflict Detection（§42） | 不直接读 `key_levels` | 无变更 |
+| Decision Trace | payload 快照 | 识别新结构；无 block 风险 |
+
+Analysis Card `schema_version` SHOULD bump 至 `SPEC-004@0.2.7`（或更高）以声明消费者已支持本节 schema。旧版 Card 若仍含 `number[]`，Validation = `block`，并在 `warnings` 记录 `legacy_key_levels_format`。
 
 ---
 
@@ -2005,6 +2118,8 @@ Technical / Market 可导出 Computed metrics，用于部分 Hard Constraint 或
 12. 若 `constraint_exports` 仅包含 soft export 且 `data_freshness` 字段缺失，Post-card Validation = `flag`。
 13. `schema_version` 必须是消费者明确支持的版本，或存在已注册的向后兼容适配器；缺失或不兼容时不得静默按当前版本解释。
 14. `export_type = fact` 时必须存在 boolean `fact_value`；缺失或类型错误时移除该 export，并在 `warnings` 中记录。
+15. Technical/Market `domain_payload.key_levels`（v0.2.7+，§37.2）：`support` / `resistance` 每项 MUST 为 `KeyLevel` 对象或数组为空。若元素为纯 `number`（v0.2.6 旧格式）→ Post-card Validation = `block`，`warnings` 追加 `legacy_key_levels_format`。P0–P3 实现（SPEC-014 Part I）MUST 输出 `support=[]`、`resistance=[]`、`source="none"` 及说明性 `note`。
+16. Technical/Market `domain_payload.threshold_calibration`（v0.2.7+，§37.2）MUST 为 `{part_i, part_ii}` 对象；字符串格式 → Post-card Validation = `block`。
 
 ---
 

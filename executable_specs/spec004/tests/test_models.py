@@ -393,3 +393,86 @@ def test_completed_with_domain_status_reason_ok():
         _valid_card(domain_status_reason=None)
     )
     assert card.domain_status_reason is None
+
+
+# ── Technical/Market domain_payload (v0.2.7 §41 #15–#16) ───────
+
+def _technical_card(**overrides) -> dict:
+    base_payload = {
+        "key_levels": {
+            "support": [],
+            "resistance": [],
+            "source": "none",
+            "note": "P0-P3 empty contract",
+            "poc": None,
+            "value_area": None,
+        },
+        "threshold_calibration": {
+            "part_i": "uncalibrated",
+            "part_ii": None,
+        },
+    }
+    if "domain_payload" in overrides:
+        base_payload.update(overrides.pop("domain_payload"))
+    return _valid_card(
+        domain=Domain.TECHNICAL_MARKET,
+        schema_version="SPEC-004@0.2.7",
+        constraint_exports=[],
+        data_freshness=None,
+        domain_payload=base_payload,
+        **overrides,
+    )
+
+
+def test_technical_key_levels_empty_p0_contract_ok():
+    card = AnalysisCard.model_validate(_technical_card())
+    assert card.domain_payload["key_levels"]["support"] == []
+
+
+def test_technical_key_levels_legacy_number_array_forbidden():
+    with pytest.raises(ValueError, match="legacy_key_levels_format"):
+        AnalysisCard.model_validate(
+            _technical_card(
+                domain_payload={
+                    "key_levels": {"support": [120, 112], "resistance": []},
+                }
+            )
+        )
+
+
+def test_technical_key_levels_p4_object_ok():
+    card = AnalysisCard.model_validate(
+        _technical_card(
+            domain_payload={
+                "key_levels": {
+                    "support": [
+                        {
+                            "price": 12.30,
+                            "strength": 0.72,
+                            "source": "volume_poc",
+                            "touches": 0,
+                        }
+                    ],
+                    "resistance": [],
+                    "source": "support_resistance_metrics",
+                    "note": "",
+                    "poc": 13.05,
+                    "value_area": [12.50, 13.80],
+                },
+                "threshold_calibration": {
+                    "part_i": "uncalibrated",
+                    "part_ii": "self_calibrated_percentile",
+                },
+            }
+        )
+    )
+    assert card.domain_payload["key_levels"]["support"][0]["price"] == 12.30
+
+
+def test_technical_threshold_calibration_string_forbidden():
+    with pytest.raises(ValueError, match="threshold_calibration must be an object"):
+        AnalysisCard.model_validate(
+            _technical_card(
+                domain_payload={"threshold_calibration": "uncalibrated"},
+            )
+        )
