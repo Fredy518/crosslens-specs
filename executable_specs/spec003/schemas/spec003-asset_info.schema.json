@@ -1,11 +1,6 @@
 {
   "additionalProperties": false,
   "properties": {
-    "symbol": {
-      "minLength": 1,
-      "title": "Symbol",
-      "type": "string"
-    },
     "asset_type": {
       "default": "",
       "title": "Asset Type",
@@ -14,6 +9,11 @@
     "market": {
       "default": "",
       "title": "Market",
+      "type": "string"
+    },
+    "symbol": {
+      "minLength": 1,
+      "title": "Symbol",
       "type": "string"
     }
   },

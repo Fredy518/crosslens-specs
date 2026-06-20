@@ -2,24 +2,9 @@
   "additionalProperties": false,
   "description": "Final decision proposal from the system (§18).",
   "properties": {
-    "decision_candidate_id": {
-      "minLength": 1,
-      "title": "Decision Candidate Id",
-      "type": "string"
-    },
-    "task_id": {
-      "minLength": 1,
-      "title": "Task Id",
-      "type": "string"
-    },
-    "run_id": {
-      "minLength": 1,
-      "title": "Run Id",
-      "type": "string"
-    },
-    "suggested_action": {
-      "minLength": 1,
-      "title": "Suggested Action",
+    "action_selection_reason": {
+      "default": "",
+      "title": "Action Selection Reason",
       "type": "string"
     },
     "allowed_actions": {
@@ -43,43 +28,13 @@
       "title": "Confidence Cap",
       "type": "number"
     },
-    "key_supporting_reasons": {
+    "conflict_report_refs": {
       "default": [],
       "items": {
         "type": "string"
       },
-      "title": "Key Supporting Reasons",
+      "title": "Conflict Report Refs",
       "type": "array"
-    },
-    "key_opposing_reasons": {
-      "default": [],
-      "items": {
-        "type": "string"
-      },
-      "title": "Key Opposing Reasons",
-      "type": "array"
-    },
-    "action_selection_reason": {
-      "default": "",
-      "title": "Action Selection Reason",
-      "type": "string"
-    },
-    "requires_human_review": {
-      "default": false,
-      "title": "Requires Human Review",
-      "type": "boolean"
-    },
-    "output_control": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Output Control"
     },
     "created_at": {
       "anyOf": [
@@ -93,6 +48,104 @@
       ],
       "default": null,
       "title": "Created At"
+    },
+    "decision_candidate_id": {
+      "minLength": 1,
+      "title": "Decision Candidate Id",
+      "type": "string"
+    },
+    "guardrail_report_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Guardrail Report Id"
+    },
+    "key_opposing_reasons": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Key Opposing Reasons",
+      "type": "array"
+    },
+    "key_supporting_reasons": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Key Supporting Reasons",
+      "type": "array"
+    },
+    "next_steps": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Next Steps",
+      "type": "array"
+    },
+    "output_control": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Output Control"
+    },
+    "playbook_evaluation_report_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Playbook Evaluation Report Id"
+    },
+    "requires_human_review": {
+      "default": false,
+      "title": "Requires Human Review",
+      "type": "boolean"
+    },
+    "resolved_decision_bounds_id": {
+      "default": "",
+      "title": "Resolved Decision Bounds Id",
+      "type": "string"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "suggested_action": {
+      "minLength": 1,
+      "title": "Suggested Action",
+      "type": "string"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
+    },
+    "validation_report_refs": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Validation Report Refs",
+      "type": "array"
     }
   },
   "required": [

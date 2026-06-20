@@ -236,7 +236,7 @@ Analysis Card 的作用是：
 ```json
 {
   "card_id": "card_fundamentals_001",
-  "schema_version": "SPEC-004@0.2.5",
+  "schema_version": "SPEC-004@0.2.7",
   "task_id": "task_001",
   "run_id": "run_001",
   "domain": "fundamentals",

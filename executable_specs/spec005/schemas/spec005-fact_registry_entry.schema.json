@@ -12,9 +12,13 @@
   },
   "additionalProperties": false,
   "properties": {
-    "fact_id": {
-      "minLength": 1,
-      "title": "Fact Id",
+    "can_support_hard_constraint": {
+      "title": "Can Support Hard Constraint",
+      "type": "boolean"
+    },
+    "description": {
+      "default": "",
+      "title": "Description",
       "type": "string"
     },
     "display_name": {
@@ -22,17 +26,14 @@
       "title": "Display Name",
       "type": "string"
     },
-    "description": {
-      "default": "",
-      "title": "Description",
+    "expected_export_ref": {
+      "minLength": 1,
+      "title": "Expected Export Ref",
       "type": "string"
     },
-    "value_type": {
-      "$ref": "#/$defs/ValueType"
-    },
-    "source_domain": {
+    "fact_id": {
       "minLength": 1,
-      "title": "Source Domain",
+      "title": "Fact Id",
       "type": "string"
     },
     "producing_package": {
@@ -40,19 +41,18 @@
       "title": "Producing Package",
       "type": "string"
     },
-    "can_support_hard_constraint": {
-      "title": "Can Support Hard Constraint",
-      "type": "boolean"
-    },
-    "expected_export_ref": {
-      "minLength": 1,
-      "title": "Expected Export Ref",
-      "type": "string"
-    },
     "production_contract": {
       "default": "",
       "title": "Production Contract",
       "type": "string"
+    },
+    "source_domain": {
+      "minLength": 1,
+      "title": "Source Domain",
+      "type": "string"
+    },
+    "value_type": {
+      "$ref": "#/$defs/ValueType"
     }
   },
   "required": [

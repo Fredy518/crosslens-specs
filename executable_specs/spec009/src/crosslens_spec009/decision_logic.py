@@ -518,6 +518,7 @@ def resolve_decision_bounds(
     evaluation_report: EvaluationReport,
     conflict_has_blocking: bool = False,
     conflict_report_id: str = "",
+    playbook_overall_result: str = "",
     playbook_recommended_cap: float = 1.0,
     preference_adjustments: Sequence[ConfidenceCapAdjustment] | None = None,
     contamination_results: Sequence[ContaminationResult] | None = None,
@@ -602,7 +603,7 @@ def resolve_decision_bounds(
         guardrail_report_id=guardrail_report.guardrail_report_id,
         has_blocking_conflict=conflict_has_blocking,
         conflict_report_id=conflict_report_id,
-        playbook_overall_result="",  # resolved from playbook earlier
+        playbook_overall_result=playbook_overall_result,
         resolved_confidence_cap=confidence_cap,
         review_threshold=review_threshold,
         macro_domain_status=macro_domain_status,

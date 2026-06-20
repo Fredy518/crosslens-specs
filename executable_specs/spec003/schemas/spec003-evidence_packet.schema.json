@@ -46,29 +46,6 @@
   "additionalProperties": false,
   "description": "Structured evidence object — the most consumed data object in the pipeline.",
   "properties": {
-    "evidence_id": {
-      "minLength": 1,
-      "title": "Evidence Id",
-      "type": "string"
-    },
-    "task_id": {
-      "minLength": 1,
-      "title": "Task Id",
-      "type": "string"
-    },
-    "domain": {
-      "$ref": "#/$defs/Domain"
-    },
-    "source_type": {
-      "default": "",
-      "title": "Source Type",
-      "type": "string"
-    },
-    "source_name": {
-      "default": "",
-      "title": "Source Name",
-      "type": "string"
-    },
     "as_of": {
       "anyOf": [
         {
@@ -82,57 +59,10 @@
       "default": null,
       "title": "As Of"
     },
-    "evidence_type": {
-      "minLength": 1,
-      "title": "Evidence Type",
-      "type": "string"
-    },
-    "generation_type": {
-      "$ref": "#/$defs/GenerationType"
-    },
-    "determinism_level": {
-      "$ref": "#/$defs/DeterminismLevel"
-    },
     "can_support_hard_constraint": {
       "default": false,
       "title": "Can Support Hard Constraint",
       "type": "boolean"
-    },
-    "metrics": {
-      "additionalProperties": {
-        "anyOf": [
-          {
-            "type": "number"
-          },
-          {
-            "type": "boolean"
-          }
-        ]
-      },
-      "default": {},
-      "title": "Metrics",
-      "type": "object"
-    },
-    "facts": {
-      "default": [],
-      "items": {
-        "type": "string"
-      },
-      "title": "Facts",
-      "type": "array"
-    },
-    "labels": {
-      "additionalProperties": {
-        "type": "string"
-      },
-      "default": {},
-      "title": "Labels",
-      "type": "object"
-    },
-    "signal": {
-      "default": "",
-      "title": "Signal",
-      "type": "string"
     },
     "confidence": {
       "anyOf": [
@@ -152,10 +82,40 @@
       "$ref": "#/$defs/DataQuality",
       "default": "unknown"
     },
-    "time_horizon": {
-      "default": "",
-      "title": "Time Horizon",
+    "determinism_level": {
+      "$ref": "#/$defs/DeterminismLevel"
+    },
+    "domain": {
+      "$ref": "#/$defs/Domain"
+    },
+    "evidence_id": {
+      "minLength": 1,
+      "title": "Evidence Id",
       "type": "string"
+    },
+    "evidence_type": {
+      "minLength": 1,
+      "title": "Evidence Type",
+      "type": "string"
+    },
+    "facts": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Facts",
+      "type": "array"
+    },
+    "generation_type": {
+      "$ref": "#/$defs/GenerationType"
+    },
+    "labels": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {},
+      "title": "Labels",
+      "type": "object"
     },
     "limitations": {
       "default": [],
@@ -164,6 +124,46 @@
       },
       "title": "Limitations",
       "type": "array"
+    },
+    "metrics": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      },
+      "default": {},
+      "title": "Metrics",
+      "type": "object"
+    },
+    "signal": {
+      "default": "",
+      "title": "Signal",
+      "type": "string"
+    },
+    "source_name": {
+      "default": "",
+      "title": "Source Name",
+      "type": "string"
+    },
+    "source_type": {
+      "default": "",
+      "title": "Source Type",
+      "type": "string"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
+    },
+    "time_horizon": {
+      "default": "",
+      "title": "Time Horizon",
+      "type": "string"
     }
   },
   "required": [

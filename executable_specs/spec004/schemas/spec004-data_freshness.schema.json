@@ -30,18 +30,16 @@
       "title": "As Of",
       "type": "string"
     },
-    "oldest_evidence_as_of": {
+    "freshness_level": {
       "anyOf": [
         {
-          "format": "date",
-          "type": "string"
+          "$ref": "#/$defs/FreshnessLevel"
         },
         {
           "type": "null"
         }
       ],
-      "default": null,
-      "title": "Oldest Evidence As Of"
+      "default": null
     },
     "newest_evidence_as_of": {
       "anyOf": [
@@ -56,16 +54,18 @@
       "default": null,
       "title": "Newest Evidence As Of"
     },
-    "freshness_level": {
+    "oldest_evidence_as_of": {
       "anyOf": [
         {
-          "$ref": "#/$defs/FreshnessLevel"
+          "format": "date",
+          "type": "string"
         },
         {
           "type": "null"
         }
       ],
-      "default": null
+      "default": null,
+      "title": "Oldest Evidence As Of"
     },
     "staleness_risk": {
       "anyOf": [

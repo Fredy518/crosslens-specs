@@ -272,6 +272,76 @@ def test_rule_table_null_input_returns_none():
     assert result is None
 
 
+def test_rule_table_in_operator_matches():
+    table = {
+        "rule_table_id": "rt_in",
+        "derived_metric_id": "sector_membership",
+        "description": "sector ∈ watchlist → tracked",
+        "spec_version": "SPEC-005@0.2",
+        "rules": [
+            {
+                "rule_id": "r_in",
+                "condition": {
+                    "input_ref": "metric://sector_code",
+                    "operator": RuleOperator.IN,
+                    "value": [101.0, 202.0, 303.0],
+                },
+                "output": {"fact_value": True, "label": "tracked_sector"},
+                "description": "sector in watchlist",
+            },
+        ],
+        "default_output": {"fact_value": False, "label": "untracked"},
+        "confidence_rule": ConfidenceRule.INHERIT_MIN,
+        "test_cases": [
+            {"input": {"metric://sector_code": 202.0},
+             "expected_output": {"fact_value": True, "label": "tracked_sector"}},
+            {"input": {"metric://sector_code": 999.0},
+             "expected_output": {"fact_value": False, "label": "untracked"}},
+        ],
+    }
+    rt = DerivedMetricRuleTable.model_validate(table)
+    hit = rt._apply_rule_table({"metric://sector_code": 202.0})
+    assert hit is not None
+    assert hit[0] == "r_in"
+    miss = rt._apply_rule_table({"metric://sector_code": 999.0})
+    assert miss is None  # falls through to default_output
+
+
+def test_rule_table_not_in_operator_matches():
+    table = {
+        "rule_table_id": "rt_not_in",
+        "derived_metric_id": "exclusion_list",
+        "description": "sector ∉ blacklist → allowed",
+        "spec_version": "SPEC-005@0.2",
+        "rules": [
+            {
+                "rule_id": "r_not_in",
+                "condition": {
+                    "input_ref": "metric://sector_code",
+                    "operator": RuleOperator.NOT_IN,
+                    "value": [101.0, 202.0],
+                },
+                "output": {"fact_value": True, "label": "allowed"},
+                "description": "sector not in blacklist",
+            },
+        ],
+        "default_output": {"fact_value": False, "label": "blocked"},
+        "confidence_rule": ConfidenceRule.INHERIT_MIN,
+        "test_cases": [
+            {"input": {"metric://sector_code": 999.0},
+             "expected_output": {"fact_value": True, "label": "allowed"}},
+            {"input": {"metric://sector_code": 101.0},
+             "expected_output": {"fact_value": False, "label": "blocked"}},
+        ],
+    }
+    rt = DerivedMetricRuleTable.model_validate(table)
+    hit = rt._apply_rule_table({"metric://sector_code": 999.0})
+    assert hit is not None
+    assert hit[0] == "r_not_in"
+    miss = rt._apply_rule_table({"metric://sector_code": 101.0})
+    assert miss is None  # in the list → no match → default
+
+
 # ── Extra Fields Forbidden ─────────────────────────────────────
 
 def test_metric_entry_extra_forbidden():

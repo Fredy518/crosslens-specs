@@ -25,43 +25,6 @@
   "additionalProperties": false,
   "description": "Orchestrator → Domain dispatch work order.",
   "properties": {
-    "job_id": {
-      "minLength": 1,
-      "title": "Job Id",
-      "type": "string"
-    },
-    "task_id": {
-      "minLength": 1,
-      "title": "Task Id",
-      "type": "string"
-    },
-    "run_id": {
-      "minLength": 1,
-      "title": "Run Id",
-      "type": "string"
-    },
-    "domain": {
-      "$ref": "#/$defs/Domain"
-    },
-    "task": {
-      "additionalProperties": true,
-      "default": {},
-      "title": "Task",
-      "type": "object"
-    },
-    "context_bundle_ref": {
-      "default": "",
-      "title": "Context Bundle Ref",
-      "type": "string"
-    },
-    "evidence_refs": {
-      "default": [],
-      "items": {
-        "type": "string"
-      },
-      "title": "Evidence Refs",
-      "type": "array"
-    },
     "constraints": {
       "default": [],
       "items": {
@@ -71,22 +34,10 @@
       "title": "Constraints",
       "type": "array"
     },
-    "run_config": {
-      "additionalProperties": true,
-      "default": {},
-      "title": "Run Config",
-      "type": "object"
-    },
-    "reason_code": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/DomainStatusReason"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null
+    "context_bundle_ref": {
+      "default": "",
+      "title": "Context Bundle Ref",
+      "type": "string"
     },
     "created_at": {
       "anyOf": [
@@ -100,6 +51,55 @@
       ],
       "default": null,
       "title": "Created At"
+    },
+    "domain": {
+      "$ref": "#/$defs/Domain"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "job_id": {
+      "minLength": 1,
+      "title": "Job Id",
+      "type": "string"
+    },
+    "reason_code": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DomainStatusReason"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "run_config": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Run Config",
+      "type": "object"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "task": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Task",
+      "type": "object"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
     }
   },
   "required": [

@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime
 from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+# Semver (major.minor.patch) — guards schema_version against silent drift.
+_SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
 
 
 class StrictModel(BaseModel):
@@ -101,7 +105,7 @@ class RegistrationStatus(str, Enum):
     """Governance status for constraint_exports (SPEC-004 §9.1 / SPEC-005 §6.4)."""
     REGISTERED = "registered"
     UNREGISTERED_MVP_LOCAL = "unregistered_mvp_local"
-    PROPOSEED = "proposed"
+    PROPOSED = "proposed"
 
 
 class ConstraintExport(StrictModel):
@@ -139,7 +143,7 @@ class ConstraintExport(StrictModel):
             )
         if self.registration_status in (
             RegistrationStatus.UNREGISTERED_MVP_LOCAL,
-            RegistrationStatus.PROPOSEED,
+            RegistrationStatus.PROPOSED,
         ):
             if self.can_support_hard_constraint:
                 raise ValueError(
@@ -340,10 +344,15 @@ class AnalysisCard(StrictModel):
 
     @model_validator(mode="after")
     def _schema_version_format(self) -> "AnalysisCard":
-        """schema_version must follow SPEC-004@<semver> format."""
+        """schema_version must follow SPEC-004@<semver> format (major.minor.patch)."""
         if not self.schema_version.startswith("SPEC-004@"):
             raise ValueError(
                 "schema_version must start with 'SPEC-004@'"
+            )
+        semver = self.schema_version[len("SPEC-004@"):]
+        if not _SEMVER_RE.fullmatch(semver):
+            raise ValueError(
+                f"schema_version semver part must be major.minor.patch, got {semver!r}"
             )
         return self
 

@@ -13,16 +13,22 @@
           "title": "Conflict Type",
           "type": "string"
         },
-        "severity": {
-          "$ref": "#/$defs/ConflictSeverity"
+        "decision_impact": {
+          "default": "",
+          "title": "Decision Impact",
+          "type": "string"
         },
-        "involved_domains": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "default": [],
           "items": {
-            "$ref": "#/$defs/Domain"
+            "type": "string"
           },
-          "maxItems": 5,
-          "minItems": 2,
-          "title": "Involved Domains",
+          "title": "Evidence Refs",
           "type": "array"
         },
         "involved_card_refs": {
@@ -33,28 +39,22 @@
           "title": "Involved Card Refs",
           "type": "array"
         },
-        "evidence_refs": {
-          "default": [],
+        "involved_domains": {
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/Domain"
           },
-          "title": "Evidence Refs",
+          "maxItems": 5,
+          "minItems": 2,
+          "title": "Involved Domains",
           "type": "array"
-        },
-        "description": {
-          "default": "",
-          "title": "Description",
-          "type": "string"
-        },
-        "decision_impact": {
-          "default": "",
-          "title": "Decision Impact",
-          "type": "string"
         },
         "resolution": {
           "default": "",
           "title": "Resolution",
           "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/ConflictSeverity"
         }
       },
       "required": [
@@ -95,16 +95,6 @@
       "title": "Conflict Report Id",
       "type": "string"
     },
-    "task_id": {
-      "minLength": 1,
-      "title": "Task Id",
-      "type": "string"
-    },
-    "run_id": {
-      "minLength": 1,
-      "title": "Run Id",
-      "type": "string"
-    },
     "conflicts": {
       "default": [],
       "items": {
@@ -113,10 +103,10 @@
       "title": "Conflicts",
       "type": "array"
     },
-    "has_blocking_conflict": {
-      "default": false,
-      "title": "Has Blocking Conflict",
-      "type": "boolean"
+    "deweight_reason": {
+      "default": "",
+      "title": "Deweight Reason",
+      "type": "string"
     },
     "deweighted_card_refs": {
       "default": [],
@@ -126,9 +116,19 @@
       "title": "Deweighted Card Refs",
       "type": "array"
     },
-    "deweight_reason": {
-      "default": "",
-      "title": "Deweight Reason",
+    "has_blocking_conflict": {
+      "default": false,
+      "title": "Has Blocking Conflict",
+      "type": "boolean"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
       "type": "string"
     }
   },

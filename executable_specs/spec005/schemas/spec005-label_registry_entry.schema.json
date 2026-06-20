@@ -1,16 +1,6 @@
 {
   "additionalProperties": false,
   "properties": {
-    "label_id": {
-      "minLength": 1,
-      "title": "Label Id",
-      "type": "string"
-    },
-    "display_name": {
-      "default": "",
-      "title": "Display Name",
-      "type": "string"
-    },
     "allowed_values": {
       "items": {
         "type": "string"
@@ -19,9 +9,28 @@
       "title": "Allowed Values",
       "type": "array"
     },
-    "source_domain": {
+    "can_support_hard_constraint": {
+      "title": "Can Support Hard Constraint",
+      "type": "boolean"
+    },
+    "derivation_rule": {
+      "default": "",
+      "title": "Derivation Rule",
+      "type": "string"
+    },
+    "display_name": {
+      "default": "",
+      "title": "Display Name",
+      "type": "string"
+    },
+    "expected_export_ref": {
       "minLength": 1,
-      "title": "Source Domain",
+      "title": "Expected Export Ref",
+      "type": "string"
+    },
+    "label_id": {
+      "minLength": 1,
+      "title": "Label Id",
       "type": "string"
     },
     "producing_package": {
@@ -29,18 +38,9 @@
       "title": "Producing Package",
       "type": "string"
     },
-    "can_support_hard_constraint": {
-      "title": "Can Support Hard Constraint",
-      "type": "boolean"
-    },
-    "expected_export_ref": {
+    "source_domain": {
       "minLength": 1,
-      "title": "Expected Export Ref",
-      "type": "string"
-    },
-    "derivation_rule": {
-      "default": "",
-      "title": "Derivation Rule",
+      "title": "Source Domain",
       "type": "string"
     }
   },

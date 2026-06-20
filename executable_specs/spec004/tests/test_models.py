@@ -29,7 +29,7 @@ from crosslens_spec004.models import (
 def _valid_card(**overrides) -> dict:
     base = {
         "card_id": "card_fundamentals_001",
-        "schema_version": "SPEC-004@0.2.5",
+        "schema_version": "SPEC-004@0.2.7",
         "task_id": "task_001",
         "run_id": "run_001",
         "domain": Domain.FUNDAMENTALS,

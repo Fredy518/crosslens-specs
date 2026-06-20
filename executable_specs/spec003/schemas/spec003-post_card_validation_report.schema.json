@@ -3,22 +3,9 @@
     "ValidationFinding": {
       "additionalProperties": false,
       "properties": {
-        "finding_id": {
-          "minLength": 1,
-          "title": "Finding Id",
-          "type": "string"
-        },
-        "severity": {
-          "$ref": "#/$defs/ValidationSeverity"
-        },
         "card_ref": {
           "default": "",
           "title": "Card Ref",
-          "type": "string"
-        },
-        "rule_ref": {
-          "default": "",
-          "title": "Rule Ref",
           "type": "string"
         },
         "description": {
@@ -33,6 +20,19 @@
           },
           "title": "Evidence Refs",
           "type": "array"
+        },
+        "finding_id": {
+          "minLength": 1,
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "rule_ref": {
+          "default": "",
+          "title": "Rule Ref",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/ValidationSeverity"
         }
       },
       "required": [
@@ -66,15 +66,32 @@
   "additionalProperties": false,
   "description": "Quality check results for Analysis Cards (§13).",
   "properties": {
-    "validation_report_id": {
-      "minLength": 1,
-      "title": "Validation Report Id",
-      "type": "string"
+    "blocked_cards": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Blocked Cards",
+      "type": "array"
     },
-    "task_id": {
-      "minLength": 1,
-      "title": "Task Id",
-      "type": "string"
+    "findings": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ValidationFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "flagged_cards": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Flagged Cards",
+      "type": "array"
+    },
+    "overall_status": {
+      "$ref": "#/$defs/ValidationOverallStatus"
     },
     "run_id": {
       "minLength": 1,
@@ -86,32 +103,15 @@
       "title": "Stage",
       "type": "string"
     },
-    "findings": {
-      "default": [],
-      "items": {
-        "$ref": "#/$defs/ValidationFinding"
-      },
-      "title": "Findings",
-      "type": "array"
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
     },
-    "overall_status": {
-      "$ref": "#/$defs/ValidationOverallStatus"
-    },
-    "blocked_cards": {
-      "default": [],
-      "items": {
-        "type": "string"
-      },
-      "title": "Blocked Cards",
-      "type": "array"
-    },
-    "flagged_cards": {
-      "default": [],
-      "items": {
-        "type": "string"
-      },
-      "title": "Flagged Cards",
-      "type": "array"
+    "validation_report_id": {
+      "minLength": 1,
+      "title": "Validation Report Id",
+      "type": "string"
     }
   },
   "required": [

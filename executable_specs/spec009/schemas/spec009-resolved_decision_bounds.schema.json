@@ -3,14 +3,9 @@
     "ConfidenceCapReason": {
       "additionalProperties": false,
       "properties": {
-        "source_type": {
-          "minLength": 1,
-          "title": "Source Type",
-          "type": "string"
-        },
-        "source_ref": {
+        "effect": {
           "default": "",
-          "title": "Source Ref",
+          "title": "Effect",
           "type": "string"
         },
         "reason": {
@@ -18,9 +13,14 @@
           "title": "Reason",
           "type": "string"
         },
-        "effect": {
+        "source_ref": {
           "default": "",
-          "title": "Effect",
+          "title": "Source Ref",
+          "type": "string"
+        },
+        "source_type": {
+          "minLength": 1,
+          "title": "Source Type",
           "type": "string"
         }
       },
@@ -33,11 +33,6 @@
     "ContaminationFinding": {
       "additionalProperties": false,
       "properties": {
-        "evidence_id": {
-          "minLength": 1,
-          "title": "Evidence Id",
-          "type": "string"
-        },
         "contamination_level": {
           "$ref": "#/$defs/ContaminationLevel"
         },
@@ -48,6 +43,11 @@
           },
           "title": "Contamination Path",
           "type": "array"
+        },
+        "evidence_id": {
+          "minLength": 1,
+          "title": "Evidence Id",
+          "type": "string"
         },
         "reason": {
           "default": "",
@@ -75,6 +75,11 @@
     "HumanReviewTrigger": {
       "additionalProperties": false,
       "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
         "source": {
           "minLength": 1,
           "title": "Source",
@@ -87,11 +92,6 @@
         },
         "trigger_type": {
           "$ref": "#/$defs/HumanReviewTriggerType"
-        },
-        "description": {
-          "default": "",
-          "title": "Description",
-          "type": "string"
         }
       },
       "required": [
@@ -116,11 +116,6 @@
     "ReasonEntry": {
       "additionalProperties": false,
       "properties": {
-        "source": {
-          "minLength": 1,
-          "title": "Source",
-          "type": "string"
-        },
         "action": {
           "default": "",
           "title": "Action",
@@ -129,6 +124,11 @@
         "detail": {
           "default": "",
           "title": "Detail",
+          "type": "string"
+        },
+        "source": {
+          "minLength": 1,
+          "title": "Source",
           "type": "string"
         }
       },
@@ -141,21 +141,6 @@
   },
   "additionalProperties": false,
   "properties": {
-    "resolved_decision_bounds_id": {
-      "minLength": 1,
-      "title": "Resolved Decision Bounds Id",
-      "type": "string"
-    },
-    "task_id": {
-      "minLength": 1,
-      "title": "Task Id",
-      "type": "string"
-    },
-    "run_id": {
-      "minLength": 1,
-      "title": "Run Id",
-      "type": "string"
-    },
     "allowed_actions": {
       "default": [],
       "items": {
@@ -164,36 +149,20 @@
       "title": "Allowed Actions",
       "type": "array"
     },
+    "applied_rules": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Applied Rules",
+      "type": "array"
+    },
     "blocked_candidate_actions": {
       "default": [],
       "items": {
         "type": "string"
       },
       "title": "Blocked Candidate Actions",
-      "type": "array"
-    },
-    "output_control": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Output Control"
-    },
-    "requires_human_review": {
-      "title": "Requires Human Review",
-      "type": "boolean"
-    },
-    "human_review_triggers": {
-      "default": [],
-      "items": {
-        "$ref": "#/$defs/HumanReviewTrigger"
-      },
-      "title": "Human Review Triggers",
       "type": "array"
     },
     "confidence_cap": {
@@ -210,13 +179,33 @@
       "title": "Confidence Cap Reason",
       "type": "array"
     },
-    "applied_rules": {
+    "contamination_findings": {
       "default": [],
       "items": {
-        "type": "string"
+        "$ref": "#/$defs/ContaminationFinding"
       },
-      "title": "Applied Rules",
+      "title": "Contamination Findings",
       "type": "array"
+    },
+    "human_review_triggers": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/HumanReviewTrigger"
+      },
+      "title": "Human Review Triggers",
+      "type": "array"
+    },
+    "output_control": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Output Control"
     },
     "reasoning": {
       "default": [],
@@ -226,13 +215,24 @@
       "title": "Reasoning",
       "type": "array"
     },
-    "contamination_findings": {
-      "default": [],
-      "items": {
-        "$ref": "#/$defs/ContaminationFinding"
-      },
-      "title": "Contamination Findings",
-      "type": "array"
+    "requires_human_review": {
+      "title": "Requires Human Review",
+      "type": "boolean"
+    },
+    "resolved_decision_bounds_id": {
+      "minLength": 1,
+      "title": "Resolved Decision Bounds Id",
+      "type": "string"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
     }
   },
   "required": [

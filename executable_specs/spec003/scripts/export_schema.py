@@ -16,9 +16,9 @@ from crosslens_spec003.models import (
 )
 
 SCHEMAS_DIR = Path(__file__).resolve().parent.parent / "schemas"
-SCHEMAS_DIR.mkdir(exist_ok=True)
 
-specs = {
+# Canonical model → schema-file mapping (consumed by tests/test_schema.py).
+SPECS = {
     "spec003-evidence_packet.schema.json": EvidencePacket,
     "spec003-context_bundle.schema.json": ContextBundle,
     "spec003-context_source.schema.json": ContextSource,
@@ -30,10 +30,24 @@ specs = {
     "spec003-decision_candidate.schema.json": DecisionCandidate,
 }
 
-for filename, model_cls in specs.items():
+
+def render_schema(model_cls) -> str:
+    """Serialize a Pydantic model's JSON Schema in the canonical format.
+
+    Format: indent=2, sort_keys=True, ensure_ascii=False, trailing newline.
+    Mirrors spec006's render_contract_schema so all packages stay consistent.
+    """
     schema = model_cls.model_json_schema()
-    path = SCHEMAS_DIR / filename
-    path.write_text(
-        json.dumps(schema, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
-    print(f"[OK] {filename}")
+    return json.dumps(schema, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+
+
+def main() -> None:
+    SCHEMAS_DIR.mkdir(exist_ok=True)
+    for filename, model_cls in SPECS.items():
+        path = SCHEMAS_DIR / filename
+        path.write_text(render_schema(model_cls), encoding="utf-8")
+        print(f"[OK] {filename}")
+
+
+if __name__ == "__main__":
+    main()

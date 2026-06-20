@@ -3,7 +3,7 @@
 **版本：** v0.3.0
 **状态：** Approved
 **项目名称：** crosslens
-**依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.5
+**依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.7
 **文档类型：** 投资方法规格 / Playbook Schema
 **目标阶段：** 产品机制设计 / MVP 架构定义
 
@@ -1383,7 +1383,7 @@ archive_condition
   "playbook_snapshot_hash": "sha256:...",
   "playbook_source": "built_in_static",
   "dependency_snapshot_refs": {
-    "analysis_card_schema_version": "SPEC-004@0.2.5",
+    "analysis_card_schema_version": "SPEC-004@0.2.7",
     "constraint_export_registry_snapshot_hash": null
   }
 }

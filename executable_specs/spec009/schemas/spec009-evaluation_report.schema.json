@@ -3,21 +3,21 @@
     "ConfidenceCapAdjustment": {
       "additionalProperties": false,
       "properties": {
-        "source": {
-          "minLength": 1,
-          "title": "Source",
-          "type": "string"
+        "cap_value": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Cap Value",
+          "type": "number"
         },
         "reason": {
           "default": "",
           "title": "Reason",
           "type": "string"
         },
-        "cap_value": {
-          "maximum": 1.0,
-          "minimum": 0.0,
-          "title": "Cap Value",
-          "type": "number"
+        "source": {
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
         }
       },
       "required": [
@@ -30,20 +30,9 @@
     "EvaluationFinding": {
       "additionalProperties": false,
       "properties": {
-        "dimension": {
-          "$ref": "#/$defs/EvaluatorDimension"
-        },
-        "severity": {
-          "$ref": "#/$defs/EvaluatorSeverity"
-        },
         "description": {
           "default": "",
           "title": "Description",
-          "type": "string"
-        },
-        "recommended_action": {
-          "default": "",
-          "title": "Recommended Action",
           "type": "string"
         },
         "details": {
@@ -60,6 +49,17 @@
           ],
           "default": null,
           "title": "Details"
+        },
+        "dimension": {
+          "$ref": "#/$defs/EvaluatorDimension"
+        },
+        "recommended_action": {
+          "default": "",
+          "title": "Recommended Action",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/EvaluatorSeverity"
         }
       },
       "required": [
@@ -99,19 +99,17 @@
   },
   "additionalProperties": false,
   "properties": {
+    "confidence_cap_adjustments": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ConfidenceCapAdjustment"
+      },
+      "title": "Confidence Cap Adjustments",
+      "type": "array"
+    },
     "evaluation_report_id": {
       "minLength": 1,
       "title": "Evaluation Report Id",
-      "type": "string"
-    },
-    "task_id": {
-      "minLength": 1,
-      "title": "Task Id",
-      "type": "string"
-    },
-    "run_id": {
-      "minLength": 1,
-      "title": "Run Id",
       "type": "string"
     },
     "findings": {
@@ -122,6 +120,9 @@
       "title": "Findings",
       "type": "array"
     },
+    "overall_quality": {
+      "$ref": "#/$defs/OverallQuality"
+    },
     "quality_flags": {
       "default": [],
       "items": {
@@ -130,16 +131,15 @@
       "title": "Quality Flags",
       "type": "array"
     },
-    "overall_quality": {
-      "$ref": "#/$defs/OverallQuality"
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
     },
-    "confidence_cap_adjustments": {
-      "default": [],
-      "items": {
-        "$ref": "#/$defs/ConfidenceCapAdjustment"
-      },
-      "title": "Confidence Cap Adjustments",
-      "type": "array"
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
     }
   },
   "required": [

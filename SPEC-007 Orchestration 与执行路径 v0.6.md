@@ -3,7 +3,7 @@
 **版本：** v0.6  
 **状态：** Approved  
 **项目名称：** crosslens  
-**依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.5；SPEC-006 v0.3.0  
+**依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.7；SPEC-006 v0.3.0  
 **文档类型：** 工作流编排 / Orchestration Runtime Spec  
 **目标阶段：** 产品机制设计 / MVP 执行架构定义
 
@@ -1590,7 +1590,7 @@ Post-card Validation 在 Analysis Cards 收集后立即执行。
 8. `time_horizon` 字段是否完整。
     
 
-`data_freshness` 检查继承 SPEC-004 v0.2.5 中 Analysis Card `data_freshness` 与 `constraint_exports` 的字段约束。SPEC-007 不重新定义 freshness 阈值，只检查字段是否存在、格式是否可解析、hard-capable export 是否缺失 freshness、stale 标记是否能进入 Constraint / Decision Trace。
+`data_freshness` 检查继承 SPEC-004 v0.2.7 中 Analysis Card `data_freshness` 与 `constraint_exports` 的字段约束。SPEC-007 不重新定义 freshness 阈值，只检查字段是否存在、格式是否可解析、hard-capable export 是否缺失 freshness、stale 标记是否能进入 Constraint / Decision Trace。
 
 输出：
 

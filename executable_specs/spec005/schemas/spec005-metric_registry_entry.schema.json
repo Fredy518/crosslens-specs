@@ -3,6 +3,11 @@
     "ComputationConstraints": {
       "additionalProperties": false,
       "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
         "must_not_infer_from_macro_label": {
           "anyOf": [
             {
@@ -22,11 +27,6 @@
           },
           "title": "Required Inputs",
           "type": "array"
-        },
-        "description": {
-          "default": "",
-          "title": "Description",
-          "type": "string"
         }
       },
       "title": "ComputationConstraints",
@@ -35,8 +35,30 @@
     "ConfidenceMetadata": {
       "additionalProperties": false,
       "properties": {
-        "determination_type": {
-          "$ref": "#/$defs/DeterminationType"
+        "confidence_cap_reason": {
+          "default": "",
+          "title": "Confidence Cap Reason",
+          "type": "string"
+        },
+        "confidence_downgrade_factors": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Confidence Downgrade Factors",
+          "type": "array"
+        },
+        "confidence_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence Source"
         },
         "default_confidence": {
           "anyOf": [
@@ -50,18 +72,13 @@
           "default": null,
           "title": "Default Confidence"
         },
-        "confidence_cap_reason": {
+        "description": {
           "default": "",
-          "title": "Confidence Cap Reason",
+          "title": "Description",
           "type": "string"
         },
-        "confidence_downgrade_factors": {
-          "default": [],
-          "items": {
-            "type": "string"
-          },
-          "title": "Confidence Downgrade Factors",
-          "type": "array"
+        "determination_type": {
+          "$ref": "#/$defs/DeterminationType"
         },
         "model_id": {
           "anyOf": [
@@ -86,23 +103,6 @@
           ],
           "default": null,
           "title": "Model Version"
-        },
-        "confidence_source": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Confidence Source"
-        },
-        "description": {
-          "default": "",
-          "title": "Description",
-          "type": "string"
         }
       },
       "required": [
@@ -125,9 +125,9 @@
     "FreshnessRequirement": {
       "additionalProperties": false,
       "properties": {
-        "update_frequency": {
+        "description": {
           "default": "",
-          "title": "Update Frequency",
+          "title": "Description",
           "type": "string"
         },
         "staleness_threshold_days": {
@@ -135,14 +135,14 @@
           "title": "Staleness Threshold Days",
           "type": "integer"
         },
+        "update_frequency": {
+          "default": "",
+          "title": "Update Frequency",
+          "type": "string"
+        },
         "valid_until_rule": {
           "default": "",
           "title": "Valid Until Rule",
-          "type": "string"
-        },
-        "description": {
-          "default": "",
-          "title": "Description",
           "type": "string"
         }
       },
@@ -155,6 +155,11 @@
     "LineageConstraints": {
       "additionalProperties": false,
       "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
         "requires_source_event_ref": {
           "default": false,
           "title": "Requires Source Event Ref",
@@ -183,11 +188,6 @@
           ],
           "default": null,
           "title": "Source Event Generation Type Must Not Be"
-        },
-        "description": {
-          "default": "",
-          "title": "Description",
-          "type": "string"
         }
       },
       "title": "LineageConstraints",
@@ -215,55 +215,27 @@
   },
   "additionalProperties": false,
   "properties": {
-    "metric_id": {
-      "minLength": 1,
-      "title": "Metric Id",
-      "type": "string"
+    "can_support_hard_constraint": {
+      "title": "Can Support Hard Constraint",
+      "type": "boolean"
     },
-    "display_name": {
-      "default": "",
-      "title": "Display Name",
-      "type": "string"
+    "computation_constraints": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ComputationConstraints"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "confidence_metadata": {
+      "$ref": "#/$defs/ConfidenceMetadata"
     },
     "description": {
       "default": "",
       "title": "Description",
-      "type": "string"
-    },
-    "value_type": {
-      "$ref": "#/$defs/ValueType"
-    },
-    "unit": {
-      "default": "",
-      "title": "Unit",
-      "type": "string"
-    },
-    "metric_category": {
-      "$ref": "#/$defs/MetricCategory"
-    },
-    "source_domain": {
-      "minLength": 1,
-      "title": "Source Domain",
-      "type": "string"
-    },
-    "producing_package": {
-      "default": "",
-      "title": "Producing Package",
-      "type": "string"
-    },
-    "producing_capability": {
-      "default": "",
-      "title": "Producing Capability",
-      "type": "string"
-    },
-    "evidence_type": {
-      "default": "",
-      "title": "Evidence Type",
-      "type": "string"
-    },
-    "generation_type": {
-      "default": "",
-      "title": "Generation Type",
       "type": "string"
     },
     "determinism_level": {
@@ -271,9 +243,15 @@
       "title": "Determinism Level",
       "type": "string"
     },
-    "can_support_hard_constraint": {
-      "title": "Can Support Hard Constraint",
-      "type": "boolean"
+    "display_name": {
+      "default": "",
+      "title": "Display Name",
+      "type": "string"
+    },
+    "evidence_type": {
+      "default": "",
+      "title": "Evidence Type",
+      "type": "string"
     },
     "evidence_value_path": {
       "default": "",
@@ -296,8 +274,10 @@
       ],
       "default": null
     },
-    "confidence_metadata": {
-      "$ref": "#/$defs/ConfidenceMetadata"
+    "generation_type": {
+      "default": "",
+      "title": "Generation Type",
+      "type": "string"
     },
     "lineage_constraints": {
       "anyOf": [
@@ -310,16 +290,23 @@
       ],
       "default": null
     },
-    "computation_constraints": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/ComputationConstraints"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null
+    "metric_category": {
+      "$ref": "#/$defs/MetricCategory"
+    },
+    "metric_id": {
+      "minLength": 1,
+      "title": "Metric Id",
+      "type": "string"
+    },
+    "producing_capability": {
+      "default": "",
+      "title": "Producing Capability",
+      "type": "string"
+    },
+    "producing_package": {
+      "default": "",
+      "title": "Producing Package",
+      "type": "string"
     },
     "related_metrics": {
       "default": [],
@@ -329,6 +316,11 @@
       "title": "Related Metrics",
       "type": "array"
     },
+    "source_domain": {
+      "minLength": 1,
+      "title": "Source Domain",
+      "type": "string"
+    },
     "tags": {
       "default": [],
       "items": {
@@ -336,6 +328,14 @@
       },
       "title": "Tags",
       "type": "array"
+    },
+    "unit": {
+      "default": "",
+      "title": "Unit",
+      "type": "string"
+    },
+    "value_type": {
+      "$ref": "#/$defs/ValueType"
     }
   },
   "required": [

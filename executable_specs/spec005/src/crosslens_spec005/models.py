@@ -270,4 +270,12 @@ class DerivedMetricRuleTable(StrictModel):
                 lower, upper = cond.value if isinstance(cond.value, list) else (0, 0)
                 if lower <= raw < upper:
                     return (rule.rule_id, rule.output)
+            if op is RuleOperator.IN:
+                values = cond.value if isinstance(cond.value, list) else []
+                if raw in values:
+                    return (rule.rule_id, rule.output)
+            if op is RuleOperator.NOT_IN:
+                values = cond.value if isinstance(cond.value, list) else []
+                if raw not in values:
+                    return (rule.rule_id, rule.output)
         return None

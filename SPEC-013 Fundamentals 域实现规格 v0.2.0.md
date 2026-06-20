@@ -4,7 +4,7 @@
 **状态：** Review
 **项目名称：** crosslens
 **文档类型：** 实现
-**依赖文档：** SPEC-003 v0.3.4；SPEC-004 v0.2.5；SPEC-005 v0.2
+**依赖文档：** SPEC-003 v0.3.4；SPEC-004 v0.2.7；SPEC-005 v0.2
 **上游契约：**
 - SPEC-003 §8 (Analysis Domain Job 输入)
 - SPEC-003 §6.5 (Evidence Packet schema)
@@ -1438,7 +1438,7 @@ confidence = min(confidence, confidence_cap_from_quality(data_quality))
 | 字段 | 填充来源 | 规则 |
 |------|---------|------|
 | `card_id` | 系统生成 | `card_fundamentals_{task_id}` |
-| `schema_version` | 固定 | `SPEC-004@0.2.5` |
+| `schema_version` | 固定 | `SPEC-004@0.2.7` |
 | `task_id` | job.task_id | 直传 |
 | `run_id` | job.run_id | 直传 |
 | `domain` | 固定 | `fundamentals` |
@@ -1940,7 +1940,7 @@ class MockAdapter:
 ## 14. References
 
 - SPEC-003 v0.3.4 §6.1 Investment Task, §6.5 Evidence Packet, §8 Analysis Domain Job, §11 Playbook Constraint
-- SPEC-004 v0.2.5 §4 Analysis Card Schema, §17~§22 Fundamentals Domain, §41 Validation Rules, §45 MVP Scope
+- SPEC-004 v0.2.7 §4 Analysis Card Schema, §17~§22 Fundamentals Domain, §41 Validation Rules, §45 MVP Scope
 - SPEC-005 v0.2 §2 Architecture Overview, §4.4 Evidence Packet confidence rules, §5 Metric Registry
 - SPEC-006 v0.3.0 Playbook constraint execution semantics, AllowedAction enum
 - SPEC-009 v0.1 Governance guardrails, Evaluator, confidence_cap merge

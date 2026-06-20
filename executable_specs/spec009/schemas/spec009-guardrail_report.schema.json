@@ -3,21 +3,21 @@
     "ConfidenceCapAdjustment": {
       "additionalProperties": false,
       "properties": {
-        "source": {
-          "minLength": 1,
-          "title": "Source",
-          "type": "string"
+        "cap_value": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Cap Value",
+          "type": "number"
         },
         "reason": {
           "default": "",
           "title": "Reason",
           "type": "string"
         },
-        "cap_value": {
-          "maximum": 1.0,
-          "minimum": 0.0,
-          "title": "Cap Value",
-          "type": "number"
+        "source": {
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
         }
       },
       "required": [
@@ -30,14 +30,6 @@
     "Finding": {
       "additionalProperties": false,
       "properties": {
-        "guardrail_id": {
-          "minLength": 1,
-          "title": "Guardrail Id",
-          "type": "string"
-        },
-        "severity": {
-          "$ref": "#/$defs/GuardrailSeverity"
-        },
         "action": {
           "minLength": 1,
           "title": "Action",
@@ -55,6 +47,14 @@
           },
           "title": "Evidence Refs",
           "type": "array"
+        },
+        "guardrail_id": {
+          "minLength": 1,
+          "title": "Guardrail Id",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/GuardrailSeverity"
         }
       },
       "required": [
@@ -87,24 +87,21 @@
   },
   "additionalProperties": false,
   "properties": {
-    "guardrail_report_id": {
-      "minLength": 1,
-      "title": "Guardrail Report Id",
-      "type": "string"
+    "blocked_candidate_actions": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Blocked Candidate Actions",
+      "type": "array"
     },
-    "task_id": {
-      "minLength": 1,
-      "title": "Task Id",
-      "type": "string"
-    },
-    "run_id": {
-      "minLength": 1,
-      "title": "Run Id",
-      "type": "string"
-    },
-    "triggered": {
-      "title": "Triggered",
-      "type": "boolean"
+    "confidence_cap_adjustments": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ConfidenceCapAdjustment"
+      },
+      "title": "Confidence Cap Adjustments",
+      "type": "array"
     },
     "findings": {
       "default": [],
@@ -114,16 +111,10 @@
       "title": "Findings",
       "type": "array"
     },
-    "overall_status": {
-      "$ref": "#/$defs/GuardrailOverallStatus"
-    },
-    "blocked_candidate_actions": {
-      "default": [],
-      "items": {
-        "type": "string"
-      },
-      "title": "Blocked Candidate Actions",
-      "type": "array"
+    "guardrail_report_id": {
+      "minLength": 1,
+      "title": "Guardrail Report Id",
+      "type": "string"
     },
     "output_control": {
       "anyOf": [
@@ -137,21 +128,30 @@
       "default": null,
       "title": "Output Control"
     },
+    "overall_status": {
+      "$ref": "#/$defs/GuardrailOverallStatus"
+    },
     "requires_disclosure": {
       "default": false,
       "title": "Requires Disclosure",
       "type": "boolean"
     },
-    "confidence_cap_adjustments": {
-      "default": [],
-      "items": {
-        "$ref": "#/$defs/ConfidenceCapAdjustment"
-      },
-      "title": "Confidence Cap Adjustments",
-      "type": "array"
-    },
     "requires_human_review": {
       "title": "Requires Human Review",
+      "type": "boolean"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
+    },
+    "triggered": {
+      "title": "Triggered",
       "type": "boolean"
     }
   },

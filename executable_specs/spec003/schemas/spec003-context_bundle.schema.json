@@ -4,21 +4,6 @@
       "additionalProperties": false,
       "description": "A single data source within a Context Bundle.\n\nMVP minimal shape — full Context Bundle source taxonomy defined by later SPEC.",
       "properties": {
-        "source_id": {
-          "minLength": 1,
-          "title": "Source Id",
-          "type": "string"
-        },
-        "source_type": {
-          "default": "",
-          "title": "Source Type",
-          "type": "string"
-        },
-        "source_name": {
-          "default": "",
-          "title": "Source Name",
-          "type": "string"
-        },
         "as_of": {
           "anyOf": [
             {
@@ -41,6 +26,21 @@
           "default": {},
           "title": "Payload",
           "type": "object"
+        },
+        "source_id": {
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_name": {
+          "default": "",
+          "title": "Source Name",
+          "type": "string"
+        },
+        "source_type": {
+          "default": "",
+          "title": "Source Type",
+          "type": "string"
         }
       },
       "required": [
@@ -69,24 +69,6 @@
       "title": "Context Bundle Id",
       "type": "string"
     },
-    "task_id": {
-      "minLength": 1,
-      "title": "Task Id",
-      "type": "string"
-    },
-    "run_id": {
-      "minLength": 1,
-      "title": "Run Id",
-      "type": "string"
-    },
-    "sources": {
-      "default": [],
-      "items": {
-        "$ref": "#/$defs/ContextSource"
-      },
-      "title": "Sources",
-      "type": "array"
-    },
     "created_at": {
       "anyOf": [
         {
@@ -103,6 +85,24 @@
     "data_quality_overall": {
       "$ref": "#/$defs/DataQuality",
       "default": "unknown"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "sources": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ContextSource"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
     }
   },
   "required": [

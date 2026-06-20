@@ -536,6 +536,38 @@ class TestResolveDecisionBounds:
         assert result.confidence_cap <= 0.65
         assert result.requires_human_review is True
 
+    def test_playbook_overall_result_triggers_review(self):
+        """playbook_overall_result='requires_human_review' must fire Source 3."""
+        gr = self._gr_report()
+        ev = self._eval_report()
+        result = resolve_decision_bounds(
+            playbook_bounds=["hold", "wait"],
+            guardrail_report=gr,
+            evaluation_report=ev,
+            playbook_overall_result="requires_human_review",
+        )
+        assert result.requires_human_review is True
+        playbook_triggers = [
+            t for t in result.human_review_triggers
+            if t.trigger_type.value == "playbook_requires_review"
+        ]
+        assert len(playbook_triggers) == 1
+
+    def test_playbook_overall_result_default_does_not_trigger_review(self):
+        """Default (empty) playbook_overall_result must not fire Source 3."""
+        gr = self._gr_report()
+        ev = self._eval_report()
+        result = resolve_decision_bounds(
+            playbook_bounds=["hold", "wait"],
+            guardrail_report=gr,
+            evaluation_report=ev,
+        )
+        playbook_triggers = [
+            t for t in result.human_review_triggers
+            if t.trigger_type.value == "playbook_requires_review"
+        ]
+        assert len(playbook_triggers) == 0
+
     def test_forbidden_combination_rejected(self):
         with pytest.raises(ValueError, match="forbidden.*combination"):
             ResolvedDecisionBounds(

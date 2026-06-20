@@ -31,44 +31,32 @@
   },
   "additionalProperties": false,
   "properties": {
-    "export_type": {
-      "$ref": "#/$defs/ExportType"
-    },
-    "export_ref": {
-      "minLength": 1,
-      "title": "Export Ref",
-      "type": "string"
-    },
-    "evidence_ref": {
-      "minLength": 1,
-      "title": "Evidence Ref",
-      "type": "string"
-    },
-    "value_path": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Value Path"
-    },
-    "determinism_level": {
-      "$ref": "#/$defs/DeterminismLevel"
-    },
-    "can_support_hard_constraint": {
-      "title": "Can Support Hard Constraint",
-      "type": "boolean"
-    },
     "allowed_constraint_types": {
       "items": {
         "type": "string"
       },
       "title": "Allowed Constraint Types",
       "type": "array"
+    },
+    "can_support_hard_constraint": {
+      "title": "Can Support Hard Constraint",
+      "type": "boolean"
+    },
+    "determinism_level": {
+      "$ref": "#/$defs/DeterminismLevel"
+    },
+    "evidence_ref": {
+      "minLength": 1,
+      "title": "Evidence Ref",
+      "type": "string"
+    },
+    "export_ref": {
+      "minLength": 1,
+      "title": "Export Ref",
+      "type": "string"
+    },
+    "export_type": {
+      "$ref": "#/$defs/ExportType"
     },
     "fact_value": {
       "anyOf": [
@@ -94,11 +82,6 @@
       "default": null,
       "title": "Label Value"
     },
-    "registration_status": {
-      "$ref": "#/$defs/RegistrationStatus",
-      "default": "registered",
-      "description": "Governance status: controls Hard Constraint eligibility"
-    },
     "lineage_constraint_failure": {
       "anyOf": [
         {
@@ -111,6 +94,23 @@
       "default": null,
       "description": "If lineage check failed for a registered metric, reason for soft-only downgrade",
       "title": "Lineage Constraint Failure"
+    },
+    "registration_status": {
+      "$ref": "#/$defs/RegistrationStatus",
+      "default": "registered",
+      "description": "Governance status: controls Hard Constraint eligibility"
+    },
+    "value_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Value Path"
     }
   },
   "required": [

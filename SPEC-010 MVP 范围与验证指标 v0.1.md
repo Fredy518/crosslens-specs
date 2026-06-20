@@ -3,7 +3,7 @@
 **版本：** v0.1
 **状态：** Draft
 **项目名称：** crosslens
-**依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.5；SPEC-005 v0.2；SPEC-006 v0.3.0；SPEC-007 v0.6；SPEC-008 v0.1；SPEC-009 v0.1；SPEC-011 v0.1；SPEC-012 v0.1
+**依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-004 v0.2.7；SPEC-005 v0.2；SPEC-006 v0.3.0；SPEC-007 v0.6；SPEC-008 v0.1；SPEC-009 v0.1；SPEC-011 v0.1；SPEC-012 v0.1
 **文档类型：** MVP 范围定义
 **目标阶段：** MVP 范围划定 / 验证指标定义
 
@@ -497,7 +497,7 @@ Success Metric: 解释输出包含所有引用来源
 □ SPEC-001 v0.4（产品定义）
 □ SPEC-002 v0.1（目标用户与核心场景）
 □ SPEC-003 v0.3.4（架构）
-□ SPEC-004 v0.2.5（能力域）
+□ SPEC-004 v0.2.7（能力域）
 □ SPEC-005 v0.2（Capability Package & Metric Registry）
 □ SPEC-006 v0.3.0（Playbook）+ Executable Specification
 □ SPEC-007 v0.6（Orchestration）
