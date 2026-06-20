@@ -157,6 +157,9 @@ cd executable_specs/spec009 && python -m pytest
 |------|------|------|
 | SPEC-013 | UI/API 交互契约 | 待规划 |
 | SPEC-014 | [Technical/Market 域实现规格](./SPEC-014%20Technical%20Market%20域实现规格%20v0.2.3.md) | v0.2.3 Review（Part I）；Part II Draft |
+| SPEC-015 | [Macro/Meso 域实现规格](./SPEC-015%20Macro%20Meso%20域实现规格%20v0.1.0.md) | v0.1.0 Draft |
+| SPEC-016 | Company Event 域实现规格 | 待规划 |
+| SPEC-017 | Sentiment 域实现规格 | 待规划 |
 
 ---
 
