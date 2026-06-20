@@ -1260,7 +1260,7 @@ confidence = (
 
 # data_quality 上限
 if data_quality == "low":
-    confidence = min(confidence, 0.50)
+    confidence = min(confidence, 0.45)  # SPEC-004 AnalysisCard cap
 elif data_quality == "medium":
     confidence = min(confidence, 0.70)
 ```
@@ -2395,7 +2395,7 @@ A 股的 T+1 制度和涨跌停板限制对技术分析有独特影响：
 - ✅ **Feature B 相对强度与 Beta**（RS 线 / RS Rating / Mansfield / Beta / Alpha / 相对回撤，§20）→ `relative_strength_metrics`（Adapter `get_index_data()` P3 前置，§26）
 - ✅ Feature C 风险度量套件（回撤 / VaR-CVaR / 风险调整 / ATR 止损，§21）→ `risk_metrics`
 - ✅ regime 门控 + stance/confidence 调整（§24.2/§24.4）
-- ✅ §25.1 soft-only exports；§25.3 SPEC-005 注册请求（`beta_252d`、`relative_drawdown`、风险度量 hard 候选）
+- ✅ §25.1 soft-only exports；§25.3 SPEC-005 注册请求（`beta_252d`、`relative_drawdown`、风险度量 hard 候选）→ **已注册**（`metrics_registry.py` + `tests/test_metrics_registry.py`，§25.3）
 - ✅ 单元测试：`tests/test_calibration.py`、`tests/test_regime.py`、`tests/test_relative_strength.py`、`tests/test_risk.py`
 
 ### 16.5 P4 — 支撑阻力 + 多时间框架（P3 完成后）
@@ -2801,16 +2801,16 @@ ELSE:
 | Beta / Alpha | 120 | 252 | OLS 稳健性 |
 | RS 线 / Mansfield | 200 | 250 | Mansfield 需 200 日均线 |
 
-### 20.9 constraint_exports（P3，soft-only；注册后部分可 hard）
+### 20.9 constraint_exports（P3；beta_252d / relative_drawdown 已注册为 hard）
 
 | export_ref | 说明 | registration_status | can_support_hard | allowed |
 |---|---|:---:|:---:|:---:|
 | `metric://rs_raw` | 加权 ROC 相对强度 | `unregistered_mvp_local` | false | `["soft"]` |
-| `metric://beta_252d` | 对基准 Beta | `unregistered_mvp_local` | false | `["soft"]` |
-| `metric://relative_drawdown` | 相对回撤 | `unregistered_mvp_local` | false | `["soft"]` |
+| `metric://beta_252d` | 对基准 Beta | `registered` | true | `["hard","soft"]` |
+| `metric://relative_drawdown` | 相对回撤 | `registered` | true | `["hard","soft"]` |
 | `label://rs_state` | 相对强弱标签 | `unregistered_mvp_local` | false | `["soft"]` |
 
-> **注册请求（§25.4）：** `beta_252d`、`relative_drawdown` 拟注册为 `computed` 且 `can_support_hard_constraint = true`，作为风险/择时类 Hard Constraint。
+> **已注册（§25.3）：** `beta_252d`、`relative_drawdown` 已注册为 `computed` 且 `can_support_hard_constraint = true`，作为风险/择时类 Hard Constraint 载体（实现：`metrics_registry.py`）。
 
 ---
 
@@ -2923,17 +2923,17 @@ else:                             risk_state = "low"
 | risk_state 自校准 | 252 | 504 | 波动率分位需较长历史（2 年） |
 | ATR 止损 | 15 | 30 | 复用 Layer 1 ATR |
 
-### 21.9 constraint_exports（P3，soft-only；注册后多项可 hard）
+### 21.9 constraint_exports（P3；四项风险度量已注册为 hard）
 
 | export_ref | 说明 | registration_status | can_support_hard | allowed |
 |---|---|:---:|:---:|:---:|
-| `metric://max_drawdown_1y` | 近 1 年最大回撤 | `unregistered_mvp_local` | false | `["soft"]` |
-| `metric://hist_var_95_1y` | 历史 VaR(95%) | `unregistered_mvp_local` | false | `["soft"]` |
-| `metric://downside_deviation_ann` | 年化下行波动 | `unregistered_mvp_local` | false | `["soft"]` |
-| `metric://annualized_vol_1y` | 年化波动率 | `unregistered_mvp_local` | false | `["soft"]` |
+| `metric://max_drawdown_1y` | 近 1 年最大回撤 | `registered` | true | `["hard","soft"]` |
+| `metric://hist_var_95_1y` | 历史 VaR(95%) | `registered` | true | `["hard","soft"]` |
+| `metric://downside_deviation_ann` | 年化下行波动 | `registered` | true | `["hard","soft"]` |
+| `metric://annualized_vol_1y` | 年化波动率 | `registered` | true | `["hard","soft"]` |
 | `label://risk_state` | 风险状态标签 | `unregistered_mvp_local` | false | `["soft"]` |
 
-> **注册请求（§25.4）：** `max_drawdown_1y`、`hist_var_95_1y`、`downside_deviation_ann`、`annualized_vol_1y` 拟注册为 `computed` 且 `can_support_hard_constraint = true`——它们是 Playbook 风险约束（如"近 1 年最大回撤不得超过 X""年化波动率上限"）最自然的载体。
+> **已注册（§25.3）：** `max_drawdown_1y`、`hist_var_95_1y`、`downside_deviation_ann`、`annualized_vol_1y` 已注册为 `computed` 且 `can_support_hard_constraint = true`——它们是 Playbook 风险约束（如"近 1 年最大回撤不得超过 X""年化波动率上限"）最自然的载体（实现：`metrics_registry.py`）。
 
 ---
 
@@ -3286,9 +3286,12 @@ confidence *= regime_conf_mult               # §24.2
 
 # 多周期一致/冲突
 if mtf_alignment in ("aligned_bullish", "aligned_bearish"):
-    confidence = min(confidence * 1.10, 1.0)
+    confidence *= 1.10
 elif mtf_alignment == "conflicting":
     confidence *= 0.90
+
+# 乘性调整后再次应用 SPEC-004 绝对上限（data_quality / domain_status）
+confidence = min(confidence, spec004_card_cap)
 
 # 波动率极端 / 高风险压上限（与 §12.3 风格一致）
 if volatility_regime == "extreme" or risk_state == "high":
@@ -3310,7 +3313,9 @@ if volatility_regime == "extreme" or risk_state == "high":
 
 ## 25. constraint_exports 增补（Part II 汇总）
 
-> 总则见 §11.0 / §17.3。下列全部 `registration_status = "unregistered_mvp_local"`、`can_support_hard_constraint = false`、`allowed_constraint_types = ["soft"]`（受 SPEC-004 §9.1 校验器强制）。
+> 总则见 §11.0 / §17.3。下列默认 `registration_status = "unregistered_mvp_local"`、`can_support_hard_constraint = false`、`allowed_constraint_types = ["soft"]`（受 SPEC-004 §9.1 校验器强制）。
+>
+> **例外（已注册，§25.3）**：下列 6 项已升级为 `registration_status = "registered"`、`can_support_hard_constraint = true`、`allowed_constraint_types = ["hard", "soft"]`——`max_drawdown_1y`、`hist_var_95_1y`、`downside_deviation_ann`、`annualized_vol_1y`、`beta_252d`、`relative_drawdown`。实现落点：`crosslens_technical_market.metrics_registry`（`MetricRegistryEntry` 数据）+ `card.py::_build_risk_exports` / `_build_relative_strength_exports`；契约测试 `tests/test_metrics_registry.py`。
 
 ### 25.1 P3（§18 自校准 + A 市场状态 + B 相对强度 + C 风险）
 
@@ -3326,19 +3331,21 @@ if volatility_regime == "extreme" or risk_state == "high":
 
 ### 25.3 SPEC-005 注册请求清单（升级为 registered 的候选）
 
+> **状态（已落地）：** 标 ✅ 的 6 项已完成注册并实现，落点见 §25 例外说明；`hurst_exponent` / `efficiency_ratio` / `rs_raw` 经评估维持 soft（理由见末列），`risk_state` / `rs_state` 等结构化标签维持 soft。
+
 向 SPEC-005 提交以下 `MetricRegistryEntry`；注册后 `registration_status → registered`，标 ✅ 者拟 `can_support_hard_constraint = true`：
 
 | metric_id | metric_category | 注册后可 hard | 用途（Playbook 约束示例） |
 |---|:---:|:---:|---|
-| `max_drawdown_1y` | computed | ✅ | "近 1 年最大回撤不得超过 35%" |
-| `hist_var_95_1y` | computed | ✅ | "日 VaR(95%) 不得劣于 −8%" |
-| `downside_deviation_ann` | computed | ✅ | 下行波动上限 |
-| `annualized_vol_1y` | computed | ✅ | 年化波动率上限 |
-| `beta_252d` | computed | ✅ | "组合/标的 Beta 上限" |
-| `relative_drawdown` | computed | ✅ | 相对基准回撤上限 |
-| `hurst_exponent` | computed | ❌（建议保持 soft） | regime 上下文，soft 规则引用 |
-| `efficiency_ratio` | computed | ❌（建议保持 soft） | 趋势质量，soft |
-| `rs_raw` | computed | ❌（建议保持 soft） | 相对强度评分（IBD 风格 ROC 加权）；横截面排名依赖全市场快照（§28.3），不宜单独用作 hard 准入依据 |
+| `max_drawdown_1y` | computed | ✅（已注册） | "近 1 年最大回撤不得超过 35%" |
+| `hist_var_95_1y` | computed | ✅（已注册） | "日 VaR(95%) 不得劣于 −8%" |
+| `downside_deviation_ann` | computed | ✅（已注册） | 下行波动上限 |
+| `annualized_vol_1y` | computed | ✅（已注册） | 年化波动率上限 |
+| `beta_252d` | computed | ✅（已注册） | "组合/标的 Beta 上限" |
+| `relative_drawdown` | computed | ✅（已注册） | 相对基准回撤上限 |
+| `hurst_exponent` | computed | ❌（维持 soft） | regime 上下文，soft 规则引用 |
+| `efficiency_ratio` | computed | ❌（维持 soft） | 趋势质量，soft |
+| `rs_raw` | computed | ❌（维持 soft） | 相对强度评分（IBD 风格 ROC 加权）；横截面排名依赖全市场快照（§28.3），不宜单独用作 hard 准入依据 |
 
 > 其余 `structured` 标签（regime、risk_state、rs_state、price_vs_value_area、weekly_trend_state）建议长期保持 soft（含启发式，不宜单独构成硬性准入/禁入）。
 
