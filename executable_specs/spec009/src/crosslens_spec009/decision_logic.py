@@ -28,6 +28,14 @@ from .models import (
 )
 
 
+class DecisionLogicError(ValueError):
+    """Raised for invalid decision-logic inputs (out-of-range caps, etc.).
+
+    Mirrors spec006's DecisionLogicError: governance logic should reject
+    nonsensical inputs rather than silently clamping them.
+    """
+
+
 # ═══════════════════════════════════════════════════════════════════
 # §3.4: apply_guardrails
 # ═══════════════════════════════════════════════════════════════════
@@ -285,9 +293,20 @@ def compute_final_confidence_cap(
     Each layer takes the strictest (lowest) cap value.
     Cap can only decrease (one-way narrowing).
     Final cap < review_threshold → requires_human_review.
+
+    Raises:
+        DecisionLogicError: if playbook_recommended_cap is outside [0.0, 1.0].
+            ConfidenceCapAdjustment.cap_value is already validated by the
+            model (Field(ge=0, le=1)), so only the raw playbook cap needs
+            guarding here — previously it was silently clamped, masking bugs.
     """
+    if not 0.0 <= playbook_recommended_cap <= 1.0:
+        raise DecisionLogicError(
+            f"playbook_recommended_cap must be in [0.0, 1.0], got "
+            f"{playbook_recommended_cap}"
+        )
     reasons: list[ConfidenceCapReason] = []
-    current_cap = min(max(playbook_recommended_cap, 0.0), 1.0)
+    current_cap = playbook_recommended_cap
 
     # Layer 1: Guardrail (highest priority)
     if guardrail_adjustments:

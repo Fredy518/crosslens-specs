@@ -3,6 +3,7 @@
 import pytest
 
 from crosslens_spec009.decision_logic import (
+    DecisionLogicError,
     aggregate_human_review_signals,
     apply_guardrails,
     check_evidence_contamination,
@@ -287,6 +288,17 @@ class TestConfidenceCapMerge:
         )
         assert cap == 0.50
         assert needs_review is False
+
+    def test_out_of_range_playbook_cap_raises(self):
+        """An out-of-range playbook_recommended_cap must raise, not clamp.
+
+        Previously the cap was silently clamped into [0, 1]; a caller passing
+        1.5 or -0.3 would get no signal that its input was nonsensical.
+        """
+        with pytest.raises(DecisionLogicError, match="playbook_recommended_cap"):
+            compute_final_confidence_cap(playbook_recommended_cap=1.5)
+        with pytest.raises(DecisionLogicError, match="playbook_recommended_cap"):
+            compute_final_confidence_cap(playbook_recommended_cap=-0.3)
 
 
 # ═══════════════════════════════════════════════════════════════════
