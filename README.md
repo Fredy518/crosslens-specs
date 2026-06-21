@@ -24,6 +24,9 @@ Architecture Constitution: **Deterministic first, Agentic when necessary, Tracea
 | SPEC-010 | [MVP范围与验证指标](./SPEC-010%20MVP%20范围与验证指标%20v0.1.md) | MVP范围宪法、验证标准 |
 | SPEC-011 | [Case Library与历史案例记忆](./SPEC-011%20Case%20Library%20与历史案例记忆%20v0.1.md) | 案例库结构、隐私边界 |
 | SPEC-012 | [数据治理与用户私有数据](./SPEC-012%20数据治理与用户私有数据%20v0.1.md) | 数据三级分类、访问控制、生命周期 |
+| SPEC-013 | [Fundamentals 域实现规格](./SPEC-013%20Fundamentals%20域实现规格%20v0.2.0.md) | A股财务分析域 Pipeline、metric 计算、Evidence 边界 |
+| SPEC-014 | [Technical/Market 域实现规格](./SPEC-014%20Technical%20Market%20域实现规格%20v0.2.3.md) | 技术面三层架构 + Part II 高阶扩展（regime/RS/风险/支撑阻力/MTF） |
+| SPEC-015 | [Macro/Meso 域实现规格](./SPEC-015%20Macro%20Meso%20域实现规格%20v0.1.1.md) | 宏观/中观消费者域 Pipeline、global_liquidity_metrics、3 Context 子 stance |
 
 **辅助文件：**
 | 文件 | 说明 |
@@ -153,11 +156,10 @@ cd executable_specs/spec009 && python -m pytest
 
 ## 未来规划
 
+> SPEC-013/014/015 已进入正式文档索引（上方）。下表仅列尚未起稿的规划项；版本/状态以 [SPEC-REGISTRY.md](./SPEC-REGISTRY.md) 为唯一事实源。
+
 | 编号 | 定位 | 状态 |
 |------|------|------|
-| SPEC-013 | UI/API 交互契约 | 待规划 |
-| SPEC-014 | [Technical/Market 域实现规格](./SPEC-014%20Technical%20Market%20域实现规格%20v0.2.3.md) | v0.2.3 Review（Part I）；Part II Draft |
-| SPEC-015 | [Macro/Meso 域实现规格](./SPEC-015%20Macro%20Meso%20域实现规格%20v0.1.0.md) | v0.1.0 Draft |
 | SPEC-016 | Company Event 域实现规格 | 待规划 |
 | SPEC-017 | Sentiment 域实现规格 | 待规划 |
 

@@ -1,7 +1,7 @@
 # SPEC-015：Macro/Meso 域实现规格
 
-**版本：** v0.1.0
-**状态：** Draft
+**版本：** v0.1.1
+**状态：** Review
 **项目名称：** crosslens
 **文档类型：** 实现
 **依赖文档：** SPEC-003 v0.3.4；SPEC-004 v0.2.7；SPEC-005 v0.2
@@ -18,6 +18,22 @@
 - SPEC-005 §11.3 (MVP 必须注册的 Macro/Meso P0 metrics)
 - SPEC-006 §30 (MVP Playbook：macro_meso 为 optional 域，minimum_status=partial)
 **目标阶段：** 域实现规格 / MVP 实现前置
+
+---
+
+## 0. 版本说明
+
+### v0.1.1（Draft → Review）
+
+Review 前两处轻量措辞修补，关闭上一轮 review 指出的 P2 措辞歧义。Schema/字段层面无变更（v0.1.0 的 §4.1 表格、§3.2.9 evidence 定义、§12 CR-7 裁决文本本就正确标注为 `proposed` / `soft-only`），本次仅统一叙述性措辞与公式范围声明：
+
+1. **消除 "P0 全球流动性 metric" 误导措辞**（§4 开头、§6.2 行内注释、§10.2-global 结论、§11.1 两处、§12 CR-7 标题）：`us_real_yield_10y_change_6m` / `cn_us_yield_spread_10y` 全文统一为 **"MVP-deliverable proposed / soft-only global liquidity metric"**，与 §4.1 表格 #6/#7 的 `proposed` + ❌ 字段标注对齐，避免读者误以为它们已是 Registry P0 registered hard-capable metric。
+
+2. **明确 `global_score` MVP 公式范围**（§6.2 新增 "MVP 公式范围（future extension 边界）" 注 + §10.2-global 结论 + §12 CR-7 注）：MVP `global_score` 仅使用 §6.2 已定义的四个变量（`us_real_yield_10y_change_6m`、`cn_us_yield_spread_10y`、`usd_cny_change_6m`、`northbound_net_inflow_20d`）；DXY 与联邦基金目标利率是 **future optional extension**（待 FRED 接入后于后续版本评估），MVP 不得计入 §6.2 公式；VIX 同理不进 `global_score`，仅作 `market_regime_label` 可选输入。消除 §6.2 公式（4 变量）与原 §10.2-global "完整覆盖"（暗示 6 变量）之间的歧义。
+
+### v0.1.0
+
+首个 Draft 版本。建立 Macro/Meso 消费者域的完整实现规格：9 种 evidence 消费、7 个 metric 计算与导出、3 个 Context 子 stance、9 步 Pipeline、confidence 模型、10 项域级 validation、Adapter 扩展（7 方法 + 6 dataclass）、§12 上游冲突裁决与 CR 清单。
 
 ---
 
@@ -331,7 +347,7 @@ can_support_hard_constraint: false   # 本 SPEC 新增 evidence，其 metric 为
 
 ## 4. Metric Catalog
 
-SPEC-004 §14 行 965–969 + SPEC-005 §11.3 行 1751–1758 一致定义 5 个 P0 必须注册的 Macro/Meso metric。本节给出完整 Metric Registry 条目（解决上游缺口 #4——SPEC-005 §5.2 Registry 主体缺这 5 个 metric 的完整定义），并**新增 2 个全球流动性 P0 metric**（本 SPEC 扩展，覆盖美联储/美元流动性传导，需同步提 CR 到 SPEC-005 §11.3 补注册）。
+SPEC-004 §14 行 965–969 + SPEC-005 §11.3 行 1751–1758 一致定义 5 个 P0 必须注册的 Macro/Meso metric。本节给出完整 Metric Registry 条目（解决上游缺口 #4——SPEC-005 §5.2 Registry 主体缺这 5 个 metric 的完整定义），并**新增 2 个 MVP-deliverable 全球流动性 metric（proposed / soft-only）**（本 SPEC 扩展，覆盖美联储/美元流动性传导，需同步提 CR 到 SPEC-005 §11.3 补注册）。
 
 ### 4.1 Metric 汇总
 
@@ -866,8 +882,8 @@ elif policy_environment == "restrictive": rlp_score -= 1
 // 其中 us_real_yield_10y_change_6m / cn_us_yield_spread_10y 也在 §4 computed 中作为 P0 metric；
 // usd_cny_change_6m / northbound_net_inflow_20d 是 evidence 内字段，不进 computed metric，由 stance 直接读 evidence
 gl_ev = get_evidence(available_evidence, "global_liquidity_metrics")   // 可能为 None
-us_real_yield_10y_change_6m = computed.get("us_real_yield_10y_change_6m")   // §4 P0 metric
-cn_us_yield_spread_10y = computed.get("cn_us_yield_spread_10y")             // §4 P0 metric
+us_real_yield_10y_change_6m = computed.get("us_real_yield_10y_change_6m")   // §4 proposed soft-only metric
+cn_us_yield_spread_10y = computed.get("cn_us_yield_spread_10y")             // §4 proposed soft-only metric
 usd_cny_change_6m = gl_ev.metrics.get("usd_cny_change_6m") if gl_ev else None
 northbound_net_inflow_20d = gl_ev.metrics.get("northbound_net_inflow_20d") if gl_ev else None
 
@@ -895,6 +911,8 @@ rlp_stance:
 ```
 
 > **全球流动性因子设计说明：** 美联储加息/缩表通过美实际利率↑、中美利差倒挂、人民币贬值、北向流出四条路径传导 A 股。`global_score` 只减不加——全球流动性收紧是 A 股风险信号，而全球宽松只是回到中性基准（不构成额外利好，因国内政策才是 A 股流动性主因）。权重 0.5 低于国内三因子（各 1.0），因 A 股以国内流动性为主导。数据缺失时对应项不计分，不阻塞。
+>
+> **MVP 公式范围（future extension 边界）：** MVP `global_score` 仅使用上列**四个变量**（`us_real_yield_10y_change_6m`、`cn_us_yield_spread_10y`、`usd_cny_change_6m`、`northbound_net_inflow_20d`）。DXY（美元指数）与联邦基金目标利率是 `global_score` 的 **future optional extension**——待 FRED 数据源接入（§10.2-global-2）后在后续版本评估纳入；MVP 不得把 DXY / Fed target rate 计入 §6.2 公式，否则实现者会对"4 变量还是 6 变量"产生歧义。VIX 同理不进 `global_score`，仅作 `market_regime_label` 可选输入。
 
 ### 6.3 Industry/Capex Cycle Context → 子 stance
 
@@ -1178,7 +1196,7 @@ If a registered P0 metric has no reliable data source in MVP:
 - **VIX / CBOE 波动率**：akshare 无美股波动率指数（仅有 A 股 QVIX）。**免费替代（已调研确认）**：CBOE 官方 `cdn.cboe.com/.../VIX_History.csv`（1990 至今，日频，免费直接下载，无需登录）；Yahoo Finance `^VIX`（`yfinance` 已装）。VIX 归 Market Regime Context 更合适，不纳入 `global_liquidity_metrics`，但 `market_regime_label` 分类（§6.1）可消费 VIX 作 risk_on/risk_off 辅助信号。
 - **TED 利差 / FRA-OIS / SOFR**：akshare 无。FRED 有 `TEDRATE`（TED 利差，日频，免费）。MVP 不纳入 `global_score`，用可得指标足够。
 
-> **结论：** 2 个 P0 全球流动性 metric（`us_real_yield_10y_change_6m`、`cn_us_yield_spread_10y`）所需数据（美债 10Y、美国 CPI、中债 10Y）akshare 全部可得，**这两个 metric 在 MVP 可落地**。原 3 个数据缺口（DXY/联邦基金/VIX）经互联网调研均找到**免费数据源**（FRED + CBOE + yfinance），不影响 MVP 落地——DXY 与联邦基金利率可纳入 `global_score` 的完整覆盖，VIX 可纳入 `market_regime_label`。需在 adapter（§10.1 `get_global_liquidity_data`）中集成 FRED API（免费 key）+ CBOE CSV 直连。
+> **结论：** 2 个 MVP-deliverable 全球流动性 metric（`us_real_yield_10y_change_6m`、`cn_us_yield_spread_10y`，proposed / soft-only）所需数据（美债 10Y、美国 CPI、中债 10Y）akshare 全部可得，**这两个 metric 在 MVP 可落地**。原 3 个数据缺口（DXY/联邦基金/VIX）经互联网调研均找到**免费数据源**（FRED + CBOE + yfinance），不影响 MVP 落地——DXY 与联邦基金利率是 `global_score` 的 **future optional extension**（见 §6.2 注：MVP `global_score` 公式仅使用其中已定义的四个变量），VIX 可纳入 `market_regime_label`。需在 adapter（§10.1 `get_global_liquidity_data`）中集成 FRED API（免费 key）+ CBOE CSV 直连。
 
 ### 10.2-global-2 免费数据源集成方案（调研结论）
 
@@ -1240,13 +1258,13 @@ fixture 命名约定：`{industry_code}_macro_{scenario}.json`（如 `sw801_macr
 
 - 三个 Context 全部实现（Market Regime / Industry-Capex Cycle / Rate-Liquidity-Policy）。
 - 9 种 evidence_type 消费（3 required + 6 optional，含 global_liquidity_metrics）。
-- 7 个 MVP-deliverable metric 计算与导出（§4）：5 个 registered P0 hard-capable + 2 个 proposed soft-only global liquidity（CR-7 合并后升级）。
+- 7 个 MVP-deliverable metric 计算与导出（§4）：5 个 registered P0 hard-capable + 2 个 MVP-deliverable proposed / soft-only global liquidity（CR-7 合并后升级）。
 - 6 个 domain_payload 枚举字段分类（§6）。
 - 9 步 Pipeline（§5）。
 - 8 项域级 validation（§9，含 2 种冲突生成）。
 - Macro/Meso Analysis Card 产出（schema_version=SPEC-004@0.2.7）。
 - adapter 扩展：7 个新方法 + 6 个 dataclass（§10.1，含 `get_global_liquidity_data` + `GlobalLiquidityData`）。
-- 全球流动性维度：`global_liquidity_metrics` evidence + 2 个 P0 metric（`us_real_yield_10y_change_6m`、`cn_us_yield_spread_10y`），数据源 akshare（§10.2-global）。
+- 全球流动性维度：`global_liquidity_metrics` evidence + 2 个 MVP-deliverable proposed / soft-only global liquidity metric（`us_real_yield_10y_change_6m`、`cn_us_yield_spread_10y`），数据源 akshare（§10.2-global）。
 
 ### 11.2 不交付
 
@@ -1315,13 +1333,13 @@ fixture 命名约定：`{industry_code}_macro_{scenario}.json`（如 `sw801_macr
 - **裁决：** 本 SPEC §3.1 自行界定必需集（3 required + 5 optional）。
 - **CR：** 请 SPEC-004 §12 补 required/optional 标注（可采纳本 SPEC §3.1 的划分）。
 
-### CR-7：新增 global_liquidity_metrics evidence_type + 2 个 P0 metric（→ SPEC-004 + SPEC-005）
+### CR-7：新增 global_liquidity_metrics evidence_type + 2 个 MVP-deliverable proposed / soft-only metric（→ SPEC-004 + SPEC-005）
 
 - **背景：** SPEC-004 §11.1 行 783 列出"汇率、能源、原材料等外部变量"作为 Macro/Meso 关注点，但 §12 evidence 清单（行 818–827）未将其落地为独立 evidence_type。初稿把外部变量窄化为商品成本（`commodity_or_input_cost_metrics`），遗漏了美联储/美元流动性这一全球流动性总阀门。
 - **裁决：** 本 SPEC §3.2.9 新增 `global_liquidity_metrics` evidence_type（computed, can_support_hard=false, proposed/soft-only），覆盖美联储政策姿态（美债 10Y/利差）、美元流动性（美实际利率）、跨境传导（中美利差/USD-CNY/北向资金）。§4 新增 2 个 proposed soft-only metric：`us_real_yield_10y_change_6m`、`cn_us_yield_spread_10y`（akshare 数据可得，可落地；CR 合并后升 registered + hard）。
 - **CR（→ SPEC-004）：** 请 SPEC-004 §12 清单补 `global_liquidity_metrics` 为第 9 种 evidence_type；§14 补 2 个新 metric 到可导出清单。
 - **CR（→ SPEC-005）：** 请 SPEC-005 §11.3 P0 macro metric 清单补 `us_real_yield_10y_change_6m` + `cn_us_yield_spread_10y`，§5.2 Registry 补完整条目（可参考本 SPEC §4.2 的 JSON）。
-- **注：** DXY/联邦基金利率目标/VIX akshare 均无直接接口（§10.2-global 缺口），MVP 不纳入 P0 metric，仅作 `global_score` 的可选输入。
+- **注：** DXY/联邦基金利率目标/VIX akshare 均无直接接口（§10.2-global 缺口），MVP 不纳入 P0 metric，仅作 `global_score` 的 **future optional extension**（MVP `global_score` 公式仅使用 §6.2 已定义的四个变量：`us_real_yield_10y_change_6m`、`cn_us_yield_spread_10y`、`usd_cny_change_6m`、`northbound_net_inflow_20d`）。
 
 ---
 
