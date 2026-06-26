@@ -150,6 +150,28 @@ SPEC-004 必须继承 SPEC-003 v0.3.4 的核心架构约束。
 
 因此，SPEC-004 定义的是能力域的输入输出契约，而不是 Agent 人设。
 
+### 2.1.1 能力域不是默认独立策略
+
+五类能力域是分析原语，而不是五个默认平行策略。
+
+```text
+能力域 Domain：回答一个分析问题。
+域工作流 Domain Workflow：定义该域如何消费 Evidence、评分、降级并输出 Analysis Card。
+策略 Strategy / Playbook：定义如何组合一个或多个域输出，并形成动作边界。
+```
+
+每个域都应能独立运行并生成 Analysis Card，但 Analysis Card 只表达该域的结构化判断，不直接表达最终投资动作。是否形成独立策略，取决于 SPEC-006 Playbook 如何组合该域与其他域。
+
+默认策略角色：
+
+| 能力域 | 默认角色 | 独立策略化注意事项 |
+|---|---|---|
+| Fundamentals | 中长期主逻辑、质量/价值/盈利修复 | 可形成质量成长、价值修复、GARP 等 Playbook，但常需要催化或时机确认 |
+| Event Driven / Catalyst | 预期重定价、催化剂和可交易窗口 | 最天然独立策略化，但必须绑定 certainty、pricing_stage、risk_reward 和 invalidation |
+| Technical / Market | 交易时机、确认和风险控制 | 可形成技术策略，但不默认替代基本面或事件逻辑 |
+| Macro / Meso | regime、行业/风格、风险预算 | 更适合作为 top-down gate、sector allocator 或 risk budget controller |
+| Sentiment | 拥挤度、叙事扩散、反身性风险 | MVP 默认作为风险/确认层，单独策略化需更严格证据和人工复核 |
+
 ### 2.2 能力域不得直接相互调用
 
 MVP 阶段，能力域之间必须逻辑独立。
@@ -212,6 +234,17 @@ Error / Warning / Data Quality Flags
 Analysis Card 是能力域向编排器返回的标准化分析结果。
 
 它不是长篇报告，也不是最终投资建议。
+
+Analysis Card 不应退化为自然语言长报告。每张 Card 应优先回答：
+
+```text
+结论是什么？
+证据是什么？
+反证是什么？
+confidence 为什么？
+失效条件是什么？
+哪些字段可被 Playbook 安全消费？
+```
 
 Analysis Card 的作用是：
 
@@ -754,13 +787,13 @@ evidence_ref → Evidence Packet → .metrics → .{value_path}
 
 ## 10. 五类能力域总览
 
-| 能力域 | 核心问题 | 主要周期 | Hard Constraint 支撑能力 |
-|---|---|---|---|
-| Macro / Meso | 外部环境是否有利 | 月度 / 季度 / 年度 | 有限，仅 Computed macro/industry metrics |
-| Fundamentals | 公司质地和估值是否支持投资 | 季度 / 年度 | 强，核心 Hard Constraint 来源 |
-| Event Driven / Catalyst | 是否存在能触发资产重定价的事件或催化 | 日度 / 周度 / 季度 | 中等，仅 4 个 Computed metrics |
-| Sentiment | 市场叙事和情绪是否拥挤 | 日度 / 周度 | 弱，默认不支撑 Hard Constraint |
-| Technical / Market | 价格行为和市场状态是否支持行动 | 日度 / 周度 | 中等，Computed technical metrics 可支撑 |
+| 能力域 | 核心问题 | 主要周期 | 默认产品角色 | Hard Constraint 支撑能力 |
+|---|---|---|---|---|
+| Macro / Meso | 外部环境是否有利 | 月度 / 季度 / 年度 | regime filter、行业/风格环境、风险预算 | 有限，仅 Computed macro/industry metrics |
+| Fundamentals | 公司质地和估值是否支持投资 | 季度 / 年度 | 中长期主逻辑、质量/价值判断 | 强，核心 Hard Constraint 来源 |
+| Event Driven / Catalyst | 是否存在能触发资产重定价的事件或催化 | 日度 / 周度 / 季度 | 预期重定价、催化剂和可交易窗口 | 中等，仅 4 个 Computed metrics |
+| Sentiment | 市场叙事和情绪是否拥挤 | 日度 / 周度 | 拥挤度、叙事扩散、反方证据 | 弱，默认不支撑 Hard Constraint |
+| Technical / Market | 价格行为和市场状态是否支持行动 | 日度 / 周度 | 交易时机、确认和风险控制 | 中等，Computed technical metrics 可支撑 |
 
 ---
 

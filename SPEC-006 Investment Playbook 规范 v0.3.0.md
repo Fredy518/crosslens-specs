@@ -123,6 +123,19 @@ Investment Playbook 是投资判断方法的结构化容器。
 
 > Investment Playbook 把投资风格转化为可执行的决策约束。
 
+### 2.1 Playbook 是策略组合层
+
+Playbook 是 CrossLens 的策略层，但不是自动交易策略。它组合一个或多个能力域的 Analysis Card、Constraint Export、Conflict Report、Guardrail 和用户风险偏好，形成本次任务允许的动作边界。
+
+```text
+Domain = 分析原语
+Domain Workflow = 域内分析流程
+Playbook = 策略组合与约束执行
+Decision Candidate = 在已解析边界内形成的候选判断
+```
+
+因此，不应把五个能力域直接映射为五个“买/不买策略机器人”。例如 Sentiment 默认用于拥挤度风险、叙事扩散确认和反方证据，而不是单独产生强方向性结论。
+
 ---
 
 ## 3. Playbook 不是什么
@@ -139,6 +152,22 @@ Investment Playbook 不是：
 8. 无条件适用于所有市场环境的万能模板。
 
 Playbook 只定义"在什么条件下，某种投资方法允许系统给出什么范围内的判断"。
+
+---
+
+### 3.1 Playbook 策略化路线
+
+Playbook 可以围绕单一主域设计，也可以组合多域。默认产品路线为：
+
+| 阶段 | Playbook 类型 | 主域 | 辅助域 |
+|---|---|---|---|
+| MVP | Fundamental Quality / Value | Fundamentals | Macro / Event / Technical / Sentiment 作为约束和确认 |
+| P1 | Event Driven Playbook | Event Driven | Technical、Sentiment、Fundamentals、Macro |
+| P1 | Technical Timing Playbook | Technical / Market | Macro、Sentiment、Event |
+| P2 | Macro Sector Rotation / Risk Regime | Macro / Meso | Fundamentals、Technical、Event |
+| P3 | Sentiment Crowding / Narrative Risk | Sentiment | Event、Technical、Fundamentals |
+
+其中 Sentiment Playbook 默认应定位为风险/拥挤/叙事扩散工具，而不是高置信自动方向策略。
 
 ---
 

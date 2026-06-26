@@ -1,8 +1,20 @@
 # CrossLens Specs
 
-> **CrossLens** 是一个可编排、可审计、可复盘的 Agentic 投研决策工作流系统。
+> **CrossLens** 是一个可编排、可审计、可复盘的结构化投研与决策辅助系统。
 
 Architecture Constitution: **Deterministic first, Agentic when necessary, Traceable always.**
+
+CrossLens 的产品定位不是自动荐股或自动交易，而是把投资判断拆成可追踪对象，帮助用户减少逻辑漂移、证据污染和复盘失真。
+
+核心分层：
+
+```text
+Domain = 分析原语
+Workflow = 域内或跨域执行流程
+Strategy / Playbook = 对一个或多个域能力的组合与约束
+```
+
+五个域都应能独立 workflow 化，但不默认等同为五个独立策略。真正的策略判断发生在 Playbook 层，由一个或多个域的 Analysis Card、Constraint Export、Conflict Report 和 Guardrail 组合形成。
 
 ---
 
@@ -124,11 +136,25 @@ Investment Task → Context Bundle → Evidence Packets → Analysis Domain Jobs
 
 ### 五个分析能力域
 
-1. Macro / Meso — 宏观/中观环境
-2. Fundamentals — 基本面分析（MVP 必要条件）
-3. Event Driven / Catalyst — 事件驱动/催化剂
-4. Sentiment — 市场情绪
-5. Technical / Market — 技术/市场
+| 域 | 默认产品角色 |
+|---|---|
+| Macro / Meso | regime filter、行业/风格环境、风险预算控制 |
+| Fundamentals | 中长期主逻辑、质量/价值/盈利修复判断 |
+| Event Driven / Catalyst | 预期重定价、催化剂和可交易窗口判断 |
+| Sentiment | 拥挤度、叙事扩散、反身性风险和反方证据 |
+| Technical / Market | 交易时机、价格行为确认和风险控制 |
+
+### 执行深度
+
+CrossLens 支持三类产品化执行深度：
+
+| `depth` | 产品标签 | 适用场景 | 域调度 |
+|---|---|---|---|
+| `quick` | Quick Check | 快速判断一个问题是否值得继续研究 | 只跑相关域 |
+| `standard` | Standard Review | 常规投研复核或单个决策前检查 | 2~3 个关键域 + Playbook |
+| `deep` | Full Decision | 严肃决策、冲突检查、复盘留痕 | 五域 + Conflict + Guardrail + Trace |
+
+SPEC-007 v0.6 的 Approved 主流程可承载 `depth = deep` 的 Full Decision / 标准单股票决策验证路径；`quick` 与 `standard` 的更细路由应由后续 Orchestration 修订进一步细化。
 
 ---
 
