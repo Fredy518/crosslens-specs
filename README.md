@@ -166,7 +166,7 @@ SPEC-007 v0.6 已补充 depth-aware domain planning：`quick` / `standard` / `de
 
 | 包 | 位置 | 覆盖规范 | 状态 |
 |----|------|----------|------|
-| `crosslens_spec003` | [executable_specs/spec003/](./executable_specs/spec003/) | SPEC-003: InvestmentTask, AssetInfo, ContextBundle, EvidencePacket, AnalysisDomainJob, PostCardValidationReport, ConflictReport, DecisionCandidate, URI resolver | ✅ 已验证 (78 tests) |
+| `crosslens_spec003` | [executable_specs/spec003/](./executable_specs/spec003/) | SPEC-003: InvestmentTask, AssetInfo, ContextBundle, EvidencePacket, AnalysisDomainJob, PostCardValidationReport, ConflictReport, DecisionCandidate, URI resolver | ✅ 已验证 (80 tests) |
 | `crosslens_spec006` | [executable_specs/spec006/](./executable_specs/spec006/) | SPEC-006: aggregate_multi_rule, compute_overall_result, resolve_recommended_actions, merge_confidence_cap | ✅ 已验证 (29 tests) |
 | `crosslens_spec005` | [executable_specs/spec005/](./executable_specs/spec005/) | SPEC-005: MetricRegistryEntry, FactRegistryEntry, LabelRegistryEntry, DerivedMetricRuleTable | ✅ 已验证 (17 tests) |
 | `crosslens_spec004` | [executable_specs/spec004/](./executable_specs/spec004/) | SPEC-004: AnalysisCard, ConstraintExport, DataFreshness, post-card validation rules | ✅ 已验证 (30 tests) |
