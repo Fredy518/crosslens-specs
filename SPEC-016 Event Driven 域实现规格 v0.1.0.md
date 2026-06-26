@@ -1,7 +1,7 @@
 # SPEC-016：Event Driven 域实现规格
 
 **版本：** v0.1.0
-**状态：** Draft
+**状态：** Review
 **项目名称：** crosslens
 **文档类型：** 实现
 **依赖文档：** SPEC-003 v0.3.4；SPEC-004 v0.2.7；SPEC-005 v0.2；SPEC-006 v0.3.0；SPEC-014 v0.2.3
@@ -24,7 +24,7 @@
 
 ### v0.1.0
 
-首个 Draft 版本。将 Event Driven / Catalyst 域从“公司事件”扩展为“事件驱动策略工作流”的实现规格：事件发现、预期差判断、可交易窗口评估、受益链条映射、定价阶段识别、Analysis Card 组装、confidence、降级和验证规则。
+首个 v0.1.0 版本。将 Event Driven / Catalyst 域从“公司事件”扩展为“事件驱动策略工作流”的实现规格：事件发现、预期差判断、可交易窗口评估、受益链条映射、定价阶段识别、Analysis Card 组装、confidence、降级和验证规则。
 
 本版本采纳的策略原则：
 
@@ -35,6 +35,16 @@
 ```
 
 Event Driven 域不直接生成买卖动作、不负责仓位和退出执行；这些由 SPEC-006 Playbook 与 Decision Candidate 层处理。
+
+### v0.1.0 Review gate notes
+
+本版本已完成 Review 前阻塞项修复：
+
+1. runtime score / label 保持 payload-only，不直接进入 `constraint_exports`；
+2. `domain_status_reason` 遵循 SPEC-004 / SPEC-REGISTRY 枚举；
+3. fixtures 对齐 SPEC-004 `event_type` / `event_scope` allowlist；
+4. `pricing_stage` 与 `tradability_score` 拆分为 Step 7a / 7b；
+5. confidence 应用 SPEC-004 `data_quality` cap。
 
 ---
 
