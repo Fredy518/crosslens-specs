@@ -103,7 +103,7 @@ MVP 选择 `depth = deep` 作为验证主路径，是为了验证能力域隔离
 | **Playbook** | 1 个内置 `capital_cycle_fundamental_playbook` | 用户自定义 Playbook、多 Playbook 对比、Playbook 市场 |
 | **分析能力域** | 5 个全部（Macro/Meso, Fundamentals, Event Driven, Sentiment, Technical/Market） | 自定义能力域、能力域扩展 |
 | **证据类型** | Computed, Structured, Interpreted（全部三种） | 自定义证据类型 |
-| **Workflow** | `single_stock_standard_analysis_workflow`, `research_explanation_workflow`；`depth = deep` Full Decision 为 MVP 验证主路径 | 自定义 Workflow、Workflow 编辑器；`quick` / `standard` 的完整路由细化 |
+| **Workflow** | `single_stock_standard_analysis_workflow`, `research_explanation_workflow`；`depth = deep` Full Decision 为 MVP 验证主路径；SPEC-007 已定义 `quick` / `standard` / `deep` 的 Domain Planning 规则 | 自定义 Workflow、Workflow 编辑器；`quick` / `standard` 的完整产品化交互与 UI |
 | **Guardrail** | 6 条硬编码 Guardrail 规则 | 自定义 Guardrail、Guardrail 配置界面 |
 | **Evaluator** | 四维质量检查（证据、推理、置信度、完整性） | 自动重生成循环 |
 | **Human Review** | 信号汇聚 + Candidate 阻止 | 实时交互界面、超时自动降级 |
@@ -120,7 +120,7 @@ MVP 选择 `depth = deep` 作为验证主路径，是为了验证能力域隔离
 | Task Routing | 完整——两种 task_type 的路由 | 这是 Workflow 入口 |
 | Playbook Routing | 完整——单个 Playbook 匹配 | MVP 只有一个 Playbook |
 | Evidence Routing | 完整——三种 generation_type 分配 | 这是确定性优先的基础 |
-| Domain Dispatch | `depth = deep` 路径并行派发 5 个能力域 | 能力域独立性的核心验证；`quick` / `standard` 后续可按 depth 选择域 |
+| Domain Dispatch | `depth = deep` 路径并行派发 5 个能力域；`quick` / `standard` 通过 SPEC-007 depth-aware Domain Planning 选择较少能力域 | 能力域独立性的核心验证；MVP E2E 验证仍以 deep 路径为主 |
 | Post-card Validation | 完整——8 项 schema 检查 | 确定性检查，成本极低 |
 | Pre-decision Validation | 完整——6 项阈值检查 | 确保 Playbook 可执行 |
 | Conflict Detection | 完整——跨域冲突检测 | 核心假设验证 |
@@ -445,7 +445,7 @@ Success Metric: 解释输出包含所有引用来源
 15. 可视化 Workflow 编辑
 16. 图表输出
 17. 移动端
-18. `quick` / `standard` 深度的完整产品化路由
+18. `quick` / `standard` 深度的完整产品化交互与 UI
 ```
 
 ### 6.2 技术性排除

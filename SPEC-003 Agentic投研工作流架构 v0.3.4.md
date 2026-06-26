@@ -308,7 +308,7 @@ technical_market  — 技术面与市场状态
 | `standard` | Standard Review | 常规投研复核或单一决策前检查 | 调度 2~3 个关键域并运行 Playbook |
 | `deep` | Full Decision | 严肃决策、跨域冲突检查、完整复盘留痕 | 调度五域、Conflict、Guardrail 和完整 Trace |
 
-SPEC-007 v0.6 的 `single_stock_standard_analysis_workflow` 可承载 MVP 验证完整对象链的 `depth = deep` Full Decision 路径。`quick` 与 `standard` 的路由细化由后续 Orchestration 版本定义；实现不得把 Full Decision 当作所有用户问题的唯一执行深度。
+SPEC-007 v0.6 已补充 depth-aware domain planning：`quick` / `standard` / `deep` 先决定进入 `DomainPlan` 的能力域，再沿用统一的 Domain Dispatch、Conflict、Guardrail 与 Trace 语义。MVP 验证仍以 `depth = deep` Full Decision 路径为主；实现不得把 Full Decision 当作所有用户问题的唯一执行深度。
 
 ### 6.5 Evidence Packet
 

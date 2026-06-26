@@ -22,6 +22,10 @@ v0.6 合并以下版本内容：
 
 本版本不引入新机制，仅完成 Approved 前的合并与一致性收口。
 
+后续补充说明：
+
+为对齐 SPEC-001 / SPEC-003 / SPEC-010 中的 Quick Check、Standard Review、Full Decision 三档执行深度，本文件补充 `depth-aware domain_plan` 规则。该补充只影响 Domain Job 规划阶段，不改变 Run State Machine、Post-card Validation、Conflict Detection、Guardrail 或 Trace 语义。
+
 本版本完成以下内容：
 
 1. 建立完整 Run State Machine；
@@ -109,11 +113,12 @@ v0.6 合并以下版本内容：
 42. 明确域内冲突对 Analysis Card `domain_status` 的影响；
     
 43. 增加 `research_explanation` node_type；
-    
 44. 固化核心不变量；
     
-45. 固化 MVP 实现边界。
-    
+45. 固化 MVP 实现边界；
+
+46. 补充 `depth = quick | standard | deep` 的 Domain Planning 规则。
+
 
 ---
 
@@ -1413,7 +1418,75 @@ def get_domain_requirement(playbook, domain):
 
 `plan_domain_jobs` 只允许用于 Playbook-driven workflow。
 
+Domain Planning 必须是 depth-aware：
+
+| `task.depth` | 产品语义 | Domain Planning 规则 |
+|---|---|---|
+| `quick` | Quick Check | 只选择与 `task_type` / `user_intent` / 已可用 evidence 直接相关的 primary domains；若 Playbook 显式标记 required domains，这些 required domains 仍必须进入 plan |
+| `standard` | Standard Review | 选择 primary domains，加上 1-2 个 confirmation / risk domains，并保留所有 Playbook required domains |
+| `deep` | Full Decision | 调度全部五个分析域，用于严肃决策、跨域冲突检查、Guardrail 与完整 Trace |
+
+Depth 只决定哪些域被规划进入 `DomainPlan`，不得改变以下语义：
+
+1. Playbook `required_domains` 的 `minimum_status` / `on_missing` 优先级；
+
+2. Playbook `optional_domains` 的降级与 warning 规则；
+
+3. Domain Job 之间不得读取彼此的 Analysis Card；
+
+4. Conflict Detection / Playbook Evaluation / Guardrail 仍由 Orchestration layer 在 Analysis Card 之后执行。
+
+因此，`depth = quick` 不能把 required domain 降级为 optional；`depth = standard` 也不能跳过 Playbook 明确要求的主域。若某个产品化 Playbook 希望 quick / standard 只跑少数域，应在 Playbook 的 required / optional domain 配置中表达，而不是在 Orchestrator 中覆盖 Playbook 约束。
+
+`depth = deep` 要求 Playbook snapshot 为全部五个分析域声明 required 或 optional requirement；若缺失，应视为 workflow configuration error，而不是静默跳过该域。
+
 ```python
+def resolve_depth_aware_domain_plan(task, context, evidence, playbook, run_config):
+    depth = task.depth or getattr(run_config, "default_depth", "standard")
+
+    required_domains = resolve_required_domains_from_playbook(playbook)
+    declared_domains = resolve_declared_domains_from_playbook(playbook)
+    primary_domains = resolve_primary_domains(
+        task=task,
+        context=context,
+        evidence=evidence,
+        playbook=playbook
+    ) & declared_domains
+
+    if depth == "quick":
+        selected_domains = required_domains | filter_relevant_available_domains(
+            domains=primary_domains,
+            task=task,
+            context=context,
+            evidence=evidence
+        )
+
+    elif depth == "standard":
+        confirmation_domains = select_confirmation_or_risk_domains(
+            task=task,
+            context=context,
+            evidence=evidence,
+            playbook=playbook,
+            eligible_domains=declared_domains - required_domains,
+            limit=2
+        )
+        selected_domains = required_domains | primary_domains | confirmation_domains
+
+    elif depth == "deep":
+        missing_domains = set(ALL_ANALYSIS_DOMAINS) - declared_domains
+        if missing_domains:
+            raise ValueError(
+                "depth=deep requires playbook domain requirements "
+                f"for all analysis domains; missing={sorted(missing_domains)}"
+            )
+        selected_domains = set(ALL_ANALYSIS_DOMAINS)
+
+    else:
+        raise ValueError(f"Unsupported task.depth: {depth}")
+
+    return order_domains_for_dispatch(selected_domains)
+
+
 def plan_domain_jobs(task, context, evidence, playbook, run_config):
     assert playbook is not None, (
         "plan_domain_jobs requires a non-null playbook; "
@@ -1421,12 +1494,22 @@ def plan_domain_jobs(task, context, evidence, playbook, run_config):
     )
 
     jobs = []
+    planned_domains = resolve_depth_aware_domain_plan(
+        task=task,
+        context=context,
+        evidence=evidence,
+        playbook=playbook,
+        run_config=run_config
+    )
 
-    for domain in ALL_ANALYSIS_DOMAINS:
+    for domain in planned_domains:
         domain_requirement = get_domain_requirement(playbook, domain)
 
         if domain_requirement is None:
-            continue
+            raise ValueError(
+                "planned domain has no playbook requirement; "
+                f"domain={domain}"
+            )
 
         if should_skip_domain(domain, task, context, run_config):
             jobs.append(DomainJob(
@@ -1459,6 +1542,8 @@ def plan_domain_jobs(task, context, evidence, playbook, run_config):
 
 ```text
 Domain Dispatch is only valid for Playbook-driven workflows.
+Domain Planning must be depth-aware.
+Depth must not weaken Playbook required_domains.
 ```
 
 ### 12.3 Parallel dispatch semantics

@@ -154,7 +154,7 @@ CrossLens 支持三类产品化执行深度：
 | `standard` | Standard Review | 常规投研复核或单个决策前检查 | 2~3 个关键域 + Playbook |
 | `deep` | Full Decision | 严肃决策、冲突检查、复盘留痕 | 五域 + Conflict + Guardrail + Trace |
 
-SPEC-007 v0.6 的 Approved 主流程可承载 `depth = deep` 的 Full Decision / 标准单股票决策验证路径；`quick` 与 `standard` 的更细路由应由后续 Orchestration 修订进一步细化。
+SPEC-007 v0.6 已补充 depth-aware domain planning：`quick` / `standard` / `deep` 先决定进入 `DomainPlan` 的能力域，再沿用统一的 Domain Dispatch、Conflict、Guardrail 与 Trace 语义。
 
 ---
 
