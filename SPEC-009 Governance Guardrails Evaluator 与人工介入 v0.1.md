@@ -11,9 +11,23 @@
 
 ## 0. 版本说明
 
-v0.1 为 SPEC-009 初稿。状态升级为 Review：Governance 三组件（Guardrail / Evaluator / Human Review Agg）的完整执行语义已在 `executable_specs/spec009/` 中实现 Pydantic v2 契约 + 55 个边界测试 + JSON Schema，核心不变量均已通过自动化验证。
+v0.1 为 SPEC-009 初稿。状态升级为 Review：Governance 三组件（Guardrail / Evaluator / Human Review Agg）的完整执行语义已在 `executable_specs/spec009/` 中实现 Pydantic v2 契约 + 60 个边界测试 + JSON Schema，核心不变量均已通过自动化验证。
 
 本版本承接 SPEC-003 §16（Guardrail Report）、SPEC-003 §17（Resolved Decision Bounds）、SPEC-006 §45 Q4（confidence_adjustment 自动修改机制）、SPEC-004 §26.1 NOTE（lineage 递归污染检测）中的 deferred 项，定义 Governance 层三组件的完整执行语义。
+
+### Runtime adapter note
+
+`executable_specs/spec009/` 是 SPEC-009 的规范性 executable contract。`crosslens-core` 中的 `crosslens_governance.runtime` 是 MVP-0 runtime adapter：它把当前三域 workflow 的 `task`、`AnalysisCard`、`ConflictReport`、Playbook recommended bounds 映射到 SPEC-009 的 `apply_guardrails()`、`run_evaluator()` 和 Resolved Bounds 合并逻辑。
+
+该 adapter 不是新的规范层，也不重新定义 SPEC-009 schema。MVP-0 中尚未具备完整 Event Log、完整 lineage graph、递归污染检测输入、Trace Store 和人工复核 UI，因此 adapter 对部分输入采用可单测的启发式映射：
+
+1. 用户请求中的收益承诺语言由 `task.user_intent / question / prompt / notes / instruction` 触发；
+2. primary confidence 与 primary evidence quality 优先取 Fundamentals card，缺失时退化为首张 card；
+3. interpreted / computed evidence 占比由 card evidence refs 与 `constraint_exports.determinism_level` 统计；
+4. required-domain status 由 Playbook `required_domains` 决定，optional 未运行域不触发 R4；
+5. 完整污染检测和 Event Log 交叉审计推迟到 MVP-1 Trace/Event Log 落地。
+
+这些启发式必须保持 payload 可追溯、规则可测试、不得绕过 SPEC-009 的输出契约。
 
 核心原则：
 

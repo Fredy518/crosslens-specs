@@ -13,6 +13,15 @@
 
 v0.1 是 SPEC-010 初稿。本文档是 crosslens MVP 的"宪法级"范围定义——所有其他 SPEC 中分散的 MVP 决策在这里汇总为单一入口。
 
+### v0.1 implementation-staging note
+
+本版本将 MVP 交付拆分为两个连续阶段，避免规格目标与 runtime 落地状态混淆：
+
+1. **MVP-0 / core-runtime stabilization**：以 `depth = standard` 为主路径，完成 3 个已实现域（`fundamentals`、`technical_market`、`macro_meso`）的端到端运行、Playbook Evaluation、Conflict Detection、Governance、Resolved Bounds、Candidate / no-candidate routing，以及最小 Decision Trace。
+2. **MVP-1 / full-decision validation**：补齐 `event_driven`、`sentiment` 两个域后，再以 `depth = deep` 验证五域 Full Decision、完整四层 Decision Trace 和基础 Event Log。
+
+除非特别标注，本文中“当前 runtime MVP”指 MVP-0；“完整产品 MVP”或“Full Decision MVP”指 MVP-1。
+
 核心原则：
 
 ```text
@@ -48,7 +57,10 @@ SPEC-010 用于：
 
 ### 2.1 MVP 是什么
 
-crosslens MVP 是一个**最小可用投研工作流**——它能在 `depth = deep` 下完成一次完整的单股票 Full Decision 分析，从用户输入到 Decision Trace 输出。
+crosslens MVP 是一个**最小可用投研工作流**，但按实现节奏分两步落地：
+
+- **MVP-0** 验证核心运行链路：三域 `standard` workflow 从用户输入运行到 Resolved Decision Bounds，并根据治理结果生成 Candidate 或 no-candidate route，同时输出最小 Decision Trace。
+- **MVP-1** 验证完整 Full Decision：五域 `deep` workflow 从用户输入运行到完整四层 Decision Trace 和基础 Event Log。
 
 MVP 的目标不是功能完整，而是**验证核心架构假设**：
 
@@ -84,11 +96,11 @@ MVP 的目标不是功能完整，而是**验证核心架构假设**：
 
 | `depth` | 产品标签 | 产品含义 | MVP 状态 |
 |---|---|---|---|
-| `quick` | Quick Check | 只跑相关域，快速判断问题是否值得继续研究 | 命名保留，不作为 MVP 验证主路径 |
-| `standard` | Standard Review | 跑 2~3 个关键域 + Playbook，适合常规投研复核 | 命名保留，不作为 MVP 验证主路径 |
-| `deep` | Full Decision | 五域全跑 + Conflict + Guardrail + Trace，适合严肃决策与复盘留痕 | MVP 端到端验证主路径 |
+| `quick` | Quick Check | 只跑相关域，快速判断问题是否值得继续研究 | 命名保留，不作为 MVP-0 验证主路径 |
+| `standard` | Standard Review | 跑 2~3 个关键域 + Playbook，适合常规投研复核 | MVP-0 端到端验证主路径 |
+| `deep` | Full Decision | 五域全跑 + Conflict + Guardrail + Trace，适合严肃决策与复盘留痕 | MVP-1 端到端验证主路径 |
 
-MVP 选择 `depth = deep` 作为验证主路径，是为了验证能力域隔离、跨域冲突、Playbook、Guardrail 和 Decision Trace 的完整链路；这不表示所有用户问题都必须走 Full Decision。
+MVP-0 选择 `depth = standard` 是为了先把可运行的投研决策辅助闭环做稳定；MVP-1 再选择 `depth = deep` 验证能力域隔离、跨域冲突、Playbook、Guardrail 和 Decision Trace 的完整链路。这不表示所有用户问题都必须走 Full Decision。
 
 ---
 
@@ -101,13 +113,13 @@ MVP 选择 `depth = deep` 作为验证主路径，是为了验证能力域隔离
 | **任务类型** | `single_stock_buy_decision`, `research_explanation` | 多股票扫描、组合分析、卖出决策 |
 | **资产类型** | 美股普通股 | ETF、期权、期货、加密货币、A 股 |
 | **Playbook** | 1 个内置 `capital_cycle_fundamental_playbook` | 用户自定义 Playbook、多 Playbook 对比、Playbook 市场 |
-| **分析能力域** | 5 个全部（Macro/Meso, Fundamentals, Event Driven, Sentiment, Technical/Market） | 自定义能力域、能力域扩展 |
+| **分析能力域** | MVP-0：3 个已实现域（Fundamentals, Technical/Market, Macro/Meso）；MVP-1：补齐 5 个全部（Macro/Meso, Fundamentals, Event Driven, Sentiment, Technical/Market） | 自定义能力域、能力域扩展 |
 | **证据类型** | Computed, Structured, Interpreted（全部三种） | 自定义证据类型 |
-| **Workflow** | `single_stock_standard_analysis_workflow`, `research_explanation_workflow`；`depth = deep` Full Decision 为 MVP 验证主路径；SPEC-007 已定义 `quick` / `standard` / `deep` 的 Domain Planning 规则 | 自定义 Workflow、Workflow 编辑器；`quick` / `standard` 的完整产品化交互与 UI |
+| **Workflow** | `single_stock_standard_analysis_workflow`, `research_explanation_workflow`；MVP-0 以 `depth = standard` 三域路径为验证主路径；MVP-1 以 `depth = deep` Full Decision 为验证主路径；SPEC-007 已定义 `quick` / `standard` / `deep` 的 Domain Planning 规则 | 自定义 Workflow、Workflow 编辑器；`quick` 的完整产品化交互与 UI |
 | **Guardrail** | 6 条硬编码 Guardrail 规则 | 自定义 Guardrail、Guardrail 配置界面 |
 | **Evaluator** | 四维质量检查（证据、推理、置信度、完整性） | 自动重生成循环 |
 | **Human Review** | 信号汇聚 + Candidate 阻止 | 实时交互界面、超时自动降级 |
-| **Decision Trace** | 完整四层 Trace（Run/Phase/Node/Evidence） | Trace 可视化 UI、Trace 对比 |
+| **Decision Trace** | MVP-0：最小可审计 Trace（阶段顺序、关键对象 refs、route 结果、human-review 触发）；MVP-1：完整四层 Trace（Run/Phase/Node/Evidence） | Trace 可视化 UI、Trace 对比 |
 | **Case Library** | 匿名化写入 + 六维索引 + 基础只读查询（按 ticker/date 精确查） | 案例相似匹配、语义检索、决策建议 |
 | **数据治理** | 三分类（user_private/system_generated/public_reference）、基本隔离 | 协作共享、数据导出 |
 | **Capability Package** | Metric Registry（33 metrics, 6 facts, 7 labels） | 完整 Package 市场、动态加载 |
@@ -120,7 +132,7 @@ MVP 选择 `depth = deep` 作为验证主路径，是为了验证能力域隔离
 | Task Routing | 完整——两种 task_type 的路由 | 这是 Workflow 入口 |
 | Playbook Routing | 完整——单个 Playbook 匹配 | MVP 只有一个 Playbook |
 | Evidence Routing | 完整——三种 generation_type 分配 | 这是确定性优先的基础 |
-| Domain Dispatch | `depth = deep` 路径并行派发 5 个能力域；`quick` / `standard` 通过 SPEC-007 depth-aware Domain Planning 选择较少能力域 | 能力域独立性的核心验证；MVP E2E 验证仍以 deep 路径为主 |
+| Domain Dispatch | MVP-0：`depth = standard` 派发 3 个已实现域；MVP-1：`depth = deep` 路径并行派发 5 个能力域；`quick` / `standard` 通过 SPEC-007 depth-aware Domain Planning 选择较少能力域 | 先验证可运行闭环，再验证五域独立性 |
 | Post-card Validation | 完整——8 项 schema 检查 | 确定性检查，成本极低 |
 | Pre-decision Validation | 完整——6 项阈值检查 | 确保 Playbook 可执行 |
 | Conflict Detection | 完整——跨域冲突检测 | 核心假设验证 |
@@ -129,7 +141,7 @@ MVP 选择 `depth = deep` 作为验证主路径，是为了验证能力域隔离
 | Evaluator | 检查 + 标记（不重写） | Token 成本控制 |
 | Bounds Resolution | 完整合并算法 | 所有约束的终点 |
 | Candidate Generation | 完整——从 Bounds 生成 | 终端输出 |
-| Decision Trace | 完整四层 + 伪代码 | 核心假设验证 |
+| Decision Trace | MVP-0：最小阶段 Trace；MVP-1：完整四层 + 伪代码 | 核心假设验证 |
 | Case Write | 匿名化写入 + 索引（精确查不检索） | 为未来语义检索做准备 |
 | Case Query | 按 ticker / date 精确查询 | 不从索引做模糊/语义匹配 |
 | Research Explanation | 完整——解释性输出 | 第二个 task_type |
@@ -145,7 +157,7 @@ MVP 选择 `depth = deep` 作为验证主路径，是为了验证能力域隔离
 确认点：
 - crosslens 是辅助决策系统，不是自动交易系统；
 - 输出 Decision Candidate，不是交易指令；
-- 完整 Decision Trace 是 MVP 硬性要求。
+- MVP-0 必须产生最小可审计 Decision Trace；MVP-1 必须产生完整四层 Decision Trace。
 
 ### 4.2 SPEC-003（架构）MVP 边界
 
@@ -160,7 +172,7 @@ MVP 选择 `depth = deep` 作为验证主路径，是为了验证能力域隔离
 
 ### 4.3 SPEC-004（能力域）MVP 边界
 
-每个能力域必须实现（§45）：
+MVP-0 已实现域、MVP-1 全部五域都必须实现（§45）：
 
 ```text
 1. 输入 Evidence Packet 过滤
@@ -313,8 +325,8 @@ Input: 用户提交单股票买入分析任务（ticker: NVDA, playbook: capital
 Expected:
   1. Task 解析正确 → task_type = single_stock_buy_decision
   2. Playbook 加载 → Applicability 检查通过
-  3. Evidence Packets 生成 → `depth = deep` / Full Decision 下 5 个能力域各有 Evidence
-  4. Analysis Cards 生成 → 5 张 Card，domain_status 包含 completed/partial
+  3. Evidence Packets 生成 → MVP-0 `depth = standard` 下 3 个已实现域各有 Evidence；MVP-1 `depth = deep` 下 5 个能力域各有 Evidence
+  4. Analysis Cards 生成 → MVP-0 3 张 Card；MVP-1 5 张 Card，domain_status 包含 completed/partial
   5. Post-card Validation → 无 Block 级错误
   6. Conflict Detection → 如有冲突，写入 Conflict Report
   7. Pre-decision Validation → 通过
@@ -323,7 +335,7 @@ Expected:
   10. Evaluator → overall_quality 至少 acceptable_with_caveats
   11. Bounds Resolution → allowed_actions 非空
   12. Candidate Generation → suggested_action ∈ allowed_actions
-  13. Decision Trace → 四层完整，所有引用可展开
+  13. Decision Trace → MVP-0 最小 Trace 记录阶段顺序与关键 refs；MVP-1 四层完整，所有引用可展开
   14. WorkflowResult → run_status = completed
 
 Success Metric: 端到端完成率 ≥ 90%（给定合理输入）
@@ -416,7 +428,7 @@ Success Metric: 解释输出包含所有引用来源
 | Hard Constraint 正确率 | 100% | 手工验证 20 个已知结果案例 |
 | Guardrail 阻止率 | 100% | Guardrail 触发后强建议不出现在 Candidate |
 | 降级正确率 | 100% | 数据不足时不产生方向性建议 |
-| Decision Trace 完整性 | ≥ 95% | 所有 required 字段非空 |
+| Decision Trace 完整性 | MVP-0 ≥ 95% 覆盖阶段/refs/route required 字段；MVP-1 ≥ 95% 覆盖四层 required 字段 | 所有 required 字段非空 |
 | 平均 Token 消耗 | 记录基线 | 单次完整分析的 Token 总量 |
 | 平均执行时间 | 记录基线 | 单次完整分析的 wall-clock 时间 |
 | Evaluator 不重写率 | 100% | Evaluator 输出中无重写痕迹 |
@@ -494,7 +506,8 @@ Success Metric: 解释输出包含所有引用来源
 □ SPEC-004 Analysis Card Schema 的实现和验证
 □ SPEC-005 Metric Registry 的最小实现
 □ SPEC-009 Guardrail 规则引擎的实现
-□ SPEC-008 Decision Trace 生成器的实现
+□ MVP-0 Decision Trace 最小生成器的实现
+□ MVP-1 SPEC-008 完整 Decision Trace 生成器的实现
 ```
 
 ### 7.2 测试制品
@@ -530,12 +543,12 @@ Success Metric: 解释输出包含所有引用来源
 ### 8.1 硬性通过条件
 
 ```text
-1. 端到端完整流程可运行——从用户输入到 Decision Trace 输出。
+1. MVP-0 端到端标准流程可运行——从用户输入到三域 workflow、Resolved Bounds、route 和最小 Decision Trace 输出。
 2. 架构宪法不可违反——Deterministic first, Agentic when necessary, Traceable always。
 3. 14 条不变量全部通过自动化检查。
 4. Hard Constraint 执行正确率 = 100%。
 5. Guardrail 阻止率 = 100%。
-6. Decision Trace 在所有路径下完整。
+6. MVP-0 最小 Decision Trace 在所有路径下完整；MVP-1 完整四层 Decision Trace 在所有 Full Decision 路径下完整。
 ```
 
 ### 8.2 软性通过条件
@@ -590,8 +603,9 @@ SPEC-010 v0.1 是 crosslens MVP 的范围宪法。
 核心结论：
 
 ```text
-MVP = 单股票 × 1 Playbook × depth=deep Full Decision × 5 能力域 × 完整 Workflow × 完整 Trace。
-目标是验证架构假设，不是交付完整产品，也不是自动荐股或自动交易。
+MVP-0 = 单股票 × 1 Playbook × depth=standard × 3 已实现域 × 完整 runtime 闭环 × 最小 Trace。
+MVP-1 = 单股票 × 1 Playbook × depth=deep Full Decision × 5 能力域 × 完整 Workflow × 完整四层 Trace。
+目标是验证结构化投研与决策辅助架构假设，不是交付自动荐股或自动交易系统。
 取舍必须显式——范围的边界就是产品的边界。
 ```
 

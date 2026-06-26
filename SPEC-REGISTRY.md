@@ -24,7 +24,7 @@
 | SPEC-007 | SPEC-007 Orchestration 与执行路径 v0.6.md | v0.6 | Approved | 设计 | Run 状态机 (26 states)、Workflow Node schema、路由决策树、depth-aware Domain Planning、域调度、双阶段 Validation、bounds 合并、Cumulative degradation | — |
 | SPEC-008 | SPEC-008 Decision Trace 与 Observability v0.1.md | v0.1 | Draft | 设计 | Decision Trace 四层结构、Event Log 汇总、Observability 指标、数据源 lineage 展示 | — |
 | SPEC-009 | SPEC-009 Governance Guardrails Evaluator 与人工介入 v0.1.md | v0.1 | Review | 设计 | Guardrail (6 rules)、Evaluator (4 dims)、Human Review aggregation、Resolved Decision Bounds merge、证据污染检测 | ✅ `executable_specs/spec009/` |
-| SPEC-010 | SPEC-010 MVP 范围与验证指标 v0.1.md | v0.1 | Draft | 需求 | MVP 范围宪法、depth=deep Full Decision 验证路径、验证标准、交付清单、exclusion 列表 | — |
+| SPEC-010 | SPEC-010 MVP 范围与验证指标 v0.1.md | v0.1 | Draft | 需求 | MVP 范围宪法、MVP-0 三域 standard runtime 与 MVP-1 五域 deep Full Decision 分层、验证标准、交付清单、exclusion 列表 | — |
 | SPEC-011 | SPEC-011 Case Library 与历史案例记忆 v0.1.md | v0.1 | Draft | 设计 | Case schema、索引六维、匿名化规则、隐私边界、相似度算法（defined but MVP-deferred） | — |
 | SPEC-012 | SPEC-012 数据治理与用户私有数据 v0.1.md | v0.1 | Draft | 需求 | 数据三分类、访问控制决策树、生命周期、删除/导出 | — |
 | SPEC-013 | SPEC-013 Fundamentals 域实现规格 v0.2.0.md | v0.2.0 | Review | 实现 | — | — |
@@ -131,7 +131,7 @@ CrossLens 规格体系采用四类文档分层：
 | `crosslens_spec006` | `executable_specs/spec006/` | SPEC-006: aggregate_multi_rule, compute_overall_result, resolve_recommended_actions, merge_confidence_cap | ✅ 已验证 (29 tests) |
 | `crosslens_spec005` | `executable_specs/spec005/` | SPEC-005: MetricRegistryEntry, FactRegistryEntry, LabelRegistryEntry, DerivedMetricRuleTable | ✅ 已验证 (17 tests) |
 | `crosslens_spec004` | `executable_specs/spec004/` | SPEC-004: AnalysisCard, ConstraintExport, DataFreshness, post-card validation rules | ✅ 已验证 (30 tests) |
-| `crosslens_spec009` | `executable_specs/spec009/` | SPEC-009: GuardrailReport, EvaluationReport, ResolvedDecisionBounds merge, apply_guardrails, run_evaluator, compute_final_confidence_cap, resolve_decision_bounds, check_evidence_contamination | ✅ 已验证 (59 tests) |
+| `crosslens_spec009` | `executable_specs/spec009/` | SPEC-009: GuardrailReport, EvaluationReport, ResolvedDecisionBounds merge, apply_guardrails, run_evaluator, compute_final_confidence_cap, resolve_decision_bounds, check_evidence_contamination | ✅ 已验证 (60 tests) |
 
 ---
 

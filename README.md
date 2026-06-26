@@ -154,6 +154,8 @@ CrossLens 支持三类产品化执行深度：
 | `standard` | Standard Review | 常规投研复核或单个决策前检查 | 2~3 个关键域 + Playbook |
 | `deep` | Full Decision | 严肃决策、冲突检查、复盘留痕 | 五域 + Conflict + Guardrail + Trace |
 
+当前 MVP 按实现阶段分层：MVP-0 以 `standard` 三域 runtime（Fundamentals、Technical/Market、Macro/Meso）验证端到端闭环和最小 Trace；MVP-1 在 Event Driven 与 Sentiment 补齐后，以 `deep` 五域 Full Decision 验证完整四层 Trace 与基础 Event Log。
+
 SPEC-007 v0.6 已补充 depth-aware domain planning：`quick` / `standard` / `deep` 先决定进入 `DomainPlan` 的能力域，再沿用统一的 Domain Dispatch、Conflict、Guardrail 与 Trace 语义。
 
 ---
@@ -168,7 +170,7 @@ SPEC-007 v0.6 已补充 depth-aware domain planning：`quick` / `standard` / `de
 | `crosslens_spec006` | [executable_specs/spec006/](./executable_specs/spec006/) | SPEC-006: aggregate_multi_rule, compute_overall_result, resolve_recommended_actions, merge_confidence_cap | ✅ 已验证 (29 tests) |
 | `crosslens_spec005` | [executable_specs/spec005/](./executable_specs/spec005/) | SPEC-005: MetricRegistryEntry, FactRegistryEntry, LabelRegistryEntry, DerivedMetricRuleTable | ✅ 已验证 (17 tests) |
 | `crosslens_spec004` | [executable_specs/spec004/](./executable_specs/spec004/) | SPEC-004: AnalysisCard, ConstraintExport, DataFreshness, post-card validation rules | ✅ 已验证 (30 tests) |
-| `crosslens_spec009` | [executable_specs/spec009/](./executable_specs/spec009/) | SPEC-009: apply_guardrails, run_evaluator, compute_final_confidence_cap, resolve_decision_bounds, check_evidence_contamination | ✅ 已验证 (59 tests) |
+| `crosslens_spec009` | [executable_specs/spec009/](./executable_specs/spec009/) | SPEC-009: apply_guardrails, run_evaluator, compute_final_confidence_cap, resolve_decision_bounds, check_evidence_contamination | ✅ 已验证 (60 tests) |
 
 运行:
 ```

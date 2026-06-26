@@ -308,7 +308,7 @@ technical_market  — 技术面与市场状态
 | `standard` | Standard Review | 常规投研复核或单一决策前检查 | 调度 2~3 个关键域并运行 Playbook |
 | `deep` | Full Decision | 严肃决策、跨域冲突检查、完整复盘留痕 | 调度五域、Conflict、Guardrail 和完整 Trace |
 
-SPEC-007 v0.6 已补充 depth-aware domain planning：`quick` / `standard` / `deep` 先决定进入 `DomainPlan` 的能力域，再沿用统一的 Domain Dispatch、Conflict、Guardrail 与 Trace 语义。MVP 验证仍以 `depth = deep` Full Decision 路径为主；实现不得把 Full Decision 当作所有用户问题的唯一执行深度。
+SPEC-007 v0.6 已补充 depth-aware domain planning：`quick` / `standard` / `deep` 先决定进入 `DomainPlan` 的能力域，再沿用统一的 Domain Dispatch、Conflict、Guardrail 与 Trace 语义。MVP-0 验证以 `depth = standard` 三域 runtime 为主；MVP-1 验证再以 `depth = deep` Full Decision 路径为主。实现不得把 Full Decision 当作所有用户问题的唯一执行深度。
 
 ### 6.5 Evidence Packet
 
@@ -494,7 +494,7 @@ Analysis Domain Job 是编排器调度能力域的基本单元。
 
 ## 9. 能力域独立性约束
 
-MVP 的 `depth = deep` Full Decision 路径中，五个能力域可以串行执行，也可以并行执行。
+MVP-0 的 `depth = standard` 路径中，已实现的三个能力域可以串行执行，也可以并行执行。MVP-1 的 `depth = deep` Full Decision 路径中，五个能力域可以串行执行，也可以并行执行。
 
 但无论物理执行顺序如何，能力域之间必须逻辑独立。
 
