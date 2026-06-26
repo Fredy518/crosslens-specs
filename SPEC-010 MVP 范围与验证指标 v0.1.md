@@ -87,7 +87,7 @@ MVP 的目标不是功能完整，而是**验证核心架构假设**：
 | **任务类型** | `single_stock_buy_decision`, `research_explanation` | 多股票扫描、组合分析、卖出决策 |
 | **资产类型** | 美股普通股 | ETF、期权、期货、加密货币、A 股 |
 | **Playbook** | 1 个内置 `capital_cycle_fundamental_playbook` | 用户自定义 Playbook、多 Playbook 对比、Playbook 市场 |
-| **分析能力域** | 5 个全部（Macro/Meso, Fundamentals, Company Event, Sentiment, Technical/Market） | 自定义能力域、能力域扩展 |
+| **分析能力域** | 5 个全部（Macro/Meso, Fundamentals, Event Driven, Sentiment, Technical/Market） | 自定义能力域、能力域扩展 |
 | **证据类型** | Computed, Structured, Interpreted（全部三种） | 自定义证据类型 |
 | **Workflow** | `single_stock_standard_analysis_workflow`, `research_explanation_workflow` | 自定义 Workflow、Workflow 编辑器 |
 | **Guardrail** | 6 条硬编码 Guardrail 规则 | 自定义 Guardrail、Guardrail 配置界面 |

@@ -831,12 +831,12 @@ Metric Registry 是 **metric_id 到 Evidence Packet + value_path + freshness 规
     "post_event_1d_return": {
       "metric_id": "post_event_1d_return",
       "display_name": "事件后 1 日收益率",
-      "description": "公司事件发生后一个交易日的收益率",
+      "description": "事件发生后一个交易日的收益率",
       "value_type": "number",
       "unit": "percent",
       "metric_category": "computed",
       
-      "source_domain": "company_event",
+      "source_domain": "event_driven",
       "producing_package": "pkg_event_price_tracker_v1",
       "producing_capability": "cap_event_price_reaction",
       
@@ -929,7 +929,7 @@ Metric Registry 是 **metric_id 到 Evidence Packet + value_path + freshness 规
       "display_name": "存在高重要度低确定性事件",
       "description": "存在至少一条 materiality=high 但 certainty 非 confirmed 的事件",
       "value_type": "boolean",
-      "source_domain": "company_event",
+      "source_domain": "event_driven",
       "producing_package": "pkg_event_analyzer_v1",
       "can_support_hard_constraint": false,
       "expected_export_ref": "fact://any_material_event_low_certainty",
@@ -940,7 +940,7 @@ Metric Registry 是 **metric_id 到 Evidence Packet + value_path + freshness 规
       "display_name": "最新高重要度事件已确认",
       "description": "最新一条 materiality=high 事件的 certainty=confirmed",
       "value_type": "boolean",
-      "source_domain": "company_event",
+      "source_domain": "event_driven",
       "producing_package": "pkg_event_analyzer_v1",
       "can_support_hard_constraint": false,
       "expected_export_ref": "fact://latest_material_event_is_confirmed",
@@ -951,7 +951,7 @@ Metric Registry 是 **metric_id 到 Evidence Packet + value_path + freshness 规
       "display_name": "存在高重要度负面未解决事件",
       "description": "存在 materiality=high、direction=negative、resolution_status=open 的事件",
       "value_type": "boolean",
-      "source_domain": "company_event",
+      "source_domain": "event_driven",
       "producing_package": "pkg_event_analyzer_v1",
       "can_support_hard_constraint": false,
       "expected_export_ref": "fact://any_material_negative_event_unresolved",
@@ -1245,7 +1245,7 @@ function build_constraint_exports(
             if reg_metric.evidence_value_path not in evidence.metrics:
                 continue  // 该 Evidence 未生成此 metric
             
-            // 检查 lineage 约束（如 Company Event metrics）
+            // 检查 lineage 约束（如 Event Driven metrics）
             if reg_metric.lineage_constraints != null:
                 lineage_check = check_lineage_constraints(
                     evidence, reg_metric.lineage_constraints
@@ -1757,7 +1757,7 @@ metric://industry_capex_growth_yoy
 metric://commodity_input_cost_change
 ```
 
-**Company Event / Catalyst（P1 — 4 metrics）：**
+**Event Driven / Catalyst（P1 — 4 metrics）：**
 ```
 metric://post_event_1d_return
 metric://post_event_volume_vs_20d_average

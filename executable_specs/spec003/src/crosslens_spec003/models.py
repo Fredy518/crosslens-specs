@@ -82,7 +82,7 @@ class DeterminismLevel(str, Enum):
 class Domain(str, Enum):
     MACRO_MESO = "macro_meso"
     FUNDAMENTALS = "fundamentals"
-    COMPANY_EVENT = "company_event"
+    EVENT_DRIVEN = "event_driven"
     SENTIMENT = "sentiment"
     TECHNICAL_MARKET = "technical_market"
 

@@ -76,7 +76,7 @@
 
 ## v0.1.9
 
-补齐“所有 Hard pass”的判断标准、`partial` Analysis Card 的影响、Company Event derived fact 生产者、Freshness 到 Hard Constraint 的 stale 标记传递和 `high_conflict` 判定。
+补齐“所有 Hard pass”的判断标准、`partial` Analysis Card 的影响、Event Driven derived fact 生产者、Freshness 到 Hard Constraint 的 stale 标记传递和 `high_conflict` 判定。
 
 ## v0.1.8
 

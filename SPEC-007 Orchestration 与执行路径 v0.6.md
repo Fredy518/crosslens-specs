@@ -493,7 +493,7 @@ flowchart TD
 
     L --> M1[Macro / Meso Job]
     L --> M2[Fundamentals Job]
-    L --> M3[Company Event Job]
+    L --> M3[Event Driven Job]
     L --> M4[Sentiment Job]
     L --> M5[Technical / Market Job]
 

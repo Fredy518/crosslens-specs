@@ -265,7 +265,7 @@ unknown
 ```text
 macro_meso        — 宏观/中观环境
 fundamentals      — 公司基本面与估值
-company_event     — 公司事件与催化剂
+event_driven      — 事件驱动与催化剂
 sentiment         — 市场情绪与叙事
 technical_market  — 技术面与市场状态
 ```
@@ -862,7 +862,7 @@ MVP 阶段采用规则优先、LLM 辅助解释的方式。
 满足以下任一条件时，可标记为 `medium`：
 
 1. Fundamentals 与 Technical / Sentiment 出现方向冲突；
-2. Company Event 与 Sentiment 出现方向冲突；
+2. Event Driven 与 Sentiment 出现方向冲突；
 3. Macro / Meso 与估值或行业周期判断存在冲突；
 4. Playbook Soft Constraint 与某个能力域结论冲突；
 5. 冲突可能影响 suggested_action，但不足以阻断分析。
@@ -873,7 +873,7 @@ MVP 阶段采用规则优先、LLM 辅助解释的方式。
 
 满足以下任一条件时，应标记为 `high`：
 
-1. Fundamentals 与重大 Company Event 严重冲突；
+1. Fundamentals 与重大 Event Driven 事件严重冲突；
 2. Playbook Hard Constraint 与 Analysis Card 主结论冲突；
 3. Guardrail 相关风险与 Decision Candidate 倾向冲突；
 4. 高置信度 Computed Evidence 与高置信度能力域结论冲突；

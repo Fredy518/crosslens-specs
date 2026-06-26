@@ -148,7 +148,7 @@ Technical/Market 能力域负责分析价格行为、成交量、趋势、动量
 2. 判断财务质量 → Fundamentals 域
 3. 替代基本面分析
 4. 单独给出长期买卖建议 → Playbook + Decision Candidate 层
-5. 解释宏观或公司事件的真实影响 → Macro/Meso、Company Event 域
+5. 解释宏观或事件驱动催化的真实影响 → Macro/Meso、Event Driven 域
 
 **A 股适配：** MVP 阶段仅支持 A 股日线数据。分钟线、Tick 数据不在 MVP 范围内。
 

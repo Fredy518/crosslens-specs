@@ -312,7 +312,7 @@ crosslens MVP 保留五个分析能力域：
 
 1. Macro / Meso；
 2. Fundamentals；
-3. Company Event / Catalyst；
+3. Event Driven / Catalyst；
 4. Sentiment；
 5. Technical / Market。
 
