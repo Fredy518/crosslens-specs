@@ -365,45 +365,7 @@ event_relevance * earnings_elasticity * price_elasticity
 
 其中 `optional_market_confirmation_proxy` 只能来自当前 Analysis Domain Job 注入的 `post_event_price_reaction`、`market_reaction` 或明确标记为 technical proxy 的 Evidence Packet。Event Driven 域不得读取 Technical Analysis Card，不得自行计算趋势、支撑阻力、均线、RS 等技术指标。
 
-### 4.7 Step 7：Tradability scoring and pricing stage
-
-`tradability_score` 为 0~10 分：
-
-| 维度 | 权重 | 说明 |
-|---|---:|---|
-| novelty_score | 0.15 | 事件是否刚发生或刚扩散 |
-| expectation_delta_score | 0.20 | 是否改变预期 |
-| persistence_score | 0.15 | 是否连续催化或可验证 |
-| target_clarity_score | 0.15 | 是否能映射到明确 A 股标的 |
-| earnings_elasticity_score | 0.10 | 是否能反映到利润 |
-| market_reaction_score | 0.10 | 是否已有板块/成交反应 |
-| fund_recognition_score | 0.05 | 是否出现龙头、成交放大或机构关注 |
-| risk_reward_score | 0.10 | 是否尚未充分定价 |
-
-```text
-tradability_score = 10 * weighted_sum(dimensions)
-```
-
-各维度必须按以下确定性规则取值。缺少可验证 evidence 时，该维度取 `0.0`；只有 interpreted evidence 时，该维度最高 `0.5`。
-
-| 维度 | 规则 |
-|---|---|
-| novelty_score | 按 `as_of_date - a_share_effective_trade_date` 的 A 股交易日数：`<=1` 为 1.0，`<=3` 为 0.8，`<=10` 为 0.5，`<=30` 为 0.25，`>30` 为 0.1；重复性老事件最高 0.6 |
-| persistence_score | 有明确后续验证时间表且至少 2 条跟踪证据为 1.0；有时间表或 1 条跟踪证据为 0.7；一次性事件无验证安排为 0.4；rumor 为 0.2；invalidated 为 0.0 |
-| target_clarity_score | 明确单一 A 股标的且 lineage 完整为 1.0；明确行业且有核心受益标的列表为 0.75；宽泛主题为 0.55；仅市场层面为 0.30；无映射为 0.0 |
-| earnings_elasticity_score | 直接影响毛利率、ASP 或单位利润为 0.9；直接影响订单、产能利用率或收入且可映射到利润为 0.7；间接受益为 0.3；无利润链条为 0.0 |
-| market_reaction_score | 只使用注入的 `post_event_price_reaction` / `market_reaction` evidence：板块与龙头同向且成交放大为 1.0；仅龙头确认或仅板块确认为 0.7；反应弱为 0.3；无 reaction evidence 为 0.0 |
-| fund_recognition_score | 注入 evidence 显示龙头确认为 0.9；成交额显著放大或机构关注为 0.7；仅主题扩散为 0.4；无识别为 0.0 |
-| risk_reward_score | `undiscovered` 为 0.9；`initial_repricing` 为 0.8；`leader_confirmed` 为 0.6；`diffusion` 为 0.5；`acceleration` 为 0.35；`overextended` 为 0.1；`invalidated` 为 0.0 |
-
-分桶：
-
-| score | tradability_bucket | 解释 |
-|---:|---|---|
-| >= 8.0 | high | 重点跟踪，可进入 Playbook 评估 |
-| >= 6.0 | medium | 等待确认或低吸窗口 |
-| >= 4.0 | low | 观察，不急于行动 |
-| < 4.0 | noise | 多数情况下是噪音 |
+### 4.7 Step 7a：Pricing-stage classification
 
 `pricing_stage` 取值：
 
@@ -433,7 +395,47 @@ unknown
 | 价格/订单/政策/公司澄清等证伪条件命中 | invalidated |
 | 缺少价格反应、链条映射或时间字段，无法判定 | unknown |
 
-### 4.8 Step 8：Stance
+### 4.8 Step 7b：Tradability scoring
+
+`tradability_score` 在 `pricing_stage` 判定后计算，为 0~10 分：
+
+| 维度 | 权重 | 说明 |
+|---|---:|---|
+| novelty_score | 0.15 | 事件是否刚发生或刚扩散 |
+| expectation_delta_score | 0.20 | 是否改变预期 |
+| persistence_score | 0.15 | 是否连续催化或可验证 |
+| target_clarity_score | 0.15 | 是否能映射到明确 A 股标的 |
+| earnings_elasticity_score | 0.10 | 是否能反映到利润 |
+| market_reaction_score | 0.10 | 是否已有板块/成交反应 |
+| fund_recognition_score | 0.05 | 是否出现龙头、成交放大或机构关注 |
+| risk_reward_score | 0.10 | 是否尚未充分定价 |
+
+```text
+tradability_score = 10 * weighted_sum(dimensions)
+```
+
+各维度必须按以下确定性规则取值。缺少可验证 evidence 时，该维度取 `0.0`；只有 interpreted evidence 时，该维度最高 `0.5`。
+
+| 维度 | 规则 |
+|---|---|
+| novelty_score | 按 `as_of_date - a_share_effective_trade_date` 的 A 股交易日数：`<=1` 为 1.0，`<=3` 为 0.8，`<=10` 为 0.5，`<=30` 为 0.25，`>30` 为 0.1；重复性老事件最高 0.6 |
+| persistence_score | 有明确后续验证时间表且至少 2 条跟踪证据为 1.0；有时间表或 1 条跟踪证据为 0.7；一次性事件无验证安排为 0.4；rumor 为 0.2；invalidated 为 0.0 |
+| target_clarity_score | 明确单一 A 股标的且 lineage 完整为 1.0；明确行业且有核心受益标的列表为 0.75；宽泛主题为 0.55；仅市场层面为 0.30；无映射为 0.0 |
+| earnings_elasticity_score | 直接影响毛利率、ASP 或单位利润为 0.9；直接影响订单、产能利用率或收入且可映射到利润为 0.7；间接受益为 0.3；无利润链条为 0.0 |
+| market_reaction_score | 只使用注入的 `post_event_price_reaction` / `market_reaction` evidence：板块与龙头同向且成交放大为 1.0；仅龙头确认或仅板块确认为 0.7；反应弱为 0.3；无 reaction evidence 为 0.0 |
+| fund_recognition_score | 注入 evidence 显示龙头确认为 0.9；成交额显著放大或机构关注为 0.7；仅主题扩散为 0.4；无识别为 0.0 |
+| risk_reward_score | `pricing_stage = undiscovered` 为 0.9；`initial_repricing` 为 0.8；`leader_confirmed` 为 0.6；`diffusion` 为 0.5；`acceleration` 为 0.35；`overextended` 为 0.1；`fading` 为 0.2；`invalidated` 为 0.0；`unknown` 为 0.0 |
+
+分桶：
+
+| score | tradability_bucket | 解释 |
+|---:|---|---|
+| >= 8.0 | high | 重点跟踪，可进入 Playbook 评估 |
+| >= 6.0 | medium | 等待确认或低吸窗口 |
+| >= 4.0 | low | 观察，不急于行动 |
+| < 4.0 | noise | 多数情况下是噪音 |
+
+### 4.9 Step 8：Stance
 
 Event Driven stance 由 `catalyst_direction`、`expectation_delta_score`、`tradability_score`、`pricing_stage` 和风险/证伪条件共同决定。
 
@@ -554,61 +556,59 @@ metric://event_frequency_90d
 4. 计算使用的数据未越过 `as_of_date`；
 5. `registration_status = registered`。
 
-### 6.2 Proposed soft-only exports
+### 6.2 Runtime scores and labels are payload-only in v0.1.0
 
-以下 export 在 v0.1.0 中仅允许 soft，不得支撑 Hard Constraint，除非后续 SPEC-005 注册：
+以下 runtime fields 在 v0.1.0 只允许留在 `domain_payload`，不得进入 `constraint_exports`：
 
-| export_ref | export_type | value source | required value field | registration_status | hard? |
-|---|---|---|---|---|:---:|
-| `metric://tradability_score` | metric | `domain_payload.tradability_score` | `value_path` | proposed | no |
-| `metric://expectation_delta_score` | metric | `domain_payload.expectation_delta_score` | `value_path` | proposed | no |
-| `metric://target_clarity_score` | metric | `domain_payload.scoring_breakdown.target_clarity_score` | `value_path` | proposed | no |
-| `metric://earnings_elasticity_score` | metric | `beneficiary_chain[].earnings_elasticity_score` | `value_path` | proposed | no |
-| `label://pricing_stage` | label | `domain_payload.pricing_stage` | `label_value` | proposed | no |
-| `label://catalyst_family` | label | `event_list[].catalyst_family` | `label_value` | proposed | no |
-| `label://beneficiary_role` | label | `beneficiary_chain[].beneficiary_role` | `label_value` | proposed | no |
-| `fact://requires_technical_confirmation` | fact | `domain_payload.requires_technical_confirmation` | `fact_value` | proposed | no |
-| `fact://event_overpriced_risk` | fact | `warnings[] contains event_overpriced_risk` | `fact_value` | proposed | no |
+| field | payload location | reason |
+|---|---|---|
+| `tradability_score` | `domain_payload.tradability_score` | 未进入 SPEC-005 Registry，且不是 Evidence Packet `metrics` 字典字段 |
+| `expectation_delta_score` | `domain_payload.expectation_delta_score` | 未进入 SPEC-005 Registry，且不是 Evidence Packet `metrics` 字典字段 |
+| `target_clarity_score` | `domain_payload.scoring_breakdown.target_clarity_score` | runtime intermediate，未注册 |
+| `earnings_elasticity_score` | `domain_payload.beneficiary_chain[].earnings_elasticity_score` | runtime beneficiary-chain field，未注册 |
+| `pricing_stage` | `domain_payload.pricing_stage` | runtime label，未注册 |
+| `catalyst_family` | `domain_payload.event_list[].catalyst_family` | runtime label，未注册 |
+| `beneficiary_role` | `domain_payload.beneficiary_chain[].beneficiary_role` | runtime label，未注册 |
+| `requires_technical_confirmation` | `domain_payload.requires_technical_confirmation` | Playbook flag，未注册为 SPEC-004 derived fact |
+| `event_overpriced_risk` | `warnings[]` 或 `domain_payload.event_risks[]` | warning/risk flag，未注册为 SPEC-004 derived fact |
 
-所有 proposed export 必须显式写入：
+因此，Event Driven v0.1.0 的 `constraint_exports` 只能包含：
+
+1. SPEC-004 §26 允许的四个 registered computed event metrics；
+2. SPEC-004 §26.2 定义的三个事件类 derived facts。
+
+实现不得用 `domain_payload.*` 作为 `ConstraintExport.value_path`。`value_path` 必须是 `evidence_ref` 指向的 Evidence Packet 内部路径；对于 metric export，根节点是该 Evidence Packet 的 `metrics` 字典。
+
+若后续必须把上述 runtime score 暴露给 Playbook 的 soft constraint，必须先生成 card-local / runtime-derived Evidence Packet，再使用合法的 `ConstraintExport` 形状：
 
 ```json
 {
+  "evidence_id": "ev_event_runtime_scores_001",
+  "domain": "event_driven",
+  "evidence_type": "event_runtime_scores",
+  "generation_type": "computed",
+  "determinism_level": "computed",
+  "can_support_hard_constraint": false,
+  "metrics": {
+    "tradability_score": 6.8,
+    "expectation_delta_score": 0.62,
+    "target_clarity_score": 0.75
+  }
+}
+```
+
+对应 export 必须只使用 SPEC-004 `ConstraintExport` 已有字段，不得添加 `source_path` 等额外字段：
+
+```json
+{
+  "export_type": "metric",
+  "export_ref": "metric://tradability_score",
+  "evidence_ref": "ev_event_runtime_scores_001",
+  "value_path": "tradability_score",
+  "determinism_level": "computed",
   "can_support_hard_constraint": false,
   "allowed_constraint_types": ["soft"],
   "registration_status": "proposed"
-}
-```
-
-metric export 必须额外包含：
-
-```json
-{
-  "export_ref": "metric://tradability_score",
-  "export_type": "metric",
-  "value_path": "domain_payload.tradability_score"
-}
-```
-
-label export 必须额外包含：
-
-```json
-{
-  "export_ref": "label://pricing_stage",
-  "export_type": "label",
-  "label_value": "leader_confirmed",
-  "source_path": "domain_payload.pricing_stage"
-}
-```
-
-fact export 必须额外包含：
-
-```json
-{
-  "export_ref": "fact://requires_technical_confirmation",
-  "export_type": "fact",
-  "fact_value": true,
-  "source_path": "domain_payload.requires_technical_confirmation"
 }
 ```
 
@@ -733,12 +733,21 @@ final_confidence = min(
 |---|---|---|
 | 无可追溯事件证据 | unavailable | insufficient_data |
 | 只有 interpreted evidence 且无 source reference | unavailable | insufficient_data |
-| 只有 rumor 但 source 可追溯、时间和目标映射完整 | partial | low_certainty |
+| 只有 rumor 但 source 可追溯、时间和目标映射完整 | partial | insufficient_data |
 | 有事件但缺 event_date / target mapping / expectation_delta | partial | insufficient_data |
 | 有 confirmed/partially_confirmed event + 目标映射 + scoring + validation 通过 | completed | null |
 | Pipeline 异常 | error | execution_failure |
 
 `domain_status = completed` 不表示事件“值得交易”，只表示 Event Driven 域完成了事件识别、影响判断、映射和风险披露。
+
+`domain_status_reason` 必须使用 SPEC-004 / SPEC-REGISTRY 已注册枚举，不得在 SPEC-016 内自由新增。低确定性事件的语义写入：
+
+```json
+{
+  "warnings": ["low_certainty_event"],
+  "limitations": ["event_certainty=rumor; source is traceable but not confirmed"]
+}
+```
 
 SPEC-004 stance 合法组合：
 
@@ -771,7 +780,7 @@ SPEC-004 stance 合法组合：
 | 10 | post-event metric 使用 future price | block export + warning |
 | 11 | 海外事件缺 `a_share_effective_trade_date` | partial + warning |
 | 12 | `invalidating_events` 未汇总到 `invalidating_conditions` | block card assembly |
-| 13 | proposed export 被标记为 hard-capable | 强制改为 soft + warning |
+| 13 | 未注册 runtime score / label 被写入 `constraint_exports` | block export + warning |
 | 14 | confidence 未应用 data_quality cap | cap confidence + warning |
 
 ---
@@ -836,7 +845,7 @@ Playbook / Orchestrator 可以在 Analysis Card 生成后组合 Event Driven 与
 | tradability scoring | 0~10 分、sub-score 阈值、bucket、overextended cap |
 | pricing stage | undiscovered / repricing / diffusion / overextended / invalidated 规则 |
 | confidence | certainty cap、status cap、interpreted cap、data_quality cap |
-| exports | hard lineage 条件、soft-only proposed exports |
+| exports | hard lineage 条件、runtime payload fields 不进入 constraint_exports |
 | validation | future leakage、rumor_as_fact、missing_target |
 
 ### 12.2 集成测试
@@ -858,8 +867,8 @@ Fixture A：`confirmed_price_increase_event`
 {
   "as_of_date": "2026-06-25",
   "event": {
-    "event_type": "product_price_increase",
-    "event_scope": "industry",
+    "event_type": "industry_news",
+    "event_scope": "industry_catalyst",
     "event_date": "2026-06-24",
     "source_published_at_utc": "2026-06-24T01:30:00Z",
     "source_market_timezone": "Asia/Shanghai",
@@ -877,7 +886,7 @@ Fixture A：`confirmed_price_increase_event`
     "domain_status": "completed",
     "stance": "positive_or_moderately_positive",
     "catalyst_strength": "high",
-    "constraint_exports": "proposed_exports_soft_only",
+    "constraint_exports": "exclude_unregistered_runtime_fields",
     "hard_exports_allowed": false
   }
 }
@@ -889,7 +898,7 @@ Fixture B：`rumor_only_event`
 {
   "as_of_date": "2026-06-25",
   "event": {
-    "event_type": "unverified_order_rumor",
+    "event_type": "major_order",
     "event_scope": "company_specific",
     "event_date": "2026-06-25",
     "source_published_at_utc": "2026-06-25T03:00:00Z",
@@ -923,10 +932,10 @@ Fixture B：`rumor_only_event`
 - **现状：** SPEC-004 已定义 `event_scope`、`target_scope`、`transmission_path` 的基本方向，但未完整列出 `catalyst_family`、`tradability_score`、`pricing_stage`、`beneficiary_chain`。
 - **裁决：** 本 SPEC 将这些作为 Event Driven runtime 的 domain_payload 扩展字段；若 SPEC-004 后续收紧 payload schema，应同步纳入。
 
-### CR-016-002：SPEC-005 注册 proposed soft-only exports
+### CR-016-002：Runtime score 的 export 注册路径
 
 - **现状：** `tradability_score`、`expectation_delta_score`、`pricing_stage` 等尚未进入 Registry。
-- **裁决：** v0.1.0 全部 soft-only，不得支撑 Hard Constraint。后续如需 Playbook 直接引用，向 SPEC-005 提注册请求。
+- **裁决：** v0.1.0 仅保留在 `domain_payload`，不得直接进入 `constraint_exports`。后续如需 Playbook 以 soft constraint 直接引用，必须向 SPEC-005 提注册请求，或先定义合法的 runtime-derived Evidence Packet，并确保 `ConstraintExport.value_path` 指向该 Evidence Packet 的字段。
 
 ### CR-016-003：SPEC-006 Playbook 事件驱动动作模板
 
