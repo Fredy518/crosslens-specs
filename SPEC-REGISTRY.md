@@ -30,6 +30,7 @@
 | SPEC-013 | SPEC-013 Fundamentals 域实现规格 v0.2.0.md | v0.2.0 | Review | 实现 | — | — |
 | SPEC-014 | SPEC-014 Technical Market 域实现规格 v0.2.3.md | v0.2.3 | Review | 实现 | Part I（§1–§16）Review；Part II（§17–§28）Draft。三层架构 + 高阶扩展、regime 门控、分位自校准 | — |
 | SPEC-015 | SPEC-015 Macro Meso 域实现规格 v0.1.1.md | v0.1.1 | Review | 实现 | 消费者域 Pipeline（9 evidence / 7 metric / 3 Context / 9 步）、global_liquidity_metrics evidence、2 个 proposed soft-only metric、§10.2-fallback、market_regime canonical source | — |
+| SPEC-016 | SPEC-016 Event Driven 域实现规格 v0.1.0.md | v0.1.0 | Draft | 实现 | Event Driven Pipeline（事件发现 / 预期差判断 / 可交易性评分 / 受益链条映射）、proposed soft-only exports、PIT/as_of 防泄漏 | — |
 
 ---
 
@@ -42,6 +43,7 @@ SPEC-001 (产品定义)
   │     │                      │                      └─► SPEC-013 (Fundamentals 实现)
   │     │                      │                      └─► SPEC-014 (Technical/Market 实现)
   │     │                      │                      └─► SPEC-015 (Macro/Meso 实现)
+  │     │                      │                      └─► SPEC-016 (Event Driven 实现)
   │     │                      │
   │     ├─► SPEC-007 (编排) ──► SPEC-008 (Trace)
   │     │                      │
@@ -76,7 +78,7 @@ CrossLens 规格体系采用四类文档分层：
 
 | 枚举 | 定义位置 | 值 |
 |------|----------|----|
-| `domain` | SPEC-003 §6.1 | `macro_meso`, `fundamentals`, `company_event`, `sentiment`, `technical_market` |
+| `domain` | SPEC-003 §6.1 | `macro_meso`, `fundamentals`, `event_driven`, `sentiment`, `technical_market` |
 | `generation_type` | SPEC-003 §6.5 | `computed`, `structured`, `interpreted` |
 | `domain_status` | SPEC-004 §10.1 | `completed`, `partial`, `error`, `unavailable` |
 | `stance` | SPEC-004 | `positive`, `moderately_positive`, `neutral`, `mixed`, `moderately_negative`, `negative`, `unavailable`, `not_applicable` |
@@ -87,7 +89,7 @@ CrossLens 规格体系采用四类文档分层：
 | `validation_overall_status` | SPEC-003 §13.4 + `models.py` | `passed`, `passed_with_flags`, `blocked`, `error`, `skipped` |
 | `validation_severity` | SPEC-003 §13.4 + `models.py` | `block`, `flag`, `note` |
 
-> **全仓库枚举一致性规则：** 任何 SPEC 中使用上述枚举时，必须以本表声明的值域为准。如产品端需要不同 display name（如 "Company Event / Catalyst"），仅作为 human-facing label，不进入机器枚举。
+> **全仓库枚举一致性规则：** 任何 SPEC 中使用上述枚举时，必须以本表声明的值域为准。如产品端需要不同 display name（如 "Event Driven / Catalyst"），仅作为 human-facing label，不进入机器枚举。
 
 ---
 

@@ -27,6 +27,7 @@ Architecture Constitution: **Deterministic first, Agentic when necessary, Tracea
 | SPEC-013 | [Fundamentals 域实现规格](./SPEC-013%20Fundamentals%20域实现规格%20v0.2.0.md) | A股财务分析域 Pipeline、metric 计算、Evidence 边界 |
 | SPEC-014 | [Technical/Market 域实现规格](./SPEC-014%20Technical%20Market%20域实现规格%20v0.2.3.md) | 技术面三层架构 + Part II 高阶扩展（regime/RS/风险/支撑阻力/MTF） |
 | SPEC-015 | [Macro/Meso 域实现规格](./SPEC-015%20Macro%20Meso%20域实现规格%20v0.1.1.md) | 宏观/中观消费者域 Pipeline、global_liquidity_metrics、3 Context 子 stance |
+| SPEC-016 | [Event Driven 域实现规格](./SPEC-016%20Event%20Driven%20域实现规格%20v0.1.0.md) | 事件驱动域 Pipeline、预期差判断、可交易性评分、受益链条映射 |
 
 **辅助文件：**
 | 文件 | 说明 |
@@ -125,7 +126,7 @@ Investment Task → Context Bundle → Evidence Packets → Analysis Domain Jobs
 
 1. Macro / Meso — 宏观/中观环境
 2. Fundamentals — 基本面分析（MVP 必要条件）
-3. Company Event / Catalyst — 公司事件/催化剂
+3. Event Driven / Catalyst — 事件驱动/催化剂
 4. Sentiment — 市场情绪
 5. Technical / Market — 技术/市场
 
@@ -156,11 +157,10 @@ cd executable_specs/spec009 && python -m pytest
 
 ## 未来规划
 
-> SPEC-013/014/015 已进入正式文档索引（上方）。下表仅列尚未起稿的规划项；版本/状态以 [SPEC-REGISTRY.md](./SPEC-REGISTRY.md) 为唯一事实源。
+> SPEC-013/014/015/016 已进入正式文档索引（上方）。下表仅列尚未起稿的规划项；版本/状态以 [SPEC-REGISTRY.md](./SPEC-REGISTRY.md) 为唯一事实源。
 
 | 编号 | 定位 | 状态 |
 |------|------|------|
-| SPEC-016 | Company Event 域实现规格 | 待规划 |
 | SPEC-017 | Sentiment 域实现规格 | 待规划 |
 
 ---
