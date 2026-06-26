@@ -47,8 +47,8 @@ class InvestmentTask(StrictModel):
     user_intent: str = ""                  # "whether_to_buy", "whether_to_hold", etc.
     time_horizon: str = ""
     playbook_id: str = Field(min_length=1)
-    depth: str = "standard"                # Depth literal
-    risk_preference: str = "medium"        # RiskPreference literal
+    depth: Depth = "standard"
+    risk_preference: RiskPreference = "medium"
     uses_user_private_data: bool = False
     user_private_data_types: list[str] = []
     created_at: datetime | None = None

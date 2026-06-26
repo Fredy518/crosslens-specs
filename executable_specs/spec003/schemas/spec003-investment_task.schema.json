@@ -58,6 +58,11 @@
     },
     "depth": {
       "default": "standard",
+      "enum": [
+        "quick",
+        "standard",
+        "deep"
+      ],
       "title": "Depth",
       "type": "string"
     },
@@ -68,6 +73,11 @@
     },
     "risk_preference": {
       "default": "medium",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
       "title": "Risk Preference",
       "type": "string"
     },

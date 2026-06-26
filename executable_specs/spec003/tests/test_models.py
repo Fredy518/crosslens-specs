@@ -590,3 +590,33 @@ class TestInvestmentTask:
                 ),
                 playbook_id="",
             )
+
+    def test_investment_task_invalid_depth_rejected(self):
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError):
+            InvestmentTask(
+                task_id="task_006",
+                task_type=TaskType.SINGLE_STOCK_BUY_DECISION,
+                asset=AssetInfo(
+                    symbol="AAPL",
+                    asset_type="stock",
+                    market="US",
+                ),
+                playbook_id="pb_006",
+                depth="full",
+            )
+
+    def test_investment_task_invalid_risk_preference_rejected(self):
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError):
+            InvestmentTask(
+                task_id="task_007",
+                task_type=TaskType.SINGLE_STOCK_BUY_DECISION,
+                asset=AssetInfo(
+                    symbol="AAPL",
+                    asset_type="stock",
+                    market="US",
+                ),
+                playbook_id="pb_007",
+                risk_preference="aggressive",
+            )
