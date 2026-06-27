@@ -4,7 +4,7 @@
 **状态：** Draft  
 **项目名称：** crosslens  
 **文档类型：** 实现  
-**依赖文档：** SPEC-003 v0.3.4；SPEC-004 v0.2.7；SPEC-005 v0.2；SPEC-006 v0.3.0；SPEC-007；SPEC-016 v0.1.0  
+**依赖文档：** SPEC-003 v0.3.4；SPEC-004 v0.2.7；SPEC-005 v0.2；SPEC-006 v0.3.0；SPEC-007 v0.6；SPEC-016 v0.1.0
 **目标阶段：** Sentiment P0 skeleton / 五域架构闭合
 
 ---
