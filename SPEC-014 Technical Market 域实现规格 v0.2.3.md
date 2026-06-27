@@ -150,7 +150,7 @@ Technical/Market 能力域负责分析价格行为、成交量、趋势、动量
 4. 单独给出长期买卖建议 → Playbook + Decision Candidate 层
 5. 解释宏观或事件驱动催化的真实影响 → Macro/Meso、Event Driven 域
 
-**A 股适配：** MVP 阶段仅支持 A 股日线数据。分钟线、Tick 数据不在 MVP 范围内。
+**A 股适配：** MVP 阶段仅支持 A 股日线数据。分钟线、Tick 数据不在 MVP 范围内。股票代码默认使用 `ts_code` / `.SH` `.SZ` `.BJ` 体系；时间推进、窗口截断和重采样边界默认使用 A 股交易日历，不得把自然日或 `freq="B"` 视为等价替代。
 
 ---
 
@@ -551,6 +551,8 @@ low_adj = low * (adj_factor / adj_factor[-1])
 | ATR | 除权日 ATR 异常放大 | 真实波动 |
 
 **Adapter 要求：** `crosslens_adapters` 的 `get_market_data()` 必须提供真实的 `adj_factor`。当前 AlphaDB 实现中 `adj_factor = 1.0`（未复权），**需在 Phase 1.5 后续补充**：从 `rawdata.stock_adj_factor` 表获取复权因子。MVP 阶段若 `adj_factor` 全为 1.0，在 `warnings` 中记录 `"price_not_adjusted: 使用未复权价格，均线和极值点可能受除权影响"`。
+
+**A 股一致性要求：** `adj_factor`、OHLCV、涨跌停标记和停牌/无成交状态必须来自同一 A 股代码体系与同一交易日日历；不得把前复权价写回原始行情字段，也不得在缺失 `adj_factor` 时静默假定“原始价=可比历史价”。
 
 ---
 
@@ -2284,6 +2286,8 @@ A 股的 T+1 制度和涨跌停板限制对技术分析有独特影响：
 - T+1 限制了日内反转 → 短期动量指标的预测力可能不同
 
 **MVP 处理：** 在 VSA 输入中增加 `is_limit_up` / `is_limit_down` 标记（§4.1.8）。涨跌停日的 VSA 信号 `event_confidence` 降低 0.2，并在 `warnings` 中记录。
+
+**A 股微观结构约束：** 涨跌停、停牌、T+1 与北交所/科创板/创业板的制度差异会改变“可交易”和“可实现”的含义。Technical/Market 域在 P0-P2 仅把这些因素作为信号解释和降级条件，不把“理论方向正确”直接等同于当日可成交或可执行收益。
 
 ---
 

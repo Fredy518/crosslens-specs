@@ -102,6 +102,21 @@ MVP 的目标不是功能完整，而是**验证核心架构假设**：
 
 MVP-0 选择 `depth = standard` 是为了先把可运行的投研决策辅助闭环做稳定；MVP-1 再选择 `depth = deep` 验证能力域隔离、跨域冲突、Playbook、Guardrail 和 Decision Trace 的完整链路。这不表示所有用户问题都必须走 Full Decision。
 
+### 2.3 A 股普通股约束
+
+SPEC-010 的 MVP 范围只针对 **A 股普通股**，不再以美股普通股为默认语境。涉及资产识别、交易日历、行情、财报和技术指标的默认假设，必须按 A 股制度重写。
+
+必须显式满足的 A 股特有约束：
+
+| 约束 | 要求 |
+|---|---|
+| 交易日历 | 使用 A 股交易日历，不得用自然日或 `freq="B"` 近似代替；事件窗口、滚动窗口和回测窗口都必须按交易日推进。 |
+| 代码体系 | 统一处理 `ts_code` / `symbol` / 交易所后缀（`.SH` / `.SZ` / `.BJ`）；示例、测试和 adapter 接口不得默认美股 ticker 体系。 |
+| 财报口径 | 必须区分报告期、公告日、可见日和最新已披露版本；不得沿用“财报发布日 = 可见日”的美股默认假设。 |
+| 复权 | 价格序列和技术指标默认使用前复权；raw price、adj_factor 和复权派生值必须明确区分。 |
+| 涨跌停 | 必须显式处理涨跌停板、T+1、停牌，以及科创/创业板等板块差异；涨跌停日不得按普通连续竞价日等价处理。 |
+| 市场边界 | 本 MVP 不把美股普通股、港股、ETF、期权、期货、加密货币、固定收益、外汇当作默认范围。 |
+
 ---
 
 ## 3. MVP 范围总表
@@ -111,7 +126,7 @@ MVP-0 选择 `depth = standard` 是为了先把可运行的投研决策辅助闭
 | 领域 | 包括 | 不包括 |
 |---|---|---|
 | **任务类型** | `single_stock_buy_decision`, `research_explanation` | 多股票扫描、组合分析、卖出决策 |
-| **资产类型** | 美股普通股 | ETF、期权、期货、加密货币、A 股 |
+| **资产类型** | A 股普通股 | ETF、期权、期货、加密货币、美股普通股、港股普通股 |
 | **Playbook** | 1 个内置 `capital_cycle_fundamental_playbook` | 用户自定义 Playbook、多 Playbook 对比、Playbook 市场 |
 | **分析能力域** | MVP-0：3 个已实现域（Fundamentals, Technical/Market, Macro/Meso）；MVP-1：补齐 5 个全部（Macro/Meso, Fundamentals, Event Driven, Sentiment, Technical/Market） | 自定义能力域、能力域扩展 |
 | **证据类型** | Computed, Structured, Interpreted（全部三种） | 自定义证据类型 |
@@ -485,7 +500,7 @@ Success Metric: 解释输出包含所有引用来源
 4. 加密货币
 5. 固定收益
 6. 外汇
-7. A 股 / 港股
+7. 美股普通股 / 港股普通股 / 其他非 A 股普通股
 8. 私募股权
 ```
 
