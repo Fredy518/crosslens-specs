@@ -62,7 +62,7 @@ Strategy / Playbook = 对一个或多个域能力的组合与约束
 2. SPEC-010 (MVP范围) ── 了解MVP交付什么、不交付什么
 3. SPEC-003 (架构)    ── 深入七层架构和核心对象链
 4. SPEC-007 (编排)    ── 理解任务如何从输入走到输出
-5. 然后按兴趣跳读 SPEC-004/005/006/008/009/011/012
+5. 实现域时阅读 SPEC-013/014/015/016/017；治理/复盘时跳读 SPEC-008/009/011/012
 ```
 
 ### 实现者路径（按依赖关系）
@@ -71,6 +71,11 @@ Strategy / Playbook = 对一个或多个域能力的组合与约束
 SPEC-001 (产品定义)
   ├─► SPEC-003 (架构)
   │     ├─► SPEC-004 (能力域) ──► SPEC-005 (能力包)
+  │     │                      ├─► SPEC-013 (Fundamentals 实现)
+  │     │                      ├─► SPEC-014 (Technical/Market 实现)
+  │     │                      ├─► SPEC-015 (Macro/Meso 实现)
+  │     │                      ├─► SPEC-016 (Event Driven 实现)
+  │     │                      └─► SPEC-017 (Sentiment 实现)
   │     ├─► SPEC-006 (Playbook) ──► SPEC-005 (指标注册)
   │     └─► SPEC-007 (编排) ──► SPEC-008 (决策追踪)
   │                              └─► SPEC-009 (治理)
@@ -91,6 +96,11 @@ graph TD
     SPEC003 --> SPEC006[SPEC-006 Investment Playbook]
     SPEC003 --> SPEC007[SPEC-007 Orchestration与执行路径]
     SPEC004 --> SPEC005[SPEC-005 Capability Package与Metric Registry]
+    SPEC005 --> SPEC013[SPEC-013 Fundamentals实现]
+    SPEC005 --> SPEC014[SPEC-014 Technical/Market实现]
+    SPEC005 --> SPEC015[SPEC-015 Macro/Meso实现]
+    SPEC005 --> SPEC016[SPEC-016 Event Driven实现]
+    SPEC005 --> SPEC017[SPEC-017 Sentiment实现]
     SPEC006 --> SPEC005
     SPEC007 --> SPEC008[SPEC-008 Decision Trace与Observability]
     SPEC007 --> SPEC009[SPEC-009 Governance Guardrails]
@@ -155,7 +165,7 @@ CrossLens 支持三类产品化执行深度：
 | `standard` | Standard Review | 常规投研复核或单个决策前检查 | 2~3 个关键域 + Playbook |
 | `deep` | Full Decision | 严肃决策、冲突检查、复盘留痕 | 五域 + Conflict + Guardrail + Trace |
 
-当前 MVP 按实现阶段分层：MVP-0 以 `standard` 三域 runtime（Fundamentals、Technical/Market、Macro/Meso）验证端到端闭环和最小 Trace；MVP-1 在 Event Driven 与 Sentiment 补齐后，以 `deep` 五域 Full Decision 验证完整四层 Trace 与基础 Event Log。
+当前 MVP 按实现阶段分层：MVP-0 以 `standard` 三域 runtime（Fundamentals、Technical/Market、Macro/Meso）验证端到端闭环和最小 Trace；MVP-0.5 以 fixture/mock `deep` 五域 golden path 验证 runtime 和报告链路，但不等于完整 MVP-1；MVP-1 以真实数据 `deep` 五域 Full Decision 验证完整四层 Trace 与基础 Event Log。
 
 SPEC-007 v0.6 已补充 depth-aware domain planning：`quick` / `standard` / `deep` 先决定进入 `DomainPlan` 的能力域，再沿用统一的 Domain Dispatch、Conflict、Guardrail 与 Trace 语义。
 
