@@ -2944,6 +2944,7 @@ NON_CANDIDATE_ACTIONS = {
 requires_human_review 不是 action，而是 bounds flag。
 analysis_incomplete 不是 action，而是 user_visible_status / run outcome。
 fix_analysis_inputs 不是 candidate action。
+`block_output` 不是 action，而是 governance output_control flag。
 ```
 
 ### 24.2 `requires_human_review` 不是 action
@@ -3072,6 +3073,23 @@ def route_after_bounds(
 ):
     if bounds is None:
         raise FatalWorkflowError("resolved_decision_bounds_missing")
+
+    if bounds.output_control == "block_output":
+        return complete_with_trace(
+            run=run,
+            terminal_status="COMPLETED",
+            user_visible_status="requires_human_review",
+            user_visible_reason="output_control_block_output",
+            task=task,
+            bounds=bounds,
+            cards=cards,
+            playbook_eval=playbook_eval,
+            validation_reports=validation_reports,
+            conflict_report=conflict_report,
+            guardrail_report=guardrail_report,
+            candidate=None,
+            reason="output_control_block_output"
+        )
 
     if bounds.requires_human_review:
         return complete_with_trace(
@@ -4245,6 +4263,11 @@ If user_visible_status is coarse-grained, user_visible_reason must explain the r
 
 Event Log 是 run 级别的 append-only 事件序列。
 
+MVP / Trace Store Runtime v1 的落盘形态由 SPEC-008 定义为
+`events.jsonl` workflow phase-summary event stream；它用于结构 replay 和
+审计摘要，不等同于长期目标中的完整 raw append-only runtime observability
+Event Log。
+
 ### 44.1 Event Schema
 
 ```json
@@ -4357,7 +4380,10 @@ MVP 默认：
 
 ### 47.1 Event Log
 
-Event Log 是 runtime append-only 事实记录。
+Event Log 在完整目标形态下是 runtime append-only 事实记录。MVP / Trace
+Store Runtime v1 中，SPEC-008 的 `events.jsonl` 只承载 workflow
+phase-summary event stream；完整 raw runtime log 仍是长期 observability
+目标。
 
 特点：
 
