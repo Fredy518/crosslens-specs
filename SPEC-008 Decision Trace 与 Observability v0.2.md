@@ -1,6 +1,6 @@
 # SPEC-008：Decision Trace 与 Observability
 
-**版本：** v0.1
+**版本：** v0.2
 **状态：** Draft
 **项目名称：** crosslens
 **依赖文档：** SPEC-001 v0.4；SPEC-003 v0.3.4；SPEC-007 v0.6
@@ -11,9 +11,17 @@
 
 ## 0. 版本说明
 
-本文件为 SPEC-008 v0.1（Draft），首次定义 crosslens 的 Decision Trace 结构和 Observability 规范。
+本文件为 SPEC-008 v0.2（Draft），定义 crosslens 的 Decision Trace、Trace Store Runtime v1 和 Observability 规范。
 
-v0.1 建立以下内容：
+v0.2 在 v0.1 的 Decision Trace 概念模型上，新增 Trace Store Runtime v1 的可执行落地边界：
+
+1. Trace Store v1 四层 artifact 结构；
+2. v0 → v1 兼容读取边界；
+3. `trace inspect` / `trace replay --mode structural` CLI 契约；
+4. weak structural replay / regression 不变量；
+5. 与 real-standard baseline、reviewed deep-shadow corpus 的 artifact 接入规则。
+
+v0.1 已建立以下内容：
 
 1. Decision Trace 完整 JSON Schema；
 2. Trace 生成流程的完整伪代码；
@@ -122,6 +130,43 @@ Every degradation must be in Event Log.
 Decision Trace must reference or summarize relevant degradation events.
 Decision Trace cannot be the only record of runtime state changes.
 ```
+
+### 2.4 Trace Store Runtime v1 四层 artifact
+
+Trace Store Runtime v1 是 SPEC-008 在本地文件系统中的最小可执行形态。它不要求完整前端 UI，也不要求实时抓取或生产日志平台；它要求一次 workflow run 结束后，能把 Trace 以可审计、可检查、可结构化 replay 的方式持久化。
+
+v1 trace store 的一个 `trace_dir` 必须至少包含以下四层 artifact：
+
+| 层级 | 文件 | 目标 | 最小字段 |
+|------|------|------|----------|
+| Run Manifest | `manifest.json` | 固定 run/task/playbook/source/release gate 的顶层事实 | `schema_version`、`trace_store_version`、`trace_id`、`run_id`、`task_id`、`trace_status`、`route_status`、`task`、`playbook`、`data_source`、`source_profile`、`release_gate`、`files` |
+| Workflow Event Log | `events.jsonl` | 记录域调度、验证、治理、bounds、routing、human-review 触发等可复放事件 | `schema_version`、`trace_id`、`run_id`、`sequence`、`phase`、`status`、`object_refs`、`summary`、`warnings` |
+| Object Snapshot Store | `objects.jsonl` | 保存 workflow 对象的结构摘要和 refs，不做真实数值 golden snapshot | `schema_version`、`object_type`、`object_id`、`trace_id`、`run_id`、`refs`、`status`、`snapshot` |
+| Source / Artifact Lineage | `lineage.jsonl` | 记录 adapter/source/artifact/redaction 状态，区分 reviewed source、AlphaDB、baseline artifact | `schema_version`、`lineage_type`、`trace_id`、`run_id`、`source_ref`、`source_kind`、`source_profile`、`redaction_status` |
+
+v1 writer 可以继续写 `cards.jsonl` 作为兼容视图，但 replay/inspect 的规范性输入是 `manifest.json`、`events.jsonl`、`objects.jsonl`、`lineage.jsonl`。
+
+### 2.5 v0 兼容读取边界
+
+历史 v0 trace store 只有：
+
+```text
+manifest.json
+events.jsonl
+cards.jsonl
+```
+
+v1 runtime 必须能读取 v0 trace store，并把 `cards.jsonl` 作为 `analysis_card` object snapshot 的兼容来源。v0 兼容读取只承诺结构检查和摘要展示，不要求补造 v1 中不存在的 lineage 细节；缺失项必须标记为 `compat_missing` 或 `lineage_gap`，不得静默声明完整。
+
+### 2.6 Trace Store v1 与真实数据 promotion 边界
+
+Trace Store v1 的通过只证明 runtime trace 可审计，不证明真实数据路径可 promotion。特别是：
+
+1. `default_user_path` 保持 `mock`，除非 SPEC-010 promotion gate 明确放行；
+2. reviewed deep-shadow trace 即使五域 object chain 完整，也只能标记为 `deep-shadow-validation`；
+3. Event/Sentiment reviewed source lineage 可以证明本地结构化来源可追溯，但不等于实时 source feed 或情绪 P1 已上线；
+4. real report / trace store 不得把 deterministic baseline 文案混入真实路径正文；
+5. trace artifact 不得打印 DB URL、password、token、API key 或本地密钥。
 
 ---
 
@@ -1462,27 +1507,43 @@ interface TraceConsumer {
 
 ### 7.3 CLI 消费契约
 
-CLI 应支持以下命令：
+CLI v1 必须支持目录级 inspect/replay；trace-id 级 show/evidence/lineage/export 可作为后续 UI 或 trace registry 的扩展。
 
 ```bash
-# 查看 Trace 总览
-crosslens trace show <trace_id>
+# 检查本地 trace store 目录
+crosslens trace inspect --trace-dir path/to/trace_dir
 
-# 展开特定 Phase
-crosslens trace show <trace_id> --phase evidence
+# 输出 JSON，供 regression gate 消费
+crosslens trace inspect --trace-dir path/to/trace_dir --format json
 
-# 展开特定 Node
-crosslens trace show <trace_id> --node node_generate_evidence_packets
+# 只做结构 replay，不重跑数据源、不重算数值
+crosslens trace replay --trace-dir path/to/trace_dir --mode structural
 
-# 查看证据链路
-crosslens trace evidence <trace_id>
-
-# 数据源溯源
-crosslens trace lineage <trace_id> --object card_fundamentals_001
-
-# 导出为 JSON（供其他工具消费）
-crosslens trace export <trace_id> --format json
+# strict 模式：任一 replay check fail 时退出非零
+crosslens trace replay --trace-dir path/to/trace_dir --mode structural --strict
 ```
+
+`trace inspect` 最少输出：
+
+1. schema version / trace store version；
+2. run_id、task_id、data_source、playbook、route_status；
+3. domain status 分布；
+4. warning / limitation 摘要；
+5. source lineage 与 redaction 状态；
+6. v0 compatibility gap（如有）。
+
+`trace replay --mode structural` 最少验证：
+
+1. required files 存在，或 v0 兼容读取路径可用；
+2. event sequence 单调递增；
+3. domain execution、conflict、playbook、governance、bounds、routing phases 至少可追溯；
+4. 三域 `standard` 或五域 `deep` object refs 与 card snapshots 一致；
+5. route_status、trace_status、human_review_triggers 可由 object/event 摘要解释；
+6. source lineage 中 redaction_status 不为 `failed`；
+7. artifact 明确 `not_numeric_snapshot=true` 或等价策略；
+8. 无 secret pattern 命中。
+
+trace replay 是 structural replay：它只复核对象链和路由不变量，不访问 AlphaDB/tinydata，不重跑域计算，不比较真实行情/财务数值。
 
 ### 7.4 Trace 存储与读取
 
@@ -1490,11 +1551,11 @@ crosslens trace export <trace_id> --format json
 Trace 是一次生成、不可变的 artifact。
 
 存储位置：
-  DecisionTrace 对象持久化到 trace store
+  DecisionTrace 对象和 object snapshots 持久化到 trace store
   trace_id 在 WorkflowResult.decision_trace 中引用
 
 读取路径：
-  WorkflowResult → trace_id → load_trace(trace_id) → DecisionTrace
+  WorkflowResult → trace_id / trace_dir → load_trace_store(trace_dir) → TraceStoreBundle
 
 不可变性：
   Trace 生成后不允许修改
@@ -1563,18 +1624,16 @@ Observability 指标：
 
 | 项目 | 说明 |
 |------|------|
-| Decision Trace Schema | §3 定义的完整 JSON Schema |
-| `generate_decision_trace()` | §5.1 的主函数，包含所有 12 个 Step |
-| `expand_trace_node()` | §5.2 的展开函数 |
-| `build_evidence_links()` | §5.4 的链路构建 |
-| `build_phases()` | §5.5 的 Phase 构建 |
-| `build_observability()` | §5.6 的指标构建 |
-| Failure Trace | §6 的完整策略 |
-| Run Level 展示 | §4.4 的最小可展示格式 |
-| Phase Level 展示 | §4.2 的折叠策略 |
-| `trace_data_source()` | §5.3 的溯源（至少追溯一层：Evidence Packet → Data Source） |
-| Event Log 聚合查询 | §8.3 的审计完整性保证 |
-| Trace 持久化 | Trace Store（文件或轻量数据库） |
+| Trace Store v1 writer | 写入 `manifest.json`、`events.jsonl`、`objects.jsonl`、`lineage.jsonl`，可保留 `cards.jsonl` 兼容视图 |
+| v0 compatible reader | 能读取 v0 `manifest/events/cards`，并显式标记兼容缺口 |
+| `trace inspect` | 对 trace_dir 输出 summary、domain status、warnings、lineage、redaction 检查 |
+| `trace replay --mode structural` | 不访问数据源、不重算数值，只验证 object chain、route、lineage、redaction、snapshot policy |
+| weak trace regression | 可用于 real-standard baseline 和 reviewed deep-shadow corpus 的结构回归 |
+| Run Manifest 层 | 固定 task/playbook/data_source/as_of/repo/release gate |
+| Workflow Event Log 层 | 固定 phase/event sequence 与 human-review triggers |
+| Object Snapshot Store 层 | 保存 cards、constraint exports、bounds、candidate、conflict/governance/playbook 摘要 |
+| Source / Artifact Lineage 层 | 保存 adapter/source/artifact refs、reviewed source 标记、redaction status |
+| Secret redaction | trace artifact 不得泄漏 URL password、token、API key、本地密钥 |
 
 ### 9.2 MVP 暂不实现
 
@@ -1587,6 +1646,8 @@ Observability 指标：
 | Trace 导出格式（PDF/HTML） | 仅支持 JSON 和 CLI 文本视图 |
 | 多层级数据源溯源 | 仅追溯一级（Evidence → Data Source），不做递归多级溯源 |
 | Evidence Link 权重可视化 | 仅输出 `relationship` + `confidence_contribution` 数值，不做图表 |
+| 数值 replay | 不重跑市场/财务/宏观计算，不做 exact numeric snapshot |
+| 实时 Event source / Sentiment P1 | reviewed source ingestion 之外的实时抓取和情绪模型不属于 SPEC-008 v1 runtime |
 
 ### 9.3 MVP Trace 输出路径
 
@@ -1627,6 +1688,12 @@ Observability 指标：
 8. Trace 生成失败不应阻止 WorkflowResult 返回其他字段。
 9. Trace 中的 phase / node 时间边界必须与 Event Log 中的 STATUS_CHANGED 事件一致。
 10. evidence_links 中的 confidence_contribution 是估算值，必须在 Trace 中标注「估值，非精确计算」。
+11. v1 trace store 必须包含 Run Manifest、Workflow Event Log、Object Snapshot Store、Source / Artifact Lineage 四层 artifact。
+12. v1 structural replay 不得访问外部数据源，不得重算真实行情、财务、宏观或情绪数值。
+13. v0 compatible reader 不得把缺失 lineage 伪装为完整 lineage。
+14. real-standard 和 reviewed deep-shadow trace artifact 必须继续声明非数值 snapshot policy。
+15. deep-shadow trace artifact 不得被解释为 MVP-1 ready；promotion 由 SPEC-010 gate 决定。
+16. trace artifact 中的 secret redaction 必须先于写盘或 inspect 输出。
 ```
 
 ---
@@ -1689,4 +1756,5 @@ SPEC-008 依赖和影响以下文档：
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| v0.2 | 2026-06-29 | 新增 Trace Store Runtime v1 四层 artifact、v0 兼容读取、inspect/replay CLI、weak structural replay 与 real-standard/deep-shadow 接入边界 |
 | v0.1 | 2026-06-14 | 初稿：完整 Schema、生成伪代码、展示契约、MVP 范围 |

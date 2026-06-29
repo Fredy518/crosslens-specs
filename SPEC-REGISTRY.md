@@ -22,7 +22,7 @@
 | SPEC-005 | SPEC-005 Capability Package 与 Metric Registry 规范 v0.2.md | v0.2 | Review | 设计 | Metric/Fact/Label Registry schema、Capability Package schema、lineage 追踪、URI 格式规范、confidence 取值规则、resolve_input_ref 算法、Derived Metric 规则表格式 | ✅ `executable_specs/spec005/` |
 | SPEC-006 | SPEC-006 Investment Playbook 规范 v0.3.0.md | v0.3.0 | Approved | 设计 | Playbook schema、策略组合层定位、Constraint Evaluation Result schema、OverallResult 枚举 (8 values)、decision_logic 执行语义、confidence_cap 合并、Snapshot hash | ✅ `executable_specs/spec006/` |
 | SPEC-007 | SPEC-007 Orchestration 与执行路径 v0.6.md | v0.6 | Approved | 设计 | Run 状态机 (26 states)、Workflow Node schema、路由决策树、depth-aware Domain Planning、域调度、双阶段 Validation、bounds 合并、Cumulative degradation | — |
-| SPEC-008 | SPEC-008 Decision Trace 与 Observability v0.1.md | v0.1 | Draft | 设计 | Decision Trace 四层结构、Event Log 汇总、Observability 指标、数据源 lineage 展示 | — |
+| SPEC-008 | SPEC-008 Decision Trace 与 Observability v0.2.md | v0.2 | Draft | 设计 | Trace Store Runtime v1 四层 artifact、v0 兼容读取、inspect/replay CLI、Event Log 汇总、数据源 lineage 与 redaction | — |
 | SPEC-009 | SPEC-009 Governance Guardrails Evaluator 与人工介入 v0.1.md | v0.1 | Review | 设计 | Guardrail (6 rules)、Evaluator (4 dims)、Human Review aggregation、Resolved Decision Bounds merge、证据污染检测 | ✅ `executable_specs/spec009/` |
 | SPEC-010 | SPEC-010 MVP 范围与验证指标 v0.1.md | v0.1 | Draft | 需求 | MVP 范围宪法、MVP-0 三域 standard runtime、MVP-0.5 fixture/mock deep golden path、standard-ready / deep-shadow-ready 真实数据 gate、MVP-1 五域 deep Full Decision 分层、验证标准、交付清单、exclusion 列表 | — |
 | SPEC-011 | SPEC-011 Case Library 与历史案例记忆 v0.1.md | v0.1 | Draft | 设计 | Case schema、索引六维、匿名化规则、隐私边界、相似度算法（defined but MVP-deferred） | — |

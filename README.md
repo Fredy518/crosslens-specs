@@ -31,7 +31,7 @@ Strategy / Playbook = 对一个或多个域能力的组合与约束
 | SPEC-005 | [Capability Package与Metric Registry](./SPEC-005%20Capability%20Package%20与%20Metric%20Registry%20规范%20v0.2.md) | 工具/模型打包、指标注册与解析、Evidence confidence规则 |
 | SPEC-006 | [Investment Playbook 规范](./SPEC-006%20Investment%20Playbook%20规范%20v0.3.0.md) | 投资决策手册、约束执行语义 |
 | SPEC-007 | [Orchestration与执行路径](./SPEC-007%20Orchestration%20与执行路径%20v0.6.md) | 运行状态机、编排图、路由决策 |
-| SPEC-008 | [Decision Trace与Observability](./SPEC-008%20Decision%20Trace%20与%20Observability%20v0.1.md) | 决策追踪四层结构、可观测性 |
+| SPEC-008 | [Decision Trace与Observability](./SPEC-008%20Decision%20Trace%20与%20Observability%20v0.2.md) | Trace Store Runtime v1、inspect/replay、lineage 与可观测性 |
 | SPEC-009 | [Governance Guardrails Evaluator 与人工介入](./SPEC-009%20Governance%20Guardrails%20Evaluator%20与人工介入%20v0.1.md) | 护栏、评估器、人工审核汇聚 |
 | SPEC-010 | [MVP范围与验证指标](./SPEC-010%20MVP%20范围与验证指标%20v0.1.md) | MVP范围宪法、验证标准 |
 | SPEC-011 | [Case Library与历史案例记忆](./SPEC-011%20Case%20Library%20与历史案例记忆%20v0.1.md) | 案例库结构、隐私边界 |
@@ -165,7 +165,7 @@ CrossLens 支持三类产品化执行深度：
 | `standard` | Standard Review | 常规投研复核或单个决策前检查 | 2~3 个关键域 + Playbook |
 | `deep` | Full Decision | 严肃决策、冲突检查、复盘留痕 | 五域 + Conflict + Guardrail + Trace |
 
-当前 MVP 按实现阶段分层：MVP-0 以 `standard` 三域 runtime（Fundamentals、Technical/Market、Macro/Meso）验证端到端闭环和最小 Trace；MVP-0.5 以 fixture/mock `deep` 五域 golden path 验证 runtime 和报告链路，但不等于完整 MVP-1；真实 A 股 `standard` 可进入 promotion candidate，真实 `deep` 只能在 reviewed Event/Sentiment source 校验和 deep shadow gate 后标为 `deep-shadow-ready`；MVP-1 仍要求真实数据 `deep` 五域 Full Decision、完整四层 Trace 与基础 Event Log。
+当前 MVP 按实现阶段分层：MVP-0 以 `standard` 三域 runtime（Fundamentals、Technical/Market、Macro/Meso）验证端到端闭环和最小 Trace；MVP-0.5 以 fixture/mock `deep` 五域 golden path 验证 runtime 和报告链路，但不等于完整 MVP-1；真实 A 股 `standard` 可进入 promotion candidate，真实 `deep` 只能在 reviewed Event/Sentiment source 校验和 deep shadow gate 后标为 `deep-shadow-ready`；SPEC-008 v0.2 的 Trace Store Runtime v1 先提供四层 artifact、inspect/replay 和 weak structural replay，MVP-1 仍要求真实数据 `deep` 五域 Full Decision、完整四层 Trace、基础 Event Log 与 Event/Sentiment source governance 全部通过。
 
 SPEC-007 v0.6 已补充 depth-aware domain planning：`quick` / `standard` / `deep` 先决定进入 `DomainPlan` 的能力域，再沿用统一的 Domain Dispatch、Conflict、Guardrail 与 Trace 语义。
 
