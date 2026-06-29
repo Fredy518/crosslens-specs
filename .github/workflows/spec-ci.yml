@@ -4,17 +4,27 @@ on:
   push:
     paths:
       - 'executable_specs/**'
+      - 'SPEC-*.md'
+      - 'SPEC-REGISTRY.md'
+      - 'README.md'
       - '.github/workflows/spec-ci.yml'
   pull_request:
     paths:
       - 'executable_specs/**'
+      - 'SPEC-*.md'
+      - 'SPEC-REGISTRY.md'
+      - 'README.md'
+      - '.github/workflows/spec-ci.yml'
+
+permissions:
+  contents: read
 
 jobs:
   spec-tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        spec: [spec004, spec005, spec006, spec009]
+        spec: [spec003, spec004, spec005, spec006, spec009]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
