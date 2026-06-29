@@ -135,12 +135,14 @@ Decision Trace cannot be the only record of runtime state changes.
 
 Trace Store Runtime v1 是 SPEC-008 在本地文件系统中的最小可执行形态。它不要求完整前端 UI，也不要求实时抓取或生产日志平台；它要求一次 workflow run 结束后，能把 Trace 以可审计、可检查、可结构化 replay 的方式持久化。
 
+边界说明：v1 MVP 的 `events.jsonl` 是 workflow phase-summary event stream，用于结构 replay 和审计摘要；它不是完整 raw append-only runtime observability Event Log。完整 raw Event Log 仍是 SPEC-008 的长期目标，不能因为 v1 sample replay 通过就声明完整 observability 已完成。
+
 v1 trace store 的一个 `trace_dir` 必须至少包含以下四层 artifact：
 
 | 层级 | 文件 | 目标 | 最小字段 |
 |------|------|------|----------|
 | Run Manifest | `manifest.json` | 固定 run/task/playbook/source/release gate 的顶层事实 | `schema_version`、`trace_store_version`、`trace_id`、`run_id`、`task_id`、`trace_status`、`route_status`、`task`、`playbook`、`data_source`、`source_profile`、`release_gate`、`files` |
-| Workflow Event Log | `events.jsonl` | 记录域调度、验证、治理、bounds、routing、human-review 触发等可复放事件 | `schema_version`、`trace_id`、`run_id`、`sequence`、`phase`、`status`、`object_refs`、`summary`、`warnings` |
+| Workflow Event Log | `events.jsonl` | 记录域调度、验证、治理、bounds、routing、human-review 触发等 phase-summary 可复放事件；不是完整 raw append-only runtime log | `schema_version`、`trace_id`、`run_id`、`sequence`、`phase`、`status`、`object_refs`、`summary`、`warnings` |
 | Object Snapshot Store | `objects.jsonl` | 保存 workflow 对象的结构摘要和 refs，不做真实数值 golden snapshot | `schema_version`、`object_type`、`object_id`、`trace_id`、`run_id`、`refs`、`status`、`snapshot` |
 | Source / Artifact Lineage | `lineage.jsonl` | 记录 adapter/source/artifact/redaction 状态，区分 reviewed source、AlphaDB、baseline artifact | `schema_version`、`lineage_type`、`trace_id`、`run_id`、`source_ref`、`source_kind`、`source_profile`、`redaction_status` |
 
@@ -1630,7 +1632,7 @@ Observability 指标：
 | `trace replay --mode structural` | 不访问数据源、不重算数值，只验证 object chain、route、lineage、redaction、snapshot policy |
 | weak trace regression | 可用于 real-standard baseline 和 reviewed deep-shadow corpus 的结构回归 |
 | Run Manifest 层 | 固定 task/playbook/data_source/as_of/repo/release gate |
-| Workflow Event Log 层 | 固定 phase/event sequence 与 human-review triggers |
+| Workflow Event Log 层 | 固定 phase-summary event sequence 与 human-review triggers，不声明完整 raw append-only Event Log 已完成 |
 | Object Snapshot Store 层 | 保存 cards、constraint exports、bounds、candidate、conflict/governance/playbook 摘要 |
 | Source / Artifact Lineage 层 | 保存 adapter/source/artifact refs、reviewed source 标记、redaction status |
 | Secret redaction | trace artifact 不得泄漏 URL password、token、API key、本地密钥 |
