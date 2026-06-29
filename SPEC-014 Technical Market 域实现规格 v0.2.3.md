@@ -5,7 +5,7 @@
 **项目名称：** crosslens
 **文档类型：** 实现
 **依赖文档：** SPEC-003 v0.3.4；SPEC-004 v0.2.7；SPEC-005 v0.2
-**实现参考：** SPEC-013 v0.2.0（Adapter 映射、Evidence 边界、Pipeline 模式；非规范性上游）
+**实现参考：** SPEC-013 v0.2.1（Adapter 映射、Evidence 边界、Pipeline 模式；非规范性上游）
 **上游契约：**
 - SPEC-003 §8 (Analysis Domain Job 输入)
 - SPEC-004 §4 (Analysis Card 通用 Schema，含 ConstraintExport.registration_status)

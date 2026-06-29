@@ -5,7 +5,7 @@
 **项目名称：** crosslens
 **文档类型：** 实现
 **依赖文档：** SPEC-003 v0.3.4；SPEC-004 v0.2.7；SPEC-005 v0.2；SPEC-006 v0.3.0；SPEC-014 v0.2.3
-**实现参考：** SPEC-013 v0.2.0（消费者域 Pipeline 模式、Evidence 边界）；SPEC-015 v0.1.1（optional 域、confidence cap 与上游 CR 记录方式）
+**实现参考：** SPEC-013 v0.2.1（消费者域 Pipeline 模式、Evidence 边界）；SPEC-015 v0.1.1（optional 域、confidence cap 与上游 CR 记录方式）
 **上游契约：**
 - SPEC-003 §6.4 (domain 枚举，event_driven)
 - SPEC-003 §6.5 (Evidence Packet schema)

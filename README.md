@@ -36,7 +36,7 @@ Strategy / Playbook = 对一个或多个域能力的组合与约束
 | SPEC-010 | [MVP范围与验证指标](./SPEC-010%20MVP%20范围与验证指标%20v0.1.md) | MVP范围宪法、验证标准 |
 | SPEC-011 | [Case Library与历史案例记忆](./SPEC-011%20Case%20Library%20与历史案例记忆%20v0.1.md) | 案例库结构、隐私边界 |
 | SPEC-012 | [数据治理与用户私有数据](./SPEC-012%20数据治理与用户私有数据%20v0.1.md) | 数据三级分类、访问控制、生命周期 |
-| SPEC-013 | [Fundamentals 域实现规格](./SPEC-013%20Fundamentals%20域实现规格%20v0.2.0.md) | A股财务分析域 Pipeline、metric 计算、Evidence 边界 |
+| SPEC-013 | [Fundamentals 域实现规格](./SPEC-013%20Fundamentals%20域实现规格%20v0.2.1.md) | A股财务分析域 Pipeline、metric 计算、Evidence 边界 |
 | SPEC-014 | [Technical/Market 域实现规格](./SPEC-014%20Technical%20Market%20域实现规格%20v0.2.3.md) | 技术面三层架构 + Part II 高阶扩展（regime/RS/风险/支撑阻力/MTF） |
 | SPEC-015 | [Macro/Meso 域实现规格](./SPEC-015%20Macro%20Meso%20域实现规格%20v0.1.1.md) | 宏观/中观消费者域 Pipeline、global_liquidity_metrics、3 Context 子 stance |
 | SPEC-016 | [Event Driven 域实现规格](./SPEC-016%20Event%20Driven%20域实现规格%20v0.1.0.md) | 事件驱动域 Pipeline、预期差判断、可交易性评分、受益链条映射 |

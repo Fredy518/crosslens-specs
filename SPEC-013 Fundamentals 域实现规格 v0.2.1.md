@@ -1,6 +1,6 @@
 # SPEC-013：Fundamentals 域实现规格
 
-**版本：** v0.2.0
+**版本：** v0.2.1
 **状态：** Review
 **项目名称：** crosslens
 **文档类型：** 实现
@@ -1457,7 +1457,7 @@ confidence = min(confidence, confidence_cap_from_quality(data_quality))
 | `opposing_evidence` | Evidence Packets 中 signal ∈ {negative} | 必须 ≥1 项（若 stance ∈ directional/mixed） |
 | `constraint_exports` | §4 Metric Catalog 中 can_support_hard=true 的 metrics | 每个 export 必须声明 can_support_hard_constraint |
 | `domain_payload` | SPEC-004 §19 枚举值 | growth_quality, profitability_quality, cashflow_quality, balance_sheet_risk, valuation_state, earnings_quality, capital_allocation_quality, fundamental_tailwinds, fundamental_headwinds, must_watch_metrics |
-| `data_freshness` | 所有 Evidence Packets 的 as_of | 最旧 → oldest_evidence_as_of, 最新 → newest_evidence_as_of |
+| `data_freshness` | 所有 Evidence Packets 的 as_of | 最旧 → oldest_evidence_as_of, 最新 → newest_evidence_as_of；A 股财报 stale 判定使用最新可见披露日（newest_evidence_as_of）而不是 TTM 窗口中最早季度 |
 | `evidence_coverage` | 管线结果 | supporting/opposing count + missing_required_evidence |
 | `key_findings` | LLM 或模板 | 2-5 条，每条 1 句话 |
 | `key_risks` | §7 子信号 + LLM 补充 | 估值风险、增长放缓风险、现金流恶化风险、杠杆风险 |
@@ -1474,8 +1474,8 @@ confidence = min(confidence, confidence_cap_from_quality(data_quality))
 
 | # | 检查项 | 触发条件 | 严重度 | 处理 |
 |---|---|---|---|---|
-| 1 | 财报数据过期 > 90 天 | oldest_evidence_as_of > 90 days ago | flag | 降低 confidence，加入 warnings |
-| 2 | 财报数据过期 > 180 天 | oldest_evidence_as_of > 180 days ago | flag | domain_status = partial（降级），移除所有 `can_support_hard_constraint=true` 的 constraint_exports，confidence_cap = min(当前 cap, 0.35)，加入 warnings: "stale_data" |
+| 1 | 财报数据过期 > 90 天 | 最新可见财报披露日（newest_evidence_as_of）> 90 days ago | flag | 降低 confidence，加入 warnings |
+| 2 | 财报数据过期 > 180 天 | 最新可见财报披露日（newest_evidence_as_of）> 180 days ago | flag | domain_status = partial（降级），移除所有 `can_support_hard_constraint=true` 的 constraint_exports，confidence_cap = min(当前 cap, 0.35)，加入 warnings: "stale_data" |
 | 3 | 估值数据缺失 | valuation_metrics 不可用 | flag | 移除 valuation 相关 constraint_exports，valuation_state = unknown |
 | 4 | 收入增速与行业增速 lineage 异常 | peer_comparison_metrics 的 industry_median 不是来自独立的行业数据库，而是从公司自身 filing 推导（即 financial_metrics 和 peer_comparison_metrics 共享同一个原始数据源） | flag | 标记 lineage 风险，加入 warnings: "peer_data_not_independent" |
 | 5 | completed + 无 supporting_evidence | domain_status=completed 但 supporting=[] | flag | 检查 stance 逻辑（neutral 时可能合法） |
@@ -1597,7 +1597,7 @@ Fundamentals 域 MVP 仅支持 **A 股上市公司（中国会计准则 CAS）**
 | Q3 季报 (9/30) | 10/31 | ≤ 11/30 | > 90 天 | > 150 天 |
 | Q4 年报 (12/31) | 次年 4/30 | ≤ 次年 5/30 | > 90 天 | > 180 天 |
 
-**实际判断逻辑：** 取 `fina_pit_ext.actual_date`（实际披露日），距今 > 90 天触发 flag #1，> 180 天触发 flag #2。PIT 语义要求不基于 `end_date`（报告期截止日），而基于 `actual_date`（实际可获取日）。
+**实际判断逻辑：** 在 run `as_of` 之前可见的报告期中，取最新报告期的 `fina_pit_ext.actual_date`（实际披露日 / newest_evidence_as_of），距 `as_of` > 90 天触发 flag #1，> 180 天触发 flag #2。TTM 或多期窗口中更早季度可继续记录到 `oldest_evidence_as_of` 用于追溯，但不得单独使整张 Card 被判为 stale。PIT 语义要求不基于 `end_date`（报告期截止日），而基于 `actual_date`（实际可获取日），且必须忽略 `as_of` 之后的未来披露日。
 
 **一致性要求：** 若同一 `ts_code + end_date` 存在多次修订披露，运行时必须按 `ann_date DESC` 做 latest-known-as-of 选择，再做去重；不得把 `end_date` 相同但 `ann_date` 更晚的修订版本误当作未来信息或直接覆盖历史可见版本。
 

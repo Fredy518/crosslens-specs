@@ -27,7 +27,7 @@
 | SPEC-010 | SPEC-010 MVP 范围与验证指标 v0.1.md | v0.1 | Draft | 需求 | MVP 范围宪法、MVP-0 三域 standard runtime 与 MVP-1 五域 deep Full Decision 分层、验证标准、交付清单、exclusion 列表 | — |
 | SPEC-011 | SPEC-011 Case Library 与历史案例记忆 v0.1.md | v0.1 | Draft | 设计 | Case schema、索引六维、匿名化规则、隐私边界、相似度算法（defined but MVP-deferred） | — |
 | SPEC-012 | SPEC-012 数据治理与用户私有数据 v0.1.md | v0.1 | Draft | 需求 | 数据三分类、访问控制决策树、生命周期、删除/导出 | — |
-| SPEC-013 | SPEC-013 Fundamentals 域实现规格 v0.2.0.md | v0.2.0 | Review | 实现 | — | — |
+| SPEC-013 | SPEC-013 Fundamentals 域实现规格 v0.2.1.md | v0.2.1 | Review | 实现 | Fundamentals freshness uses latest visible A-share disclosure date while retaining oldest evidence for trace | — |
 | SPEC-014 | SPEC-014 Technical Market 域实现规格 v0.2.3.md | v0.2.3 | Review | 实现 | Part I（§1–§16）Review；Part II（§17–§28）Draft。三层架构 + 高阶扩展、regime 门控、分位自校准 | — |
 | SPEC-015 | SPEC-015 Macro Meso 域实现规格 v0.1.1.md | v0.1.1 | Review | 实现 | 消费者域 Pipeline（9 evidence / 7 metric / 3 Context / 9 步）、global_liquidity_metrics evidence、2 个 proposed soft-only metric、§10.2-fallback、market_regime canonical source | — |
 | SPEC-016 | SPEC-016 Event Driven 域实现规格 v0.1.0.md | v0.1.0 | Review | 实现 | Event Driven Pipeline（事件发现 / 预期差判断 / 可交易性评分 / 受益链条映射）、runtime score payload-only、PIT/as_of 防泄漏 | — |
