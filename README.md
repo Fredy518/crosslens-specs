@@ -165,7 +165,7 @@ CrossLens 支持三类产品化执行深度：
 | `standard` | Standard Review | 常规投研复核或单个决策前检查 | 2~3 个关键域 + Playbook |
 | `deep` | Full Decision | 严肃决策、冲突检查、复盘留痕 | 五域 + Conflict + Guardrail + Trace |
 
-当前 MVP 按实现阶段分层：MVP-0 以 `standard` 三域 runtime（Fundamentals、Technical/Market、Macro/Meso）验证端到端闭环和最小 Trace；MVP-0.5 以 fixture/mock `deep` 五域 golden path 验证 runtime 和报告链路，但不等于完整 MVP-1；真实 A 股 `standard` 可进入 promotion candidate，真实 `deep` 只能在 reviewed Event/Sentiment source 校验和 deep shadow gate 后标为 `deep-shadow-ready`；SPEC-008 v0.2 的 Trace Store Runtime v1 先提供四层 artifact、inspect/replay、phase-summary event stream 和 weak structural replay，MVP-1 仍要求真实数据 `deep` 五域 Full Decision、完整四层 Trace、基础 raw Event Log 与 Event/Sentiment source governance 全部通过。
+当前 MVP 按实现阶段分层：MVP-0 以 `standard` 三域 runtime（Fundamentals、Technical/Market、Macro/Meso）验证端到端闭环和最小 Trace；MVP-0.5 以 fixture/mock `deep` 五域 golden path 验证 runtime 和报告链路，但不等于完整 MVP-1；真实 A 股 `standard` 可进入 promotion candidate，真实 `deep` 只能在 reviewed Event/Sentiment source 校验和 deep shadow gate 后标为 `deep-shadow-ready`；SPEC-008 v0.2 的 Trace Store Runtime v1 先提供四层 artifact、inspect/replay、phase-summary event stream 和 weak structural replay，MVP-1 仍要求真实数据 `deep` 五域 Full Decision、完整四层 Trace、基础 raw Event Log 与 Event/Sentiment source governance 全部通过。Macro/Meso 可按 SPEC-004/SPEC-015 的 MVP 语义以 accepted partial 参与，但缺口必须进入 Card 与 Trace。
 
 SPEC-007 v0.6 已补充 depth-aware domain planning：`quick` / `standard` / `deep` 先决定进入 `DomainPlan` 的能力域，再沿用统一的 Domain Dispatch、Conflict、Guardrail 与 Trace 语义。
 
